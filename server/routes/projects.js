@@ -141,8 +141,8 @@ router.post('/:id/vote', (req, res) => {
   let project = db.getProjectById(req.params.id);
   if (!project) {
     const all = db.getProjects({});
-    const cleanParam = req.params.id.toLowerCase().replace(/^prj-/, '').replace(/[^a-z0-9]+/g, '-');
-    project = all.find(p => p.id === req.params.id || p.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') === cleanParam);
+    const cleanParam = req.params.id.toLowerCase().replace(/^prj-/, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    project = all.find(p => p.id === req.params.id || p.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') === cleanParam);
   }
   if (!project) {
     return res.status(404).json({ error: 'Project not found.' });
