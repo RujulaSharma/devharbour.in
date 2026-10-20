@@ -137,18 +137,27 @@ router.delete('/:id', requireAuth, (req, res) => {
 });
 
 // POST /api/projects/:id/vote
-router.post('/:id/vote', requireAuth, (req, res) => {
+router.post('/:id/vote', (req, res) => {
   const project = db.getProjectById(req.params.id);
   if (!project) {
     return res.status(404).json({ error: 'Project not found.' });
   }
 
-  const result = db.toggleProjectVote(req.user.id, project.id);
-  res.json({
-    message: result.voted ? 'Upvote registered!' : 'Upvote removed.',
-    voted: result.voted,
-    votesCount: result.votesCount
-  });
+  if (req.user) {
+    const result = db.toggleProjectVote(req.user.id, project.id);
+    return res.json({
+      message: result.voted ? 'Upvote registered!' : 'Upvote removed.',
+      voted: result.voted,
+      votesCount: result.votesCount
+    });
+  } else {
+    const updated = db.incrementProjectVotes(project.id);
+    return res.json({
+      message: 'Upvote registered!',
+      voted: true,
+      votesCount: updated.votesCount
+    });
+  }
 });
 
 // POST /api/projects/:id/bookmark

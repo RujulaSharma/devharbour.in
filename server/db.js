@@ -835,6 +835,11 @@ function deleteProject(projectId, userId, isAdmin = false) {
   return true;
 }
 
+function incrementProjectVotes(projectId) {
+  db.prepare('UPDATE projects SET votes_count = votes_count + 1 WHERE id = ?').run(projectId);
+  return getProjectById(projectId);
+}
+
 function toggleProjectVote(userId, projectId) {
   const existing = db.prepare('SELECT id FROM project_votes WHERE user_id = ? AND project_id = ?').get(userId, projectId);
   if (existing) {
@@ -972,6 +977,7 @@ module.exports = {
   createProject,
   updateProject,
   deleteProject,
+  incrementProjectVotes,
   toggleProjectVote,
   toggleProjectBookmark,
   getUserInteractions,
