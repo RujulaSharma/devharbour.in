@@ -138,7 +138,12 @@ router.delete('/:id', requireAuth, (req, res) => {
 
 // POST /api/projects/:id/vote
 router.post('/:id/vote', (req, res) => {
-  const project = db.getProjectById(req.params.id);
+  let project = db.getProjectById(req.params.id);
+  if (!project) {
+    const all = db.getProjects({});
+    const cleanParam = req.params.id.toLowerCase().replace(/^prj-/, '').replace(/[^a-z0-9]+/g, '-');
+    project = all.find(p => p.id === req.params.id || p.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') === cleanParam);
+  }
   if (!project) {
     return res.status(404).json({ error: 'Project not found.' });
   }
