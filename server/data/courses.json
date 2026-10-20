@@ -1,0 +1,98 @@
+[
+  {
+    "id": "course-cs50",
+    "title": "CS50: Introduction to Computer Science",
+    "description": "An introduction to the intellectual enterprises of computer science and the art of programming from Harvard University.",
+    "category": "Computer Science",
+    "provider": "edX / Harvard",
+    "level": "Beginner",
+    "external_url": "https://www.edx.org/learn/computer-science/harvard-university-cs50-s-introduction-to-computer-science",
+    "duration_hours": 36,
+    "rating": 4.9,
+    "is_featured": true
+  },
+  {
+    "id": "course-fcc-python",
+    "title": "Scientific Computing with Python",
+    "description": "Learn Python fundamentals, data structures, algorithm design, and scientific calculation from freeCodeCamp.",
+    "category": "Data Science",
+    "provider": "freeCodeCamp",
+    "level": "Beginner",
+    "external_url": "https://www.freecodecamp.org/learn/scientific-computing-with-python/",
+    "duration_hours": 30,
+    "rating": 4.8,
+    "is_featured": true
+  },
+  {
+    "id": "course-meta-frontend",
+    "title": "Meta Front-End Developer Certificate",
+    "description": "Professional certificate program covering HTML5, CSS3, JavaScript modern standards, React, and UX design.",
+    "category": "Web Development",
+    "provider": "Coursera / Meta",
+    "level": "Intermediate",
+    "external_url": "https://www.coursera.org/professional-certificates/meta-front-end-developer",
+    "duration_hours": 45,
+    "rating": 4.8,
+    "is_featured": true
+  },
+  {
+    "id": "course-ms-cybersecurity",
+    "title": "Microsoft Cybersecurity Analyst Professional Certificate",
+    "description": "Official Microsoft training for foundational network security, threat vectors, risk mitigation, and compliance.",
+    "category": "Cybersecurity",
+    "provider": "Coursera / Microsoft",
+    "level": "Beginner",
+    "external_url": "https://www.coursera.org/professional-certificates/microsoft-cybersecurity-analyst",
+    "duration_hours": 40,
+    "rating": 4.7,
+    "is_featured": true
+  },
+  {
+    "id": "course-fullstack-open",
+    "title": "Full Stack Open: Deep Dive Into Modern Web Development",
+    "description": "University of Helsinki's acclaimed open curriculum on React, Redux, Node.js, REST APIs, GraphQL, and TypeScript.",
+    "category": "Full Stack",
+    "provider": "University of Helsinki",
+    "level": "Advanced",
+    "external_url": "https://fullstackopen.com/en/",
+    "duration_hours": 60,
+    "rating": 5.0,
+    "is_featured": true
+  },
+  {
+    "id": "course-ms-git",
+    "title": "Introduction to Git and GitHub",
+    "description": "Master version control, branches, pull requests, merge conflict resolution, and collaborative workflows.",
+    "category": "DevOps",
+    "provider": "Microsoft Learn",
+    "level": "Beginner",
+    "external_url": "https://learn.microsoft.com/en-us/training/modules/introduction-to-git/",
+    "duration_hours": 8,
+    "rating": 4.9,
+    "is_featured": false
+  },
+  {
+    "id": "course-docker-fcc",
+    "title": "Docker and Containerization for Beginners",
+    "description": "Understand container virtualization, Dockerfiles, multi-stage builds, volumes, and Docker Compose orchestration.",
+    "category": "DevOps",
+    "provider": "freeCodeCamp",
+    "level": "Intermediate",
+    "external_url": "https://www.freecodecamp.org/news/docker-training-course-for-beginners/",
+    "duration_hours": 12,
+    "rating": 4.8,
+    "is_featured": false
+  },
+  {
+    "id": "course-google-data",
+    "title": "Google Data Analytics Professional Certificate",
+    "description": "Gain hands-on skills in data cleaning, SQL analysis, R programming, and data storytelling.",
+    "category": "Data Science",
+    "provider": "Coursera / Google",
+    "level": "Beginner",
+    "external_url": "https://www.coursera.org/professional-certificates/google-data-analytics",
+    "duration_hours": 50,
+    "rating": 4.8,
+    "is_featured": false
+  }
+]

@@ -1,0 +1,62 @@
+[
+  {
+    "id": "ach-first-step",
+    "key": "first_step",
+    "title": "First Step",
+    "description": "Complete your first verified reading lesson in Dev Harbour.",
+    "badge_icon": "book-open",
+    "xp_bonus": 25,
+    "condition_type": "lessons_completed",
+    "condition_value": 1
+  },
+  {
+    "id": "ach-scholar",
+    "key": "scholar",
+    "title": "Dedicated Scholar",
+    "description": "Complete at least 3 reading lessons across any course tracks.",
+    "badge_icon": "award",
+    "xp_bonus": 50,
+    "condition_type": "lessons_completed",
+    "condition_value": 3
+  },
+  {
+    "id": "ach-code-solver",
+    "key": "code_solver",
+    "title": "Code Solver",
+    "description": "Successfully pass your first coding challenge with all test cases verified.",
+    "badge_icon": "terminal",
+    "xp_bonus": 50,
+    "condition_type": "challenges_passed",
+    "condition_value": 1
+  },
+  {
+    "id": "ach-algorithmist",
+    "key": "algorithmist",
+    "title": "Algorithmist",
+    "description": "Pass 3 or more coding challenges.",
+    "badge_icon": "cpu",
+    "xp_bonus": 75,
+    "condition_type": "challenges_passed",
+    "condition_value": 3
+  },
+  {
+    "id": "ach-builder",
+    "key": "builder",
+    "title": "Project Builder",
+    "description": "Submit a live project to the Dev Harbour Featured Projects directory.",
+    "badge_icon": "folder-plus",
+    "xp_bonus": 100,
+    "condition_type": "projects_submitted",
+    "condition_value": 1
+  },
+  {
+    "id": "ach-supporter",
+    "key": "supporter",
+    "title": "Community Pillar",
+    "description": "Cast an upvote on a peer developer's project submission.",
+    "badge_icon": "heart",
+    "xp_bonus": 15,
+    "condition_type": "projects_voted",
+    "condition_value": 1
+  }
+]
