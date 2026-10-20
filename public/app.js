@@ -1,8 +1,8 @@
 /**
- * Dev Harbour — Seamless Full-Stack Data Controller
- * Non-invasively attaches to the existing UI to provide persistent authentication,
- * server-side challenge execution & XP ledger credits, real course reading & catalog links,
- * genuine database leaderboard records, project submissions, and custom tasks.
+ * Dev Harbour — Full-Stack Integration Controller & Navigation Bridge
+ * Bridges the Landing Page (#intro) and Dashboard (.app) seamlessly.
+ * Provides persistent authentication, authentic code challenge execution,
+ * official course catalog & reading mode, project submissions, and XP ledger sync.
  */
 (function() {
   'use strict';
@@ -11,6 +11,7 @@
   let currentUser = null;
   let token = localStorage.getItem('dh_token') || null;
 
+  // Toast Helper
   function showToast(msg) {
     if (typeof window.toast === 'function') {
       window.toast(msg);
@@ -24,32 +25,47 @@
     }
   }
 
-  // Inject Modal Styles (using native CSS variables so it adapts to Light, Dark, Mercury)
+  // Inject Styles for Modals, Navigation Buttons & Profile
   const style = document.createElement('style');
   style.id = 'dh-fs-styles';
   style.textContent = `
-    .dh-modal-wrap { position:fixed; inset:0; background:rgba(15,12,28,.65); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); display:grid; place-items:center; z-index:99999; padding:16px; opacity:0; pointer-events:none; transition:opacity .25s ease; }
+    /* Modal Wrapper */
+    .dh-modal-wrap { position:fixed; inset:0; background:rgba(15,12,28,.65); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); display:grid; place-items:center; z-index:99999; padding:16px; opacity:0; pointer-events:none; transition:opacity .25s ease; }
     .dh-modal-wrap.open { opacity:1; pointer-events:auto; }
-    .dh-box { background:var(--card); color:var(--ink); border-radius:var(--r); padding:28px 24px; max-width:480px; width:100%; box-shadow:0 24px 60px -20px rgba(0,0,0,.5); border:1px solid var(--line); position:relative; max-height:88vh; overflow-y:auto; font-family:var(--font); transform:translateY(12px); transition:transform .25s ease; }
+    .dh-box { background:var(--card); color:var(--ink); border-radius:var(--r); padding:30px 24px; max-width:520px; width:100%; box-shadow:0 24px 60px -20px rgba(0,0,0,.5); border:1px solid var(--line); position:relative; max-height:88vh; overflow-y:auto; font-family:var(--font); transform:translateY(12px); transition:transform .25s ease; }
     .dh-modal-wrap.open .dh-box { transform:translateY(0); }
     .dh-box h3 { font-size:22px; font-weight:800; letter-spacing:-.02em; margin-bottom:6px; }
-    .dh-box p.desc { color:var(--mut); font-size:13px; margin-bottom:18px; line-height:1.4; }
-    .dh-x { position:absolute; top:18px; right:18px; width:30px; height:30px; border-radius:50%; background:var(--soft); color:var(--ink); display:grid; place-items:center; font-size:18px; cursor:pointer; border:none; line-height:1; }
+    .dh-box p.desc { color:var(--mut); font-size:13px; margin-bottom:18px; line-height:1.45; }
+    .dh-x { position:absolute; top:20px; right:20px; width:32px; height:32px; border-radius:50%; background:var(--soft); color:var(--ink); display:grid; place-items:center; font-size:18px; cursor:pointer; border:none; line-height:1; }
     .dh-x:hover { background:var(--line); }
     .dh-tabs { display:flex; gap:6px; background:var(--soft); padding:4px; border-radius:12px; margin-bottom:18px; }
     .dh-tabs button { flex:1; padding:8px 12px; border-radius:9px; font-size:13px; font-weight:700; color:var(--mut); background:transparent; border:none; cursor:pointer; transition:all .2s; }
     .dh-tabs button.on { background:var(--blk); color:#fff; }
     .dh-row { margin-bottom:12px; display:flex; flex-direction:column; gap:5px; text-align:left; }
     .dh-row label { font-size:11px; font-weight:700; color:var(--mut); text-transform:uppercase; letter-spacing:.05em; }
-    .dh-row input, .dh-row textarea, .dh-row select { width:100%; padding:10px 14px; border-radius:12px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font-family:inherit; font-size:13.5px; outline:none; box-sizing:border-box; }
+    .dh-row input, .dh-row textarea, .dh-row select { width:100%; padding:11px 14px; border-radius:12px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font-family:inherit; font-size:13.5px; outline:none; box-sizing:border-box; }
     .dh-row input:focus, .dh-row textarea:focus, .dh-row select:focus { border-color:var(--blk); }
     .dh-btn { width:100%; padding:12px; border-radius:99px; background:var(--blk); color:#fff; font-weight:800; font-size:13.5px; border:none; cursor:pointer; margin-top:8px; transition:transform .2s; }
     .dh-btn:hover { transform:translateY(-1px); }
     .dh-msg-err { color:#e5484d; font-size:12px; font-weight:600; margin-bottom:10px; display:none; }
-    .dh-read-content { font-size:14px; line-height:1.65; color:var(--ink); margin:16px 0; background:var(--bg); padding:16px; border-radius:14px; max-height:280px; overflow-y:auto; border:1px solid var(--line); }
+    .dh-read-content { font-size:14px; line-height:1.65; color:var(--ink); margin:16px 0; background:var(--bg); padding:16px; border-radius:14px; max-height:300px; overflow-y:auto; border:1px solid var(--line); }
     .dh-read-content pre { background:var(--blk); color:#fff; padding:12px; border-radius:8px; overflow-x:auto; font-size:12.5px; margin:10px 0; font-family:monospace; }
     .dh-course-link { display:inline-flex; align-items:center; gap:8px; background:var(--soft); color:var(--ink); padding:8px 14px; border-radius:99px; font-size:12.5px; font-weight:700; text-decoration:none; margin-top:8px; }
     .dh-course-link:hover { background:var(--line); }
+
+    /* Profile UI */
+    .dh-prof-stat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:18px 0; }
+    .dh-prof-stat { background:var(--bg); border:1px solid var(--line); border-radius:14px; padding:12px; text-align:center; }
+    .dh-prof-stat b { font-size:20px; display:block; color:var(--ink); font-weight:800; }
+    .dh-prof-stat span { font-size:11px; color:var(--mut); font-weight:600; text-transform:uppercase; }
+    .dh-badge-item { display:flex; align-items:center; gap:12px; background:var(--bg); border:1px solid var(--line); padding:10px 14px; border-radius:14px; margin-bottom:8px; }
+    .dh-badge-icon { width:36px; height:36px; border-radius:10px; background:var(--blk); color:#fff; display:grid; place-items:center; font-size:16px; flex:none; }
+
+    /* Navigation Bridge Buttons */
+    .dh-nav-btn { display:inline-flex; align-items:center; gap:8px; background:var(--blk); color:#fff; border-radius:99px; padding:8px 18px; font-size:13px; font-weight:700; cursor:pointer; border:none; transition:transform .2s; }
+    .dh-nav-btn:hover { transform:translateY(-1px); }
+    .dh-nav-pill { display:inline-flex; align-items:center; gap:6px; background:var(--card); color:var(--ink); padding:8px 16px; border-radius:99px; font-size:13px; font-weight:700; border:1px solid var(--line); cursor:pointer; transition:background .2s; }
+    .dh-nav-pill:hover { background:var(--soft); }
   `;
   document.head.appendChild(style);
 
@@ -74,12 +90,80 @@
   closeBtn.onclick = closeModal;
   modalWrap.onclick = e => { if (e.target === modalWrap) closeModal(); };
 
-  // Render Auth UI
+  // ==========================================
+  // 1. CLEAR NAVIGATION SWITCHING (LANDING ↔ DASHBOARD)
+  // ==========================================
+  function setupNavigationBridge() {
+    // A. On the Landing Page Top Bar (.xn)
+    const xn = document.querySelector('.xn');
+    const xa = document.querySelector('.xn .xa');
+    if (xn && !document.getElementById('dh-launch-dash-btn')) {
+      const launchBtn = document.createElement('button');
+      launchBtn.id = 'dh-launch-dash-btn';
+      launchBtn.className = 'dh-nav-btn';
+      launchBtn.innerHTML = `<span>Dashboard</span> <svg class="i" style="width:14px;height:14px" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>`;
+      launchBtn.onclick = e => {
+        e.preventDefault();
+        e.stopPropagation();
+        window.goApp('home');
+      };
+      xn.appendChild(launchBtn);
+    }
+
+    // Attach click listeners to Landing "Log in" and "Join Free" (.xa)
+    if (xa) {
+      xa.style.cursor = 'pointer';
+      xa.onclick = e => {
+        e.preventDefault();
+        e.stopPropagation();
+        const isJoin = e.target.tagName === 'B' || e.target.textContent.includes('Join');
+        showAuthModal(isJoin ? 'signup' : 'login');
+      };
+    }
+
+    // B. In the Sidebar (.sb)
+    const sb = document.querySelector('.sb');
+    const sbLogo = document.querySelector('.sb .logo');
+    if (sbLogo) {
+      sbLogo.style.cursor = 'pointer';
+      sbLogo.title = 'Switch to Landing Page';
+      sbLogo.onclick = () => window.goLanding();
+    }
+
+    if (sb && !document.getElementById('dh-to-landing-btn')) {
+      const toLandingBtn = document.createElement('button');
+      toLandingBtn.id = 'dh-to-landing-btn';
+      toLandingBtn.className = 'nv';
+      toLandingBtn.style.marginBottom = '8px';
+      toLandingBtn.style.background = 'var(--soft)';
+      toLandingBtn.innerHTML = `<svg class="i" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Landing Page`;
+      toLandingBtn.onclick = () => window.goLanding();
+      const nav = document.getElementById('nav');
+      if (nav) {
+        sb.insertBefore(toLandingBtn, nav);
+      }
+    }
+
+    // C. In the Top Bar (.top .act)
+    const topAct = document.querySelector('.top .act');
+    if (topAct && !document.getElementById('dh-top-landing-btn')) {
+      const topLandingPill = document.createElement('button');
+      topLandingPill.id = 'dh-top-landing-btn';
+      topLandingPill.className = 'dh-nav-pill';
+      topLandingPill.innerHTML = `<svg class="i" style="width:14px;height:14px" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><span>Landing</span>`;
+      topLandingPill.onclick = () => window.goLanding();
+      topAct.insertBefore(topLandingPill, topAct.firstChild);
+    }
+  }
+
+  // ==========================================
+  // 2. AUTHENTICATION & SESSIONS
+  // ==========================================
   function showAuthModal(defaultTab) {
     defaultTab = defaultTab || 'login';
     modalContent.innerHTML = `
       <h3>Welcome to Dev Harbour</h3>
-      <p class="desc">Sign in or create a student account to track learning paths, submit challenges, earn XP, and join the leaderboard.</p>
+      <p class="desc">Sign in or create a student account to track learning paths, submit challenges, earn verified XP, and join the leaderboard.</p>
       <div class="dh-tabs">
         <button id="t-login" class="${defaultTab === 'login' ? 'on' : ''}">Sign In</button>
         <button id="t-signup" class="${defaultTab === 'signup' ? 'on' : ''}">Create Account</button>
@@ -95,7 +179,7 @@
           <label>Password</label>
           <input type="password" id="l-pass" placeholder="Your password" required autocomplete="current-password">
         </div>
-        <button type="submit" class="dh-btn">Sign In</button>
+        <button type="submit" class="dh-btn">Sign In to Dev Harbour</button>
       </form>
 
       <form id="f-signup" style="${defaultTab === 'signup' ? '' : 'display:none'}">
@@ -115,7 +199,7 @@
           <label>Password (min. 8 characters)</label>
           <input type="password" id="s-pass" minlength="8" placeholder="Create a strong password" required autocomplete="new-password">
         </div>
-        <button type="submit" class="dh-btn">Create Free Account</button>
+        <button type="submit" class="dh-btn">Create Free Student Account</button>
       </form>
     `;
 
@@ -197,7 +281,6 @@
     modalWrap.classList.add('open');
   }
 
-  // Update User Header UI (Preserves exact markup, only reflects authenticated user)
   function updateUserUI() {
     const heading = document.querySelector('.top h1');
     const subtitle = document.querySelector('.top p');
@@ -208,9 +291,9 @@
       if (heading) heading.textContent = `Hi, ${currentUser.fullName || currentUser.username}!`;
       if (subtitle) subtitle.textContent = `${(currentUser.totalXp || 0).toLocaleString()} XP · Level ${currentUser.level || 1} · ${currentUser.streakDays || 0} day streak`;
       if (crBtn) {
-        crBtn.textContent = `${currentUser.username} (Logout)`;
+        crBtn.textContent = `${currentUser.username} (Profile)`;
         crBtn.removeAttribute('data-t');
-        crBtn.onclick = logoutUser;
+        crBtn.onclick = () => showStudentProfile(currentUser.username);
       }
       if (av) {
         const initials = (currentUser.fullName || currentUser.username || 'DH').slice(0, 2).toUpperCase();
@@ -220,6 +303,8 @@
         av.style.color = '#fff';
         av.style.fontWeight = '800';
         av.style.fontSize = '14px';
+        av.style.cursor = 'pointer';
+        av.onclick = () => showStudentProfile(currentUser.username);
       }
     } else {
       if (heading) heading.textContent = 'Hi, Alexandra!';
@@ -227,10 +312,16 @@
       if (crBtn) {
         crBtn.textContent = '+ Sign up';
         crBtn.removeAttribute('data-t');
-        crBtn.onclick = () => showAuthModal('signup');
+        crBtn.onclick = e => {
+          e.preventDefault();
+          e.stopPropagation();
+          showAuthModal('signup');
+        };
       }
       if (av) {
         av.textContent = '';
+        av.style.cursor = 'default';
+        av.onclick = null;
       }
     }
   }
@@ -246,66 +337,90 @@
     currentUser = null;
     localStorage.removeItem('dh_token');
     updateUserUI();
+    closeModal();
     showToast('Signed out successfully');
   }
 
-  // Initial Auth Check
-  async function initAuth() {
-    if (token) {
-      try {
-        const res = await fetch(`${API_BASE}/auth/me`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          currentUser = data.user;
-          updateUserUI();
-        } else {
-          token = null;
-          localStorage.removeItem('dh_token');
-          updateUserUI();
-        }
-      } catch (e) {
-        updateUserUI();
-      }
-    } else {
-      const crBtn = document.querySelector('.top .act .cr');
-      if (crBtn) {
-        crBtn.onclick = e => {
-          e.preventDefault();
-          e.stopPropagation();
-          showAuthModal('signup');
-        };
-      }
+  // ==========================================
+  // 3. STUDENT PROFILE MODAL
+  // ==========================================
+  async function showStudentProfile(username) {
+    if (!token && !currentUser) {
+      showAuthModal('login');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/user/summary`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = res.ok ? await res.json() : null;
+      const p = (data && data.profile) || currentUser;
+      const s = (data && data.stats) || { totalXp: p.totalXp || 0, level: p.level || 1, streakDays: 0, completedLessons: 0, solvedChallenges: 0, submittedProjects: 0 };
+      const achs = (data && data.achievements) || [];
+
+      modalContent.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px;">
+          <div>
+            <span class="tag" style="background:var(--blk);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;">Level ${s.level} · Student</span>
+            <h3 style="margin-top:8px">${p.fullName || p.username}</h3>
+            <p class="desc" style="margin-bottom:0">@${p.username}</p>
+          </div>
+          <button class="dh-btn" style="width:auto; padding:6px 16px; margin:0; font-size:12px; background:var(--soft); color:var(--ink);" id="dh-btn-logout">Logout</button>
+        </div>
+
+        <div class="dh-prof-stat-grid">
+          <div class="dh-prof-stat">
+            <b>${(s.totalXp || 0).toLocaleString()}</b>
+            <span>Total XP</span>
+          </div>
+          <div class="dh-prof-stat">
+            <b>${s.streakDays || 0}d</b>
+            <span>Streak</span>
+          </div>
+          <div class="dh-prof-stat">
+            <b>${s.solvedChallenges || 0}</b>
+            <span>Solved</span>
+          </div>
+          <div class="dh-prof-stat">
+            <b>${s.completedLessons || 0}</b>
+            <span>Lessons</span>
+          </div>
+          <div class="dh-prof-stat">
+            <b>${s.submittedProjects || 0}</b>
+            <span>Projects</span>
+          </div>
+          <div class="dh-prof-stat">
+            <b>${achs.length}</b>
+            <span>Badges</span>
+          </div>
+        </div>
+
+        <h4 style="font-size:15px; font-weight:800; margin-bottom:12px;">Unlocked Achievements</h4>
+        <div>
+          ${achs.length ? achs.map(a => `
+            <div class="dh-badge-item">
+              <div class="dh-badge-icon">✦</div>
+              <div>
+                <b style="font-size:13.5px; display:block;">${a.title}</b>
+                <span style="font-size:12px; color:var(--mut);">${a.description} (+${a.xpReward} XP)</span>
+              </div>
+            </div>
+          `).join('') : '<p class="mut" style="font-size:13px">Solve challenges and complete reading lessons to unlock platform badges!</p>'}
+        </div>
+      `;
+
+      const logoutBtn = modalContent.querySelector('#dh-btn-logout');
+      if (logoutBtn) logoutBtn.onclick = logoutUser;
+      modalWrap.classList.add('open');
+    } catch (e) {
+      showToast('Could not load student profile');
     }
   }
 
-  // Sync Leaderboard with Database
-  async function syncLeaderboard() {
-    try {
-      const [resAll, resWeekly] = await Promise.all([
-        fetch(`${API_BASE}/leaderboard?period=all`),
-        fetch(`${API_BASE}/leaderboard?period=weekly`)
-      ]);
-      if (resAll.ok && resWeekly.ok) {
-        const dataAll = await resAll.json();
-        const dataWeekly = await resWeekly.json();
-        if (window.L && dataAll.leaderboard && dataWeekly.leaderboard) {
-          window.L['All-time'] = dataAll.leaderboard.map(u => [u.username, u.challengesSolved || 0, u.totalXp || 0]);
-          window.L.Weekly = dataWeekly.leaderboard.map(u => [u.username, u.challengesSolved || 0, u.totalXp || 0]);
-          if (typeof window.rl === 'function') window.rl('Weekly');
-          const zlb = document.getElementById('zlb');
-          if (zlb && window.L['All-time']) {
-            zlb.innerHTML = window.L['All-time'].map((u, i) =>
-              `<div class="zlb"><b>${i+1}</b><span>${u[0]}</span><span>${u[1]}</span><span>${u[2].toLocaleString()} XP</span></div>`
-            ).join('');
-          }
-        }
-      }
-    } catch (e) {}
-  }
-
-  // Challenge Submission & Automatic XP Hook
+  // ==========================================
+  // 4. CHALLENGE SUBMISSION & VM SANDBOX XP
+  // ==========================================
   function hookChallengeRunner() {
     window.addEventListener('message', async e => {
       const d = e.data;
@@ -345,26 +460,104 @@
     });
   }
 
-  // Connect "+ Add task" button to real goals list
-  function hookAddTask() {
-    const addBtn = document.querySelector('button[data-t*="Custom tasks"]');
-    if (addBtn) {
-      addBtn.onclick = e => {
-        e.preventDefault();
-        e.stopPropagation();
-        const taskName = prompt('Enter a new learning goal or task:');
-        if (taskName && taskName.trim()) {
-          if (Array.isArray(window.G)) {
-            window.G.push(taskName.trim());
-            if (typeof window.rg === 'function') window.rg();
-            showToast('Goal added to your dashboard!');
-          }
-        }
-      };
-    }
+  // ==========================================
+  // 5. COURSE CATALOG & READING MODE
+  // ==========================================
+  function hookCourses() {
+    document.addEventListener('click', async e => {
+      const card = e.target.closest('#pg .c');
+      if (card) {
+        const titleEl = card.querySelector('h3');
+        const courseTitle = titleEl ? titleEl.textContent : '';
+        openCourseDetail(courseTitle);
+      }
+    });
   }
 
-  // Connect Project Submissions & Details
+  async function openCourseDetail(courseTitle) {
+    try {
+      const res = await fetch(`${API_BASE}/courses`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const course = (data.courses || []).find(c => c.title.toLowerCase().includes(courseTitle.toLowerCase())) || data.courses[0];
+      if (!course) return;
+
+      const detailRes = await fetch(`${API_BASE}/courses/${course.id}`);
+      const detailData = detailRes.ok ? await detailRes.json() : { lessons: [] };
+      const lessons = detailData.lessons || [];
+
+      modalContent.innerHTML = `
+        <span class="tag" style="background:var(--soft);color:var(--blk);font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;">${course.provider} · ${course.level}</span>
+        <h3 style="margin-top:10px">${course.title}</h3>
+        <p class="desc">${course.description}</p>
+        <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+          <a href="${course.officialUrl}" target="_blank" rel="noopener noreferrer" class="dh-course-link">
+            Open Official Course ↗ (${course.provider})
+          </a>
+        </div>
+        <h4 style="font-size:15px; font-weight:700; margin-bottom:10px;">Interactive Lessons & Reading:</h4>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          ${lessons.map((l, i) => `
+            <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg); padding:10px 14px; border-radius:12px; border:1px solid var(--line);">
+              <div>
+                <b style="font-size:13.5px; display:block;">${l.title}</b>
+                <span style="font-size:12px; color:var(--mut);">${l.readingTimeMinutes || 10} min read · +${l.xpReward || 25} XP</span>
+              </div>
+              <button class="dh-btn" style="width:auto; padding:6px 16px; margin:0; font-size:12px;" onclick="window.DH_ReadLesson('${course.id}', '${l.id}')">Read Lesson</button>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      modalWrap.classList.add('open');
+    } catch (err) {}
+  }
+
+  window.DH_ReadLesson = async function(courseId, lessonId) {
+    try {
+      const res = await fetch(`${API_BASE}/courses/${courseId}/lessons/${lessonId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const l = data.lesson;
+
+      modalContent.innerHTML = `
+        <span class="tag" style="background:var(--soft);color:var(--blk);font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;">Lesson · +${l.xpReward || 25} XP</span>
+        <h3 style="margin-top:10px">${l.title}</h3>
+        <div class="dh-read-content">
+          ${l.contentHtml || l.content}
+        </div>
+        <button class="dh-btn" id="dh-finish-lesson">Complete Lesson (+${l.xpReward || 25} XP)</button>
+      `;
+
+      const finishBtn = modalContent.querySelector('#dh-finish-lesson');
+      finishBtn.onclick = async () => {
+        if (!token) {
+          showToast('Sign in to claim lesson XP');
+          showAuthModal('login');
+          return;
+        }
+        const compRes = await fetch(`${API_BASE}/courses/${courseId}/lessons/${lessonId}/complete`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const compData = await compRes.json();
+        if (compRes.ok) {
+          showToast(`Lesson completed! +${compData.xpEarned || 25} XP awarded!`);
+          if (currentUser) {
+            currentUser.totalXp = compData.totalXp;
+            updateUserUI();
+          }
+          syncLeaderboard();
+        } else {
+          showToast(compData.message || 'Lesson already completed');
+        }
+        closeModal();
+      };
+    } catch (err) {}
+  };
+
+  // ==========================================
+  // 6. PROJECTS COMMUNITY & SUBMISSIONS
+  // ==========================================
   function hookProjects() {
     document.addEventListener('click', e => {
       const prjLink = e.target.closest('a[data-t*="Project pages need a backend"]');
@@ -374,6 +567,10 @@
         showProjectModal();
       }
     });
+
+    const createBtn = document.querySelector('.top .act .cr');
+    // Allow users to submit projects
+    window.openProjectSubmit = showProjectModal;
   }
 
   function showProjectModal() {
@@ -464,98 +661,88 @@
     modalWrap.classList.add('open');
   }
 
-  // Connect Course Cards to Real Reading & Official Course Catalog
-  function hookCourses() {
-    document.addEventListener('click', async e => {
-      const card = e.target.closest('#pg .c');
-      if (card) {
-        const titleEl = card.querySelector('h3');
-        const courseTitle = titleEl ? titleEl.textContent : '';
-        openCourseDetail(courseTitle);
+  // ==========================================
+  // 7. HACKATHON & TASKS HOOKS
+  // ==========================================
+  function hookHackathonAndTasks() {
+    // Replace placeholder on Hackathon register button
+    document.addEventListener('click', e => {
+      const hackBtn = e.target.closest('button[data-t*="Registration needs a backend"]');
+      if (hackBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.open('https://unstop.com/o/vON6wtS?lb=useupllP&utm_medium=Share&utm_source=online_coding_challenge&utm_campaign=Parthhyg96055', '_blank');
+        showToast('Opening official Orcathon 2K26 registration on Unstop...');
+      }
+
+      const taskBtn = e.target.closest('button[data-t*="Custom tasks need a backend"]');
+      if (taskBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const goal = prompt('Enter a new personal learning goal or task:');
+        if (goal && goal.trim()) {
+          if (Array.isArray(window.G)) {
+            window.G.push(goal.trim());
+            if (typeof window.rg === 'function') window.rg();
+            showToast('Goal added to your dashboard!');
+          }
+        }
       }
     });
   }
 
-  async function openCourseDetail(courseTitle) {
+  // ==========================================
+  // 8. LEADERBOARD SYNC
+  // ==========================================
+  async function syncLeaderboard() {
     try {
-      const res = await fetch(`${API_BASE}/courses`);
-      if (!res.ok) return;
-      const data = await res.json();
-      const course = (data.courses || []).find(c => c.title.toLowerCase().includes(courseTitle.toLowerCase())) || data.courses[0];
-      if (!course) return;
-
-      const detailRes = await fetch(`${API_BASE}/courses/${course.id}`);
-      const detailData = detailRes.ok ? await detailRes.json() : { lessons: [] };
-      const lessons = detailData.lessons || [];
-
-      modalContent.innerHTML = `
-        <span class="tag" style="background:var(--soft);color:var(--blk);font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;">${course.provider} · ${course.level}</span>
-        <h3 style="margin-top:10px">${course.title}</h3>
-        <p class="desc">${course.description}</p>
-        <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
-          <a href="${course.officialUrl}" target="_blank" rel="noopener noreferrer" class="dh-course-link">
-            Official Course Link ↗ (${course.provider})
-          </a>
-        </div>
-        <h4 style="font-size:15px; font-weight:700; margin-bottom:10px;">Interactive Lessons & Reading:</h4>
-        <div style="display:flex; flex-direction:column; gap:8px;">
-          ${lessons.map((l, i) => `
-            <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg); padding:10px 14px; border-radius:12px; border:1px solid var(--line);">
-              <div>
-                <b style="font-size:13.5px; display:block;">${l.title}</b>
-                <span style="font-size:12px; color:var(--mut);">${l.readingTimeMinutes || 10} min read · +${l.xpReward || 25} XP</span>
-              </div>
-              <button class="dh-btn" style="width:auto; padding:6px 16px; margin:0; font-size:12px;" onclick="window.DH_ReadLesson('${course.id}', '${l.id}')">Read</button>
-            </div>
-          `).join('')}
-        </div>
-      `;
-      modalWrap.classList.add('open');
-    } catch (err) {}
+      const [resAll, resWeekly] = await Promise.all([
+        fetch(`${API_BASE}/leaderboard?period=all`),
+        fetch(`${API_BASE}/leaderboard?period=weekly`)
+      ]);
+      if (resAll.ok && resWeekly.ok) {
+        const dataAll = await resAll.json();
+        const dataWeekly = await resWeekly.json();
+        if (window.L && dataAll.leaderboard && dataWeekly.leaderboard) {
+          window.L['All-time'] = dataAll.leaderboard.map(u => [u.username, u.challengesSolved || 0, u.totalXp || 0]);
+          window.L.Weekly = dataWeekly.leaderboard.map(u => [u.username, u.challengesSolved || 0, u.totalXp || 0]);
+          if (typeof window.rl === 'function') window.rl('Weekly');
+          const zlb = document.getElementById('zlb');
+          if (zlb && window.L['All-time']) {
+            zlb.innerHTML = window.L['All-time'].map((u, i) =>
+              `<div class="zlb"><b>${i+1}</b><span>${u[0]}</span><span>${u[1]}</span><span>${u[2].toLocaleString()} XP</span></div>`
+            ).join('');
+          }
+        }
+      }
+    } catch (e) {}
   }
 
-  window.DH_ReadLesson = async function(courseId, lessonId) {
-    try {
-      const res = await fetch(`${API_BASE}/courses/${courseId}/lessons/${lessonId}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      const l = data.lesson;
-
-      modalContent.innerHTML = `
-        <span class="tag" style="background:var(--soft);color:var(--blk);font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;">Lesson · +${l.xpReward || 25} XP</span>
-        <h3 style="margin-top:10px">${l.title}</h3>
-        <div class="dh-read-content">
-          ${l.contentHtml || l.content}
-        </div>
-        <button class="dh-btn" id="dh-finish-lesson">Complete Lesson (+${l.xpReward || 25} XP)</button>
-      `;
-
-      const finishBtn = modalContent.querySelector('#dh-finish-lesson');
-      finishBtn.onclick = async () => {
-        if (!token) {
-          showToast('Sign in to claim lesson XP');
-          showAuthModal('login');
-          return;
-        }
-        const compRes = await fetch(`${API_BASE}/courses/${courseId}/lessons/${lessonId}/complete`, {
-          method: 'POST',
+  // ==========================================
+  // INITIALIZATION
+  // ==========================================
+  async function initAuth() {
+    if (token) {
+      try {
+        const res = await fetch(`${API_BASE}/auth/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        const compData = await compRes.json();
-        if (compRes.ok) {
-          showToast(`Lesson completed! +${compData.xpEarned || 25} XP awarded!`);
-          if (currentUser) {
-            currentUser.totalXp = compData.totalXp;
-            updateUserUI();
-          }
-          syncLeaderboard();
+        if (res.ok) {
+          const data = await res.json();
+          currentUser = data.user;
+          updateUserUI();
         } else {
-          showToast(compData.message || 'Lesson already completed');
+          token = null;
+          localStorage.removeItem('dh_token');
+          updateUserUI();
         }
-        closeModal();
-      };
-    } catch (err) {}
-  };
+      } catch (e) {
+        updateUserUI();
+      }
+    } else {
+      updateUserUI();
+    }
+  }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
@@ -564,12 +751,13 @@
   }
 
   function init() {
+    setupNavigationBridge();
     initAuth();
     syncLeaderboard();
     hookChallengeRunner();
-    hookAddTask();
-    hookProjects();
     hookCourses();
+    hookProjects();
+    hookHackathonAndTasks();
   }
 
 })();
