@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../db');
 const { requireAuth } = require('../auth');
 const { executeCode } = require('../execution');
+const eventBus = require('../events');
 
 // GET /api/challenges
 router.get('/', (req, res) => {
@@ -64,6 +65,18 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
       totalTests: result.totalCount,
       errorMessage: result.errorMessage
     });
+
+    if (result.passed) {
+      eventBus.broadcast({
+        type: 'challenge_passed',
+        username: req.user.username,
+        challengeId: challenge.id,
+        challengeTitle: challenge.title,
+        executionTimeMs: result.executionTimeMs,
+        xpEarned: submissionResult.xp ? submissionResult.xp.awarded : 0,
+        message: `${req.user.username} solved "${challenge.title}" (+${submissionResult.xp ? submissionResult.xp.awarded : 0} XP)`
+      });
+    }
 
     res.json({
       status: result.status,

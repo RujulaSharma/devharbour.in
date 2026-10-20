@@ -15,6 +15,7 @@ const projectRoutes = require('./routes/projects');
 const leaderboardRoutes = require('./routes/leaderboard');
 const achievementRoutes = require('./routes/achievements');
 const userRoutes = require('./routes/user');
+const eventBus = require('./events');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -33,6 +34,27 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/achievements', achievementRoutes);
 app.use('/api/user', userRoutes);
+
+// Real-Time Server-Sent Events (SSE) Stream
+app.get('/api/events', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  if (res.flushHeaders) res.flushHeaders();
+
+  eventBus.addClient(res);
+
+  // Send initial connection handshake and recent activity stream
+  res.write(`data: ${JSON.stringify({ type: 'connected', recent: eventBus.getRecent(), timestamp: new Date().toISOString() })}\n\n`);
+});
+
+// GET /api/activity (Recent real-time events feed)
+app.get('/api/activity', (req, res) => {
+  res.json({
+    activity: eventBus.getRecent(),
+    timestamp: new Date().toISOString()
+  });
+});
 
 // Platform Health Check
 app.get('/api/health', (req, res) => {

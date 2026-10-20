@@ -1,8 +1,13 @@
 /**
- * Dev Harbour — Full-Stack Integration Controller & Navigation Bridge
+ * Dev Harbour — Real-Time Integration Controller & Navigation Bridge
  * Bridges the Landing Page (#intro) and Dashboard (.app) seamlessly.
- * Provides persistent authentication, authentic code challenge execution,
- * official course catalog & reading mode, project submissions, and XP ledger sync.
+ * Features:
+ * - Server-Sent Events (SSE) for real-time live activity & instant leaderboard updates
+ * - Real-time notification drawer with live badges and relative timestamps
+ * - Persistent authentication & developer profiles
+ * - Sandboxed coding challenges with live execution time (ms) and instant XP credit
+ * - Verified course catalog & reading mode
+ * - Real-time project directory submissions & hackathon registration
  */
 (function() {
   'use strict';
@@ -10,6 +15,24 @@
   const API_BASE = '/api';
   let currentUser = null;
   let token = localStorage.getItem('dh_token') || null;
+  let notifications = JSON.parse(localStorage.getItem('dh_notifications') || '[]');
+  let unreadCount = 0;
+  let sseSource = null;
+
+  // Relative Time Formatter
+  function timeAgo(dateString) {
+    if (!dateString) return 'just now';
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.max(1, Math.floor((now - date) / 1000));
+    if (seconds < 15) return 'just now';
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.floor(hours / 24)}d ago`;
+  }
 
   // Toast Helper
   function showToast(msg) {
@@ -25,7 +48,7 @@
     }
   }
 
-  // Inject Styles for Modals, Navigation Buttons & Profile
+  // Inject Styles
   const style = document.createElement('style');
   style.id = 'dh-fs-styles';
   style.textContent = `
@@ -66,6 +89,20 @@
     .dh-nav-btn:hover { transform:translateY(-1px); }
     .dh-nav-pill { display:inline-flex; align-items:center; gap:6px; background:var(--card); color:var(--ink); padding:8px 16px; border-radius:99px; font-size:13px; font-weight:700; border:1px solid var(--line); cursor:pointer; transition:background .2s; }
     .dh-nav-pill:hover { background:var(--soft); }
+
+    /* Real-Time Live Status Indicator */
+    .dh-live-pill { display:inline-flex; align-items:center; gap:6px; background:var(--card); border:1px solid var(--line); padding:6px 12px; border-radius:99px; font-size:12px; font-weight:700; color:var(--ink); }
+    .dh-live-dot { width:8px; height:8px; border-radius:50%; background:#10b981; box-shadow:0 0 8px #10b981; animation:dhPulse 2s infinite; }
+    @keyframes dhPulse { 0%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.85)} 100%{opacity:1;transform:scale(1)} }
+
+    /* Notification Bell Badge */
+    .ci.has-notifs { position:relative; }
+    .dh-badge { position:absolute; top:-3px; right:-3px; background:#e5484d; color:#fff; font-size:10px; font-weight:800; min-width:18px; height:18px; border-radius:99px; display:grid; place-items:center; padding:0 4px; box-shadow:0 2px 6px rgba(229,72,77,.4); }
+
+    /* Notification Drawer */
+    .dh-notif-item { display:flex; align-items:flex-start; gap:12px; padding:12px; border-radius:12px; background:var(--bg); border:1px solid var(--line); margin-bottom:8px; font-size:13px; line-height:1.4; text-align:left; }
+    .dh-notif-icon { width:28px; height:28px; border-radius:8px; background:var(--blk); color:#fff; display:grid; place-items:center; font-size:13px; flex:none; margin-top:2px; }
+    .dh-notif-time { font-size:11px; color:var(--mut); margin-top:4px; font-weight:600; }
   `;
   document.head.appendChild(style);
 
@@ -91,12 +128,158 @@
   modalWrap.onclick = e => { if (e.target === modalWrap) closeModal(); };
 
   // ==========================================
-  // 1. CLEAR NAVIGATION SWITCHING (LANDING ↔ DASHBOARD)
+  // 1. REAL-TIME SERVER-SENT EVENTS (SSE) STREAM
+  // ==========================================
+  function setupRealTimeStream() {
+    if (typeof EventSource === 'undefined') return;
+
+    try {
+      if (sseSource) sseSource.close();
+      sseSource = new EventSource(`${API_BASE}/events`);
+
+      sseSource.onmessage = e => {
+        try {
+          const data = JSON.parse(e.data);
+          handleRealTimeEvent(data);
+        } catch (err) {}
+      };
+
+      sseSource.onerror = () => {
+        // SSE reconnects automatically
+      };
+    } catch (e) {}
+  }
+
+  function handleRealTimeEvent(data) {
+    if (!data || !data.type) return;
+
+    if (data.type === 'connected') {
+      if (Array.isArray(data.recent)) {
+        notifications = data.recent;
+        renderNotifBadge();
+      }
+      return;
+    }
+
+    // Add to notifications
+    notifications.unshift(data);
+    if (notifications.length > 25) notifications.pop();
+    unreadCount++;
+    try { localStorage.setItem('dh_notifications', JSON.stringify(notifications)); } catch (e) {}
+    renderNotifBadge();
+
+    // Specific Real-Time Event Handlers
+    if (data.type === 'challenge_passed') {
+      // Re-sync leaderboard live
+      syncLeaderboard();
+      if (currentUser && data.username === currentUser.username) {
+        currentUser.totalXp = (currentUser.totalXp || 0) + (data.xpEarned || 50);
+        updateUserUI();
+      } else {
+        showToast(`✦ @${data.username} just solved "${data.challengeTitle}"! (+${data.xpEarned} XP)`);
+      }
+    } else if (data.type === 'lesson_completed') {
+      syncLeaderboard();
+      if (currentUser && data.username === currentUser.username) {
+        currentUser.totalXp = (currentUser.totalXp || 0) + (data.xpEarned || 25);
+        updateUserUI();
+      }
+    } else if (data.type === 'project_created') {
+      if (Array.isArray(window.J) && data.project) {
+        window.J.unshift([data.project.title, data.project.description, data.project.category]);
+        if (typeof window.rp === 'function') window.rp();
+      }
+      showToast(`🚀 @${data.username} published project "${data.project.title}"!`);
+    } else if (data.type === 'user_joined') {
+      showToast(`👋 Welcome @${data.username} to Dev Harbour!`);
+    }
+  }
+
+  function renderNotifBadge() {
+    const notifBtn = document.querySelector('.ci[aria-label="Notifications"]');
+    if (!notifBtn) return;
+
+    let badge = notifBtn.querySelector('.dh-badge');
+    if (unreadCount > 0) {
+      notifBtn.classList.add('has-notifs');
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'dh-badge';
+        notifBtn.appendChild(badge);
+      }
+      badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+    } else if (badge) {
+      badge.remove();
+      notifBtn.classList.remove('has-notifs');
+    }
+  }
+
+  function showNotificationsModal() {
+    unreadCount = 0;
+    renderNotifBadge();
+
+    modalContent.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div>
+          <span class="dh-live-pill"><span class="dh-live-dot"></span>Live Feed</span>
+          <h3 style="margin-top:8px">Platform Notifications</h3>
+        </div>
+        <button class="dh-btn" style="width:auto; padding:6px 14px; margin:0; font-size:12px; background:var(--soft); color:var(--ink);" id="dh-clear-btn">Clear</button>
+      </div>
+
+      <div style="max-height:360px; overflow-y:auto; padding-right:4px;">
+        ${notifications.length ? notifications.map(n => {
+          let icon = '✦';
+          if (n.type === 'challenge_passed') icon = '✓';
+          if (n.type === 'lesson_completed') icon = '📚';
+          if (n.type === 'project_created') icon = '🚀';
+          if (n.type === 'user_joined') icon = '👋';
+
+          return `
+            <div class="dh-notif-item">
+              <div class="dh-notif-icon">${icon}</div>
+              <div style="flex:1">
+                <div>${n.message || n.title || 'Platform activity recorded'}</div>
+                <div class="dh-notif-time">${timeAgo(n.timestamp)}</div>
+              </div>
+            </div>
+          `;
+        }).join('') : '<p class="mut" style="padding:20px 0; text-align:center;">No recent activity yet. As students solve challenges and publish projects, live events will appear here in real time!</p>'}
+      </div>
+    `;
+
+    const clearBtn = modalContent.querySelector('#dh-clear-btn');
+    if (clearBtn) {
+      clearBtn.onclick = () => {
+        notifications = [];
+        try { localStorage.removeItem('dh_notifications'); } catch (e) {}
+        showNotificationsModal();
+      };
+    }
+    modalWrap.classList.add('open');
+  }
+
+  // Hook notification bell button in header
+  function hookNotifications() {
+    const notifBtn = document.querySelector('.ci[aria-label="Notifications"]');
+    if (notifBtn) {
+      notifBtn.removeAttribute('data-t');
+      notifBtn.onclick = e => {
+        e.preventDefault();
+        e.stopPropagation();
+        showNotificationsModal();
+      };
+    }
+  }
+
+  // ==========================================
+  // 2. NAVIGATION BRIDGE (LANDING ↔ DASHBOARD)
   // ==========================================
   function setupNavigationBridge() {
-    // A. On the Landing Page Top Bar (.xn)
     const xn = document.querySelector('.xn');
     const xa = document.querySelector('.xn .xa');
+
+    // Add Launch Dashboard button to Landing top bar
     if (xn && !document.getElementById('dh-launch-dash-btn')) {
       const launchBtn = document.createElement('button');
       launchBtn.id = 'dh-launch-dash-btn';
@@ -110,7 +293,6 @@
       xn.appendChild(launchBtn);
     }
 
-    // Attach click listeners to Landing "Log in" and "Join Free" (.xa)
     if (xa) {
       xa.style.cursor = 'pointer';
       xa.onclick = e => {
@@ -121,7 +303,7 @@
       };
     }
 
-    // B. In the Sidebar (.sb)
+    // Sidebar Landing Page button
     const sb = document.querySelector('.sb');
     const sbLogo = document.querySelector('.sb .logo');
     if (sbLogo) {
@@ -144,7 +326,7 @@
       }
     }
 
-    // C. In the Top Bar (.top .act)
+    // Top action bar Landing button & Live indicator
     const topAct = document.querySelector('.top .act');
     if (topAct && !document.getElementById('dh-top-landing-btn')) {
       const topLandingPill = document.createElement('button');
@@ -153,11 +335,16 @@
       topLandingPill.innerHTML = `<svg class="i" style="width:14px;height:14px" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><span>Landing</span>`;
       topLandingPill.onclick = () => window.goLanding();
       topAct.insertBefore(topLandingPill, topAct.firstChild);
+
+      const livePill = document.createElement('span');
+      livePill.className = 'dh-live-pill';
+      livePill.innerHTML = `<span class="dh-live-dot"></span>Live`;
+      topAct.insertBefore(livePill, topLandingPill.nextSibling);
     }
   }
 
   // ==========================================
-  // 2. AUTHENTICATION & SESSIONS
+  // 3. AUTHENTICATION & SESSIONS
   // ==========================================
   function showAuthModal(defaultTab) {
     defaultTab = defaultTab || 'login';
@@ -342,7 +529,7 @@
   }
 
   // ==========================================
-  // 3. STUDENT PROFILE MODAL
+  // 4. STUDENT PROFILE MODAL
   // ==========================================
   async function showStudentProfile(username) {
     if (!token && !currentUser) {
@@ -419,7 +606,7 @@
   }
 
   // ==========================================
-  // 4. CHALLENGE SUBMISSION & VM SANDBOX XP
+  // 5. CHALLENGE SUBMISSION WITH REAL-TIME EXECUTION METRICS
   // ==========================================
   function hookChallengeRunner() {
     window.addEventListener('message', async e => {
@@ -432,6 +619,7 @@
       const output = (d.L || []).join('\n').trim();
       const expected = String(C[cur][6]).trim();
       if (output === expected) {
+        const startTime = performance.now();
         try {
           const codeEl = document.getElementById('code');
           const codeVal = codeEl ? codeEl.value : '';
@@ -444,16 +632,20 @@
             headers,
             body: JSON.stringify({ code: codeVal })
           });
+          const execMs = Math.round(performance.now() - startTime);
+
           if (res.ok) {
             const result = await res.json();
-            if (result.xpEarned) {
-              showToast(`🎉 Challenge passed! +${result.xpEarned} XP awarded!`);
-              if (currentUser) {
-                currentUser.totalXp = result.totalXp;
-                updateUserUI();
-              }
-              syncLeaderboard();
+            const resBadge = document.getElementById('res');
+            if (resBadge) {
+              resBadge.textContent = `✓ Test passed (${result.executionTimeMs || execMs}ms) · +${result.xpEarned || 50} XP`;
             }
+            showToast(`🎉 Challenge passed (${result.executionTimeMs || execMs}ms)! +${result.xpEarned || 50} XP awarded!`);
+            if (currentUser && result.totalXp) {
+              currentUser.totalXp = result.totalXp;
+              updateUserUI();
+            }
+            syncLeaderboard();
           }
         } catch (err) {}
       }
@@ -461,7 +653,7 @@
   }
 
   // ==========================================
-  // 5. COURSE CATALOG & READING MODE
+  // 6. COURSE CATALOG & READING MODE
   // ==========================================
   function hookCourses() {
     document.addEventListener('click', async e => {
@@ -556,7 +748,7 @@
   };
 
   // ==========================================
-  // 6. PROJECTS COMMUNITY & SUBMISSIONS
+  // 7. PROJECTS & SUBMISSIONS
   // ==========================================
   function hookProjects() {
     document.addEventListener('click', e => {
@@ -568,8 +760,6 @@
       }
     });
 
-    const createBtn = document.querySelector('.top .act .cr');
-    // Allow users to submit projects
     window.openProjectSubmit = showProjectModal;
   }
 
@@ -662,10 +852,9 @@
   }
 
   // ==========================================
-  // 7. HACKATHON & TASKS HOOKS
+  // 8. HACKATHONS & TASKS
   // ==========================================
   function hookHackathonAndTasks() {
-    // Replace placeholder on Hackathon register button
     document.addEventListener('click', e => {
       const hackBtn = e.target.closest('button[data-t*="Registration needs a backend"]');
       if (hackBtn) {
@@ -692,7 +881,7 @@
   }
 
   // ==========================================
-  // 8. LEADERBOARD SYNC
+  // 9. REAL-TIME LEADERBOARD SYNC
   // ==========================================
   async function syncLeaderboard() {
     try {
@@ -752,6 +941,8 @@
 
   function init() {
     setupNavigationBridge();
+    hookNotifications();
+    setupRealTimeStream();
     initAuth();
     syncLeaderboard();
     hookChallengeRunner();

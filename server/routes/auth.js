@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { hashPassword, verifyPassword, validateEmail, validateUsername, validatePassword, requireAuth } = require('../auth');
+const eventBus = require('../events');
 
 // POST /api/auth/signup
 router.post('/signup', (req, res) => {
@@ -39,6 +40,13 @@ router.post('/signup', (req, res) => {
   });
 
   const { token, expiresAt } = db.createSession(user.id);
+
+  // Broadcast real-time user signup
+  eventBus.broadcast({
+    type: 'user_joined',
+    username: user.username,
+    message: `${user.username} joined the Dev Harbour student community!`
+  });
 
   res.status(201).json({
     message: 'Account successfully registered.',

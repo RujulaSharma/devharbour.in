@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { requireAuth } = require('../auth');
+const eventBus = require('../events');
 
 function isValidHttpUrl(string) {
   if (!string) return false;
@@ -69,6 +70,19 @@ router.post('/', requireAuth, (req, res) => {
     techStack: stack,
     repoUrl,
     demoUrl
+  });
+
+  // Broadcast real-time project creation
+  eventBus.broadcast({
+    type: 'project_created',
+    username: req.user.username,
+    project: {
+      id: project.id,
+      title: project.title,
+      category: project.category,
+      description: project.description
+    },
+    message: `${req.user.username} published a new project: "${project.title}"`
   });
 
   res.status(201).json({

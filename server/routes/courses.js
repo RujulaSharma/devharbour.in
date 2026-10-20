@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { requireAuth } = require('../auth');
+const eventBus = require('../events');
 
 // GET /api/courses
 router.get('/', (req, res) => {
@@ -53,6 +54,17 @@ router.post('/lesson/:id/complete', requireAuth, (req, res) => {
   }
 
   const result = db.saveLessonProgress(req.user.id, lesson.id, 30, true);
+
+  if (result.xp && result.xp.awarded) {
+    eventBus.broadcast({
+      type: 'lesson_completed',
+      username: req.user.username,
+      lessonId: lesson.id,
+      lessonTitle: lesson.title,
+      xpEarned: result.xp.awarded,
+      message: `${req.user.username} completed reading "${lesson.title}" (+${result.xp.awarded} XP)`
+    });
+  }
   res.json({
     message: result.xp && result.xp.awarded ? 'Lesson completed! 10 XP awarded.' : 'Lesson marked as completed.',
     progress: result.progress,
