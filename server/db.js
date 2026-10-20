@@ -336,6 +336,17 @@ function seedDatabase() {
     // Seed Sample Projects
     const sampleProjects = [
       {
+        id: 'prj-emergency-e-card',
+        userId: adminId,
+        title: 'Emergency E-Card',
+        desc: 'Full-stack emergency response app with medical profile, SOS alerts, nearby responders and live location sharing.',
+        category: 'Web',
+        tech: ['React', 'Node.js', 'Express', 'MongoDB'],
+        repo: 'https://github.com/mohammed-hasan-ECE/emergency-e-card',
+        demo: 'https://emergency-e-card-1.onrender.com',
+        votes: 46
+      },
+      {
         id: 'prj-orbit-notes',
         userId: adminId,
         title: 'Orbit Notes',

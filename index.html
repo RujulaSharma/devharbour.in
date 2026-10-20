@@ -574,6 +574,35 @@ html[data-theme="mercury"] .xp{background:#2c2c2f!important;color:#fff!important
   .xw{top:28%!important;font-size:clamp(18px,6.5vw,36px)!important}
 }
 
+
+/* ===== PROJECT CARD THUMBNAIL & MODAL ===== */
+.pci{width:100%;height:100%;object-fit:cover;display:block}
+.cv.has-img{background:#0b0a14!important}
+.cv.has-img:after{display:none!important}
+.px-links{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.px-link-btn{font-size:11.5px;color:var(--ink);text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:8px;background:rgba(0,0,0,.04);transition:all .2s ease}
+.px-link-btn:hover{background:rgba(0,0,0,.08);color:var(--pri)}
+html[data-theme="dark"] .px-link-btn{background:rgba(255,255,255,.06);color:#cfcfcf}
+html[data-theme="dark"] .px-link-btn:hover{background:rgba(255,255,255,.12);color:#fff}
+.px-info-btn{margin-left:auto;background:none;border:none;color:var(--pri);font-weight:700;font-size:12px;cursor:pointer;padding:4px 6px;border-radius:6px;transition:opacity .2s}
+.px-info-btn:hover{text-decoration:underline;opacity:.85}
+.px-modal{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;padding:20px}
+.px-modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.68);backdrop-filter:blur(6px)}
+.px-modal-dialog{position:relative;background:var(--card);border:1px solid var(--line);border-radius:20px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 30px 60px -20px rgba(0,0,0,.45);z-index:2}
+.px-modal-close{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.1);border:none;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;z-index:10;transition:background .2s}
+.px-modal-close:hover{background:rgba(0,0,0,.2)}
+html[data-theme="dark"] .px-modal-close{background:rgba(255,255,255,.12)}
+html[data-theme="dark"] .px-modal-close:hover{background:rgba(255,255,255,.24)}
+.pm-img{width:100%;height:220px;object-fit:cover;border-top-left-radius:20px;border-top-right-radius:20px;display:block}
+.pm-content{padding:24px}
+.pm-tags{display:flex;gap:6px;margin:0 0 12px}
+.pm-desc{font-size:14px;line-height:1.65;color:var(--ink);opacity:.9;margin-bottom:20px}
+.pm-actions{display:flex;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:16px}
+.pm-btn{padding:9px 15px;border-radius:12px;font-weight:700;font-size:12.5px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:all .2s ease}
+.pm-btn.primary{background:var(--blk);color:#fff}
+.pm-btn.secondary{background:rgba(0,0,0,.05);color:var(--ink);border:1px solid var(--line)}
+html[data-theme="dark"] .pm-btn.secondary{background:rgba(255,255,255,.06);color:#eee}
+
 </style>
 </head>
 <body>
@@ -693,7 +722,15 @@ const C=[['Two Sum','Easy','Arrays',49,'function twoSum(nums, target) {\n  const
 ['Reverse a Linked List','Easy','Queues',58,'class Node { constructor(v, n = null) { this.v = v; this.next = n; } }\nfunction reverse(head) {\n  // your code\n  return head;\n}\nlet h = null;\nJSON.parse(input).reverse().forEach(v => h = new Node(v, h));\nconst o = [];\nfor (let n = reverse(h); n; n = n.next) o.push(n.v);\nconsole.log(JSON.stringify(o));','[1,2,3]','[3,2,1]'],
 ['Binary Search','Easy','Arrays',55,'function search(nums, target) {\n  // your code\n  return -1;\n}\nconst [a, b] = input.split("\\n");\nconsole.log(search(JSON.parse(a), +b));','[-1,0,3,5,9,12]\n9','4'],
 ['Min Stack','Medium','Stacks',33,'class MinStack {\n  // push, pop, top, getMin\n}\nconst s = new MinStack(), o = [];\ns.push(-2); s.push(0); s.push(-3);\no.push(s.getMin()); s.pop();\no.push(s.top(), s.getMin());\nconsole.log(o.join(","));','(driver is built in)','-3,0,-2']];
-const J=[['Orbit Notes','Markdown notes with live sync and offline persistence.','Web','https://github.com/RujulaSharma/devharbour.in','https://devharbour.in'],['Tide','A gentle habit tracker for developer streaks.','Mobile','https://github.com/RujulaSharma/devharbour.in','https://devharbour.in'],['Hullcheck','Network port auditing and vulnerability learning kit.','Security','https://github.com/RujulaSharma/devharbour.in','https://devharbour.in'],['Pixel Reef','An underwater 2D canvas platformer engine.','Game','https://github.com/RujulaSharma/devharbour.in','https://devharbour.in'],['Lantern','Accessible docs and API reference generator.','Web','https://github.com/RujulaSharma/devharbour.in','https://devharbour.in'],['Relay','Real-time hackathon team coordination space.','Web','https://github.com/RujulaSharma/devharbour.in','https://devharbour.in']];
+const J=[
+  ['Orbit Notes','Markdown notes with live sync and offline persistence.','Web','https://github.com/RujulaSharma/devharbour.in','https://devharbour.in'],
+  ['Tide','A gentle habit tracker for developer streaks.','Mobile','https://github.com/RujulaSharma/devharbour.in','https://devharbour.in'],
+  ['Emergency E-Card','Full-stack emergency response app with medical profile, SOS alerts, nearby responders and live location sharing.','Web','https://emergency-e-card-1.onrender.com','https://emergency-e-card-1.onrender.com','assets/emergency-e-card-thumbnail.svg',{detail:'During emergencies, delays in accessing critical medical information, contacting trusted people, and finding nearby assistance can make an already difficult situation even more challenging. Emergency E-Card is a full-stack web application built around a streamlined emergency response system. Users can create a medical profile, trigger an SOS button to raise an emergency alert, navigate to the SOS location, discover nearby registered responders, and share a time-limited location-tracking link. It also notifies emergency contacts to connect people in distress with their trusted contacts. Work is ongoing, with further development and improvements in progress.',screenshots:'https://drive.google.com/drive/folders/1qgwt4eNxSx_7NioGoX1IdSpbscnFxWXo',linkedin:'https://lnkd.in/p/diwCmXdU',github:'https://github.com/mohammed-hasan-ECE/emergency-e-card'}],
+  ['Hullcheck','Network port auditing and vulnerability learning kit.','Security','https://github.com/RujulaSharma/devharbour.in','https://devharbour.in'],
+  ['Pixel Reef','An underwater 2D canvas platformer engine.','Game','https://github.com/RujulaSharma/devharbour.in','https://devharbour.in'],
+  ['Lantern','Accessible docs and API reference generator.','Web','https://github.com/RujulaSharma/devharbour.in','https://devharbour.in'],
+  ['Relay','Real-time hackathon team coordination space.','Web','https://github.com/RujulaSharma/devharbour.in','https://devharbour.in']
+];
 $('n1').textContent=C.length;$('n2').textContent=1;$('t1').textContent=P.length;$('t2').textContent=J.length;$('t3').textContent=C.length;
 $('lp').innerHTML=J.slice(0,3).map(j=>`<div class="pk"><div class="st"><s></s>${j[2]} · Verified</div><h3>${j[0]}</h3><p>${j[1]}</p></div>`).join('');
 $('tk').innerHTML=`<button class="t" data-v="hack"><small>Featured hackathon</small><b>ORCATHON 2026</b><span class="go">→</span></button><button class="t" onclick="load(0)"><small>Today’s challenge</small><b>Two Sum</b><span class="go">→</span></button><button class="t dash" id="add-task-btn">+ Add task</button>`;
@@ -757,7 +794,79 @@ pills($('cf'),cats,cat,v=>{cat=v;rc()});$('cq').oninput=rc;rc();
 const L={Weekly:[['ayesha',12,980],['kabir',10,860],['mei',9,790],['lucas',7,640],['nora',6,510]],'All-time':[['mei',212,18400],['ayesha',198,17120],['kabir',187,15900],['nora',160,13300],['lucas',151,12100]]};
 function rl(k){$('lb').innerHTML=L[k].map((u,i)=>`<div class="lr"><b>${i+1}</b><span class="a"></span><span>${u[0]}<br><em>${u[1]} solved</em></span><span>${u[2]} XP</span></div>`).join('')}
 pills($('lt'),['Weekly','All-time'],'Weekly',rl);rl('Weekly');
-function rp(){$('pj').innerHTML=J.filter(j=>pc=='All'||j[2]==pc).map(j=>`<article class="c pc s4"><div class="cv"></div><div class="b"><h3>${j[0]}</h3><p>${j[1]}</p><div class="f"><span class="tag">${j[2]}</span><span class="tag">Verified</span><a href="${j[3]}" target="_blank" rel="noopener noreferrer">View Project ↗</a></div></div></article>`).join('')}
+function rp(){
+  $('pj').innerHTML=J.filter(j=>pc=='All'||j[2]==pc).map((j,idx)=>{
+    const hasImg=Boolean(j[5]);
+    const meta=j[6]||null;
+    return `<article class="c pc s4" data-title="${j[0]}">
+      <div class="cv${hasImg?' has-img':''}">
+        ${hasImg?`<img src="${j[5]}" alt="${j[0]}" class="pci" loading="lazy">`:''}
+      </div>
+      <div class="b">
+        <h3>${j[0]}</h3>
+        <p>${j[1]}</p>
+        <div class="f">
+          <span class="tag">${j[2]}</span>
+          <span class="tag">Verified</span>
+          <a href="${j[3]}" target="_blank" rel="noopener noreferrer">View Project ↗</a>
+        </div>
+        ${meta?`
+        <div class="px-links">
+          ${meta.screenshots?`<a href="${meta.screenshots}" target="_blank" rel="noopener noreferrer" class="px-link-btn" title="Screenshots">📸 Screenshots ↗</a>`:''}
+          ${meta.linkedin?`<a href="${meta.linkedin}" target="_blank" rel="noopener noreferrer" class="px-link-btn" title="LinkedIn Post">💼 LinkedIn ↗</a>`:''}
+          ${meta.detail?`<button type="button" class="px-info-btn" onclick="openProjectModal('${j[0].replace(/'/g, "\\'")}')">Overview ℹ</button>`:''}
+        </div>`:''}
+      </div>
+    </article>`;
+  }).join('');
+}
+
+window.openProjectModal=function(title){
+  const prj=J.find(x=>x[0]===title);
+  if(!prj)return;
+  const meta=prj[6]||{};
+  let m=document.getElementById('project-modal');
+  if(!m){
+    m=document.createElement('div');
+    m.id='project-modal';
+    m.className='px-modal';
+    document.body.appendChild(m);
+  }
+  m.innerHTML=`
+    <div class="px-modal-backdrop" onclick="closeProjectModal()"></div>
+    <div class="px-modal-dialog">
+      <button type="button" class="px-modal-close" onclick="closeProjectModal()" aria-label="Close">✕</button>
+      ${prj[5]?`<img src="${prj[5]}" alt="${prj[0]}" class="pm-img">`:''}
+      <div class="pm-content">
+        <div class="pm-tags">
+          <span class="tag">${prj[2]}</span>
+          <span class="tag" style="background:#4a4263;color:#fff;">Verified</span>
+        </div>
+        <h2 style="margin:0 0 8px;font-size:22px;color:var(--ink);font-weight:800;">${prj[0]}</h2>
+        <p style="font-weight:600;color:var(--ink);opacity:0.85;margin-bottom:12px;font-size:13.5px;">${prj[1]}</p>
+        <div class="pm-desc">${meta.detail||prj[1]}</div>
+        <div class="pm-actions">
+          <a href="${prj[3]}" target="_blank" rel="noopener noreferrer" class="pm-btn primary">View Live Project ↗</a>
+          ${meta.screenshots?`<a href="${meta.screenshots}" target="_blank" rel="noopener noreferrer" class="pm-btn secondary">📸 Screenshots ↗</a>`:''}
+          ${meta.linkedin?`<a href="${meta.linkedin}" target="_blank" rel="noopener noreferrer" class="pm-btn secondary">💼 LinkedIn Post ↗</a>`:''}
+          ${meta.github?`<a href="${meta.github}" target="_blank" rel="noopener noreferrer" class="pm-btn secondary">GitHub ↗</a>`:''}
+        </div>
+      </div>
+    </div>
+  `;
+  m.style.display='flex';
+  document.body.style.overflow='hidden';
+};
+
+window.closeProjectModal=function(){
+  const m=document.getElementById('project-modal');
+  if(m)m.style.display='none';
+  document.body.style.overflow='';
+};
+
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape')closeProjectModal();
+});
 pills($('pf'),['All','Web','Mobile','Security','Game'],pc,v=>{pc=v;rp()});rp();
 /* workspace */
 const code=$('code'),hl=$('hl');let cur=0;
@@ -819,7 +928,7 @@ function enter(v,x,y){go(x==null?innerWidth/2:x,y==null?innerHeight/2:y,v,false)
 const intro=$('intro'),LD=$('landing'),T=a=>a.map(t=>`<span>${t}</span>`).join('');
 const ph=(k,t)=>LINKS[k]?`<a href="${LINKS[k]}" target="_blank" rel="noopener noreferrer">${t}</a>`:`<a href="#" data-t="${t} link isn’t set yet — add it in LINKS" title="Placeholder">${t}</a>`;
 /* featured projects (existing J data) */
-const PT=[['JavaScript','Markdown','WebSockets'],['React Native','SQLite','Notifications'],['Python','Sockets','Networking']];
+const PT=[['JavaScript','Markdown','WebSockets'],['React Native','SQLite','Notifications'],['React','Node.js','Express','MongoDB'],['Python','Sockets','Networking']];
 $('zprj').innerHTML=J.slice(0,3).map((j,i)=>`<article class="fx zv${i?'':' big'}" style="--i:${i}">${i?'':'<span class="fbd">★ Featured project</span>'}<div class="fsh"><i></i><i></i><i></i><span>Preview · ${j[2]}</span></div><h3>${j[0]}</h3><p>${j[1]}</p><div class="zt">${T(PT[i])}<span>${j[2]}</span></div><div class="fxa"><a class="zb o" href="${j[3]}" target="_blank" rel="noopener noreferrer">GitHub ↗</a><a class="zb" href="${j[4]}" target="_blank" rel="noopener noreferrer">Live demo ↗</a></div></article>`).join('');
 /* challenge of the day */
 const CH=[
