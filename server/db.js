@@ -336,6 +336,17 @@ function seedDatabase() {
     // Seed Sample Projects
     const sampleProjects = [
       {
+        id: 'prj-lively',
+        userId: adminId,
+        title: 'Lively!',
+        desc: 'A community app for writers to publish stories, poems, quotes and journals, and find readers who actually read.',
+        category: 'Mobile',
+        tech: ['Android', 'React Native', 'Mobile', 'Node.js'],
+        repo: 'https://www.readinlively.com',
+        demo: 'https://www.readinlively.com',
+        votes: 52
+      },
+      {
         id: 'prj-emergency-e-card',
         userId: adminId,
         title: 'Emergency E-Card',
