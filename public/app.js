@@ -1,98 +1,219 @@
 /**
- * Dev Harbour — Seamless Full-Stack Integration Controller
- * Integrates real backend authentication, database records, code execution,
- * and persistent XP into the EXACT existing Dev Harbour UI.
+ * Dev Harbour — Seamless Full-Stack Data Controller
+ * Non-invasively attaches to the existing UI to provide persistent authentication,
+ * server-side challenge execution & XP ledger credits, real course reading & catalog links,
+ * genuine database leaderboard records, project submissions, and custom tasks.
  */
+(function() {
+  'use strict';
 
-const API_BASE = '/api';
+  const API_BASE = '/api';
+  let currentUser = null;
+  let token = localStorage.getItem('dh_token') || null;
 
-// Authentication & Identity State
-const Auth = {
-  token: localStorage.getItem('dh_token') || null,
-  user: null,
-
-  async init() {
-    if (this.token) {
-      try {
-        const res = await fetch(`${API_BASE}/auth/me`, {
-          headers: { 'Authorization': `Bearer ${this.token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          this.user = data.user;
-        } else {
-          this.token = null;
-          localStorage.removeItem('dh_token');
-        }
-      } catch (e) {
-        console.warn('Auth check failed:', e);
+  function showToast(msg) {
+    if (typeof window.toast === 'function') {
+      window.toast(msg);
+    } else {
+      const t = document.getElementById('toast');
+      if (t) {
+        t.textContent = msg;
+        t.classList.add('on');
+        setTimeout(() => t.classList.remove('on'), 2500);
       }
     }
-    this.renderUser();
-  },
+  }
 
-  async login(login, password) {
-    const res = await fetch(`${API_BASE}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ login, password })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Login failed');
-    this.token = data.token;
-    this.user = data.user;
-    localStorage.setItem('dh_token', data.token);
-    this.renderUser();
-    Leaderboard.sync();
-    return data;
-  },
+  // Inject Modal Styles (using native CSS variables so it adapts to Light, Dark, Mercury)
+  const style = document.createElement('style');
+  style.id = 'dh-fs-styles';
+  style.textContent = `
+    .dh-modal-wrap { position:fixed; inset:0; background:rgba(15,12,28,.65); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); display:grid; place-items:center; z-index:99999; padding:16px; opacity:0; pointer-events:none; transition:opacity .25s ease; }
+    .dh-modal-wrap.open { opacity:1; pointer-events:auto; }
+    .dh-box { background:var(--card); color:var(--ink); border-radius:var(--r); padding:28px 24px; max-width:480px; width:100%; box-shadow:0 24px 60px -20px rgba(0,0,0,.5); border:1px solid var(--line); position:relative; max-height:88vh; overflow-y:auto; font-family:var(--font); transform:translateY(12px); transition:transform .25s ease; }
+    .dh-modal-wrap.open .dh-box { transform:translateY(0); }
+    .dh-box h3 { font-size:22px; font-weight:800; letter-spacing:-.02em; margin-bottom:6px; }
+    .dh-box p.desc { color:var(--mut); font-size:13px; margin-bottom:18px; line-height:1.4; }
+    .dh-x { position:absolute; top:18px; right:18px; width:30px; height:30px; border-radius:50%; background:var(--soft); color:var(--ink); display:grid; place-items:center; font-size:18px; cursor:pointer; border:none; line-height:1; }
+    .dh-x:hover { background:var(--line); }
+    .dh-tabs { display:flex; gap:6px; background:var(--soft); padding:4px; border-radius:12px; margin-bottom:18px; }
+    .dh-tabs button { flex:1; padding:8px 12px; border-radius:9px; font-size:13px; font-weight:700; color:var(--mut); background:transparent; border:none; cursor:pointer; transition:all .2s; }
+    .dh-tabs button.on { background:var(--blk); color:#fff; }
+    .dh-row { margin-bottom:12px; display:flex; flex-direction:column; gap:5px; text-align:left; }
+    .dh-row label { font-size:11px; font-weight:700; color:var(--mut); text-transform:uppercase; letter-spacing:.05em; }
+    .dh-row input, .dh-row textarea, .dh-row select { width:100%; padding:10px 14px; border-radius:12px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font-family:inherit; font-size:13.5px; outline:none; box-sizing:border-box; }
+    .dh-row input:focus, .dh-row textarea:focus, .dh-row select:focus { border-color:var(--blk); }
+    .dh-btn { width:100%; padding:12px; border-radius:99px; background:var(--blk); color:#fff; font-weight:800; font-size:13.5px; border:none; cursor:pointer; margin-top:8px; transition:transform .2s; }
+    .dh-btn:hover { transform:translateY(-1px); }
+    .dh-msg-err { color:#e5484d; font-size:12px; font-weight:600; margin-bottom:10px; display:none; }
+    .dh-read-content { font-size:14px; line-height:1.65; color:var(--ink); margin:16px 0; background:var(--bg); padding:16px; border-radius:14px; max-height:280px; overflow-y:auto; border:1px solid var(--line); }
+    .dh-read-content pre { background:var(--blk); color:#fff; padding:12px; border-radius:8px; overflow-x:auto; font-size:12.5px; margin:10px 0; font-family:monospace; }
+    .dh-course-link { display:inline-flex; align-items:center; gap:8px; background:var(--soft); color:var(--ink); padding:8px 14px; border-radius:99px; font-size:12.5px; font-weight:700; text-decoration:none; margin-top:8px; }
+    .dh-course-link:hover { background:var(--line); }
+  `;
+  document.head.appendChild(style);
 
-  async signup(email, username, fullName, password) {
-    const res = await fetch(`${API_BASE}/auth/signup`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, username, fullName, password })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Signup failed');
-    this.token = data.token;
-    this.user = data.user;
-    localStorage.setItem('dh_token', data.token);
-    this.renderUser();
-    Leaderboard.sync();
-    return data;
-  },
+  // Modal Container
+  const modalWrap = document.createElement('div');
+  modalWrap.className = 'dh-modal-wrap';
+  modalWrap.id = 'dh-modal';
+  modalWrap.innerHTML = `
+    <div class="dh-box" id="dh-box">
+      <button class="dh-x" id="dh-x" aria-label="Close">&times;</button>
+      <div id="dh-content"></div>
+    </div>
+  `;
+  document.body.appendChild(modalWrap);
 
-  logout() {
-    if (this.token) {
-      fetch(`${API_BASE}/auth/logout`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${this.token}` }
-      }).catch(() => {});
-    }
-    this.token = null;
-    this.user = null;
-    localStorage.removeItem('dh_token');
-    this.renderUser();
-    Leaderboard.sync();
-    toast('Signed out successfully');
-  },
+  const modalContent = modalWrap.querySelector('#dh-content');
+  const closeBtn = modalWrap.querySelector('#dh-x');
 
-  renderUser() {
+  function closeModal() {
+    modalWrap.classList.remove('open');
+  }
+  closeBtn.onclick = closeModal;
+  modalWrap.onclick = e => { if (e.target === modalWrap) closeModal(); };
+
+  // Render Auth UI
+  function showAuthModal(defaultTab) {
+    defaultTab = defaultTab || 'login';
+    modalContent.innerHTML = `
+      <h3>Welcome to Dev Harbour</h3>
+      <p class="desc">Sign in or create a student account to track learning paths, submit challenges, earn XP, and join the leaderboard.</p>
+      <div class="dh-tabs">
+        <button id="t-login" class="${defaultTab === 'login' ? 'on' : ''}">Sign In</button>
+        <button id="t-signup" class="${defaultTab === 'signup' ? 'on' : ''}">Create Account</button>
+      </div>
+      <div class="dh-msg-err" id="dh-auth-err"></div>
+
+      <form id="f-login" style="${defaultTab === 'login' ? '' : 'display:none'}">
+        <div class="dh-row">
+          <label>Email or Username</label>
+          <input type="text" id="l-user" placeholder="alexandra or student@devharbour.in" required autocomplete="username">
+        </div>
+        <div class="dh-row">
+          <label>Password</label>
+          <input type="password" id="l-pass" placeholder="Your password" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="dh-btn">Sign In</button>
+      </form>
+
+      <form id="f-signup" style="${defaultTab === 'signup' ? '' : 'display:none'}">
+        <div class="dh-row">
+          <label>Full Name</label>
+          <input type="text" id="s-name" placeholder="Alexandra Vance" required autocomplete="name">
+        </div>
+        <div class="dh-row">
+          <label>Username</label>
+          <input type="text" id="s-user" placeholder="alexandra" required autocomplete="username">
+        </div>
+        <div class="dh-row">
+          <label>Email Address</label>
+          <input type="email" id="s-email" placeholder="alexandra@example.com" required autocomplete="email">
+        </div>
+        <div class="dh-row">
+          <label>Password (min. 8 characters)</label>
+          <input type="password" id="s-pass" minlength="8" placeholder="Create a strong password" required autocomplete="new-password">
+        </div>
+        <button type="submit" class="dh-btn">Create Free Account</button>
+      </form>
+    `;
+
+    const errBox = modalContent.querySelector('#dh-auth-err');
+    const tabLogin = modalContent.querySelector('#t-login');
+    const tabSignup = modalContent.querySelector('#t-signup');
+    const formLogin = modalContent.querySelector('#f-login');
+    const formSignup = modalContent.querySelector('#f-signup');
+
+    tabLogin.onclick = () => {
+      tabLogin.classList.add('on');
+      tabSignup.classList.remove('on');
+      formLogin.style.display = '';
+      formSignup.style.display = 'none';
+      errBox.style.display = 'none';
+    };
+    tabSignup.onclick = () => {
+      tabSignup.classList.add('on');
+      tabLogin.classList.remove('on');
+      formSignup.style.display = '';
+      formLogin.style.display = 'none';
+      errBox.style.display = 'none';
+    };
+
+    formLogin.onsubmit = async e => {
+      e.preventDefault();
+      errBox.style.display = 'none';
+      const login = modalContent.querySelector('#l-user').value.trim();
+      const password = modalContent.querySelector('#l-pass').value;
+      try {
+        const res = await fetch(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ login, password })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Login failed');
+        token = data.token;
+        localStorage.setItem('dh_token', token);
+        currentUser = data.user;
+        updateUserUI();
+        syncLeaderboard();
+        closeModal();
+        showToast(`Welcome back, ${currentUser.username}!`);
+      } catch (err) {
+        errBox.textContent = err.message;
+        errBox.style.display = 'block';
+      }
+    };
+
+    formSignup.onsubmit = async e => {
+      e.preventDefault();
+      errBox.style.display = 'none';
+      const fullName = modalContent.querySelector('#s-name').value.trim();
+      const username = modalContent.querySelector('#s-user').value.trim();
+      const email = modalContent.querySelector('#s-email').value.trim();
+      const password = modalContent.querySelector('#s-pass').value;
+      try {
+        const res = await fetch(`${API_BASE}/auth/signup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fullName, username, email, password })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Signup failed');
+        token = data.token;
+        localStorage.setItem('dh_token', token);
+        currentUser = data.user;
+        updateUserUI();
+        syncLeaderboard();
+        closeModal();
+        showToast(`Account created! Welcome, ${currentUser.username}!`);
+      } catch (err) {
+        errBox.textContent = err.message;
+        errBox.style.display = 'block';
+      }
+    };
+
+    modalWrap.classList.add('open');
+  }
+
+  // Update User Header UI (Preserves exact markup, only reflects authenticated user)
+  function updateUserUI() {
     const heading = document.querySelector('.top h1');
     const subtitle = document.querySelector('.top p');
     const crBtn = document.querySelector('.top .act .cr');
     const av = document.querySelector('.top .act .av');
 
-    if (this.user) {
-      if (heading) heading.textContent = `Hi, ${this.user.fullName || this.user.username}!`;
-      if (subtitle) subtitle.textContent = `${(this.user.totalXp || 0).toLocaleString()} XP · Level ${this.user.level || 1} · ${this.user.streakDays || 0} day streak`;
+    if (currentUser) {
+      if (heading) heading.textContent = `Hi, ${currentUser.fullName || currentUser.username}!`;
+      if (subtitle) subtitle.textContent = `${(currentUser.totalXp || 0).toLocaleString()} XP · Level ${currentUser.level || 1} · ${currentUser.streakDays || 0} day streak`;
       if (crBtn) {
-        crBtn.textContent = `${this.user.username} (Sign out)`;
-        crBtn.onclick = () => Auth.logout();
+        crBtn.textContent = `${currentUser.username} (Logout)`;
+        crBtn.removeAttribute('data-t');
+        crBtn.onclick = logoutUser;
       }
       if (av) {
-        const initials = (this.user.fullName || this.user.username || 'D').slice(0, 2).toUpperCase();
+        const initials = (currentUser.fullName || currentUser.username || 'DH').slice(0, 2).toUpperCase();
         av.textContent = initials;
         av.style.display = 'grid';
         av.style.placeItems = 'center';
@@ -101,343 +222,354 @@ const Auth = {
         av.style.fontSize = '14px';
       }
     } else {
-      if (heading) heading.textContent = 'Hi, Developer!';
-      if (subtitle) subtitle.textContent = 'Learn. Build. Compete. Grow.';
+      if (heading) heading.textContent = 'Hi, Alexandra!';
+      if (subtitle) subtitle.textContent = "Let's make today productive and learn something new.";
       if (crBtn) {
         crBtn.textContent = '+ Sign up';
-        crBtn.onclick = () => Modal.open('signup');
+        crBtn.removeAttribute('data-t');
+        crBtn.onclick = () => showAuthModal('signup');
       }
       if (av) {
         av.textContent = '';
       }
     }
   }
-};
 
-// Modals Controller
-const Modal = {
-  open(tab = 'login') {
-    const modal = document.getElementById('auth-modal');
-    if (!modal) return;
-    this.switchTab(tab);
-    modal.classList.add('open');
-  },
-  close() {
-    const modal = document.getElementById('auth-modal');
-    if (modal) modal.classList.remove('open');
-    const prjModal = document.getElementById('project-modal');
-    if (prjModal) prjModal.classList.remove('open');
-  },
-  switchTab(tab) {
-    const loginForm = document.getElementById('form-login');
-    const signupForm = document.getElementById('form-signup');
-    const tabLogin = document.getElementById('tab-login');
-    const tabSignup = document.getElementById('tab-signup');
-    const errBox = document.getElementById('auth-err');
-    if (errBox) errBox.classList.remove('show');
-
-    if (tab === 'login') {
-      if (loginForm) loginForm.style.display = 'grid';
-      if (signupForm) signupForm.style.display = 'none';
-      if (tabLogin) tabLogin.classList.add('active');
-      if (tabSignup) tabSignup.classList.remove('active');
-    } else {
-      if (loginForm) loginForm.style.display = 'none';
-      if (signupForm) signupForm.style.display = 'grid';
-      if (tabLogin) tabLogin.classList.remove('active');
-      if (tabSignup) tabSignup.classList.add('active');
-    }
-  },
-  openProjectModal() {
-    if (!Auth.user) {
-      toast('Please sign in to submit a project');
-      this.open('login');
-      return;
-    }
-    const modal = document.getElementById('project-modal');
-    if (modal) modal.classList.add('open');
-  }
-};
-
-// Workspace Live Backend Code Execution
-const Workspace = {
-  currentChallengeId: 'challenge-two-sum',
-
-  async run() {
-    const codeEl = document.getElementById('code');
-    const outEl = document.getElementById('out');
-    const resEl = document.getElementById('res');
-
-    if (!codeEl) return;
-    const code = codeEl.value;
-
-    if (!Auth.user) {
-      toast('Sign in to submit your solution and record your XP!');
-      Modal.open('login');
-      return;
-    }
-
-    if (outEl) {
-      outEl.className = '';
-      outEl.textContent = '⏳ Executing in sandboxed environment against test suite…';
-    }
-
-    try {
-      const res = await fetch(`${API_BASE}/challenges/${this.currentChallengeId}/submit`, {
+  async function logoutUser() {
+    if (token) {
+      await fetch(`${API_BASE}/auth/logout`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${Auth.token}`
-        },
-        body: JSON.stringify({ code })
-      });
-      const data = await res.json();
+        headers: { 'Authorization': `Bearer ${token}` }
+      }).catch(() => {});
+    }
+    token = null;
+    currentUser = null;
+    localStorage.removeItem('dh_token');
+    updateUserUI();
+    showToast('Signed out successfully');
+  }
 
-      if (!res.ok) {
-        if (outEl) {
-          outEl.className = 'er';
-          outEl.textContent = data.error || 'Execution failed';
+  // Initial Auth Check
+  async function initAuth() {
+    if (token) {
+      try {
+        const res = await fetch(`${API_BASE}/auth/me`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          currentUser = data.user;
+          updateUserUI();
+        } else {
+          token = null;
+          localStorage.removeItem('dh_token');
+          updateUserUI();
         }
+      } catch (e) {
+        updateUserUI();
+      }
+    } else {
+      const crBtn = document.querySelector('.top .act .cr');
+      if (crBtn) {
+        crBtn.onclick = e => {
+          e.preventDefault();
+          e.stopPropagation();
+          showAuthModal('signup');
+        };
+      }
+    }
+  }
+
+  // Sync Leaderboard with Database
+  async function syncLeaderboard() {
+    try {
+      const [resAll, resWeekly] = await Promise.all([
+        fetch(`${API_BASE}/leaderboard?period=all`),
+        fetch(`${API_BASE}/leaderboard?period=weekly`)
+      ]);
+      if (resAll.ok && resWeekly.ok) {
+        const dataAll = await resAll.json();
+        const dataWeekly = await resWeekly.json();
+        if (window.L && dataAll.leaderboard && dataWeekly.leaderboard) {
+          window.L['All-time'] = dataAll.leaderboard.map(u => [u.username, u.challengesSolved || 0, u.totalXp || 0]);
+          window.L.Weekly = dataWeekly.leaderboard.map(u => [u.username, u.challengesSolved || 0, u.totalXp || 0]);
+          if (typeof window.rl === 'function') window.rl('Weekly');
+          const zlb = document.getElementById('zlb');
+          if (zlb && window.L['All-time']) {
+            zlb.innerHTML = window.L['All-time'].map((u, i) =>
+              `<div class="zlb"><b>${i+1}</b><span>${u[0]}</span><span>${u[1]}</span><span>${u[2].toLocaleString()} XP</span></div>`
+            ).join('');
+          }
+        }
+      }
+    } catch (e) {}
+  }
+
+  // Challenge Submission & Automatic XP Hook
+  function hookChallengeRunner() {
+    window.addEventListener('message', async e => {
+      const d = e.data;
+      if (!d || d.e) return;
+      const cur = window.cur != null ? window.cur : 0;
+      const C = window.C;
+      if (!C || !C[cur]) return;
+
+      const output = (d.L || []).join('\n').trim();
+      const expected = String(C[cur][6]).trim();
+      if (output === expected) {
+        try {
+          const codeEl = document.getElementById('code');
+          const codeVal = codeEl ? codeEl.value : '';
+          const challengeId = `chal-${cur + 1}`;
+          const headers = { 'Content-Type': 'application/json' };
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+
+          const res = await fetch(`${API_BASE}/challenges/${challengeId}/submit`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ code: codeVal })
+          });
+          if (res.ok) {
+            const result = await res.json();
+            if (result.xpEarned) {
+              showToast(`🎉 Challenge passed! +${result.xpEarned} XP awarded!`);
+              if (currentUser) {
+                currentUser.totalXp = result.totalXp;
+                updateUserUI();
+              }
+              syncLeaderboard();
+            }
+          }
+        } catch (err) {}
+      }
+    });
+  }
+
+  // Connect "+ Add task" button to real goals list
+  function hookAddTask() {
+    const addBtn = document.querySelector('button[data-t*="Custom tasks"]');
+    if (addBtn) {
+      addBtn.onclick = e => {
+        e.preventDefault();
+        e.stopPropagation();
+        const taskName = prompt('Enter a new learning goal or task:');
+        if (taskName && taskName.trim()) {
+          if (Array.isArray(window.G)) {
+            window.G.push(taskName.trim());
+            if (typeof window.rg === 'function') window.rg();
+            showToast('Goal added to your dashboard!');
+          }
+        }
+      };
+    }
+  }
+
+  // Connect Project Submissions & Details
+  function hookProjects() {
+    document.addEventListener('click', e => {
+      const prjLink = e.target.closest('a[data-t*="Project pages need a backend"]');
+      if (prjLink) {
+        e.preventDefault();
+        e.stopPropagation();
+        showProjectModal();
+      }
+    });
+  }
+
+  function showProjectModal() {
+    modalContent.innerHTML = `
+      <h3>Submit Your Project</h3>
+      <p class="desc">Share your build with the Dev Harbour student community and earn +50 XP upon verification.</p>
+      <div class="dh-msg-err" id="dh-prj-err"></div>
+      <form id="f-project">
+        <div class="dh-row">
+          <label>Project Title</label>
+          <input type="text" id="p-title" placeholder="e.g. Orbit Notes" required>
+        </div>
+        <div class="dh-row">
+          <label>Category</label>
+          <select id="p-cat">
+            <option value="Web">Web Development</option>
+            <option value="Mobile">Mobile App</option>
+            <option value="Security">Cybersecurity</option>
+            <option value="AI">Artificial Intelligence</option>
+            <option value="Game">Game Development</option>
+          </select>
+        </div>
+        <div class="dh-row">
+          <label>Description</label>
+          <textarea id="p-desc" placeholder="What does your project do?" rows="3" required></textarea>
+        </div>
+        <div class="dh-row">
+          <label>Tech Stack (comma separated)</label>
+          <input type="text" id="p-tech" placeholder="React, Node.js, PostgreSQL">
+        </div>
+        <div class="dh-row">
+          <label>GitHub Repository URL</label>
+          <input type="url" id="p-repo" placeholder="https://github.com/..." required>
+        </div>
+        <div class="dh-row">
+          <label>Live Demo URL (optional)</label>
+          <input type="url" id="p-demo" placeholder="https://...">
+        </div>
+        <button type="submit" class="dh-btn">Publish Project (+50 XP)</button>
+      </form>
+    `;
+
+    const prjErr = modalContent.querySelector('#dh-prj-err');
+    const formPrj = modalContent.querySelector('#f-project');
+
+    formPrj.onsubmit = async e => {
+      e.preventDefault();
+      if (!token) {
+        showToast('Please sign in first to submit a project');
+        showAuthModal('login');
         return;
       }
-
-      if (outEl) {
-        let details = `Execution: ${data.status.toUpperCase()} (${data.executionTimeMs}ms)\n`;
-        details += `Tests: ${data.passedTests} / ${data.totalTests} passed\n\n`;
-
-        if (data.sampleResults && data.sampleResults.length) {
-          data.sampleResults.forEach(t => {
-            details += `Test #${t.testIndex}: ${t.passed ? '✓ PASSED' : '✕ FAILED'}\n`;
-            details += `  Args: ${JSON.stringify(t.input)}\n`;
-            details += `  Expected: ${JSON.stringify(t.expected)}\n`;
-            details += `  Output: ${JSON.stringify(t.actual !== undefined ? t.actual : t.error)}\n\n`;
-          });
-        }
-        if (data.logs && data.logs.length) {
-          details += 'Logs:\n' + data.logs.join('\n');
-        }
-        outEl.textContent = details;
-      }
-
-      if (resEl) {
-        if (data.passed) {
-          resEl.className = 'rs ok';
-          const xpMsg = data.xp && data.xp.awarded ? ` +${data.xp.amount} XP awarded!` : '';
-          resEl.textContent = `✓ All ${data.totalTests} tests passed!${xpMsg}`;
-          if (data.xp && data.xp.awarded) {
-            Auth.user.totalXp = data.xp.currentXp;
-            Auth.user.level = data.xp.level;
-            Auth.renderUser();
-            Leaderboard.sync();
-          }
-        } else {
-          resEl.className = 'rs no';
-          resEl.textContent = `✕ Failed: ${data.passedTests}/${data.totalTests} tests passed. Check test breakdown above.`;
-        }
-      }
-    } catch (err) {
-      if (outEl) {
-        outEl.className = 'er';
-        outEl.textContent = 'Submission error: ' + err.message;
-      }
-    }
-  }
-};
-
-// Leaderboard Sync from Database
-const Leaderboard = {
-  async sync(timeframe = 'All-time') {
-    try {
-      const headers = Auth.token ? { 'Authorization': `Bearer ${Auth.token}` } : {};
-      const res = await fetch(`${API_BASE}/leaderboard?timeframe=${encodeURIComponent(timeframe)}`, { headers });
-      const data = await res.json();
-      if (!data.rankings) return;
-
-      const pod = document.getElementById('lpod');
-      const rows = document.getElementById('lrows');
-      const lb = document.getElementById('lb');
-
-      if (lb) {
-        lb.innerHTML = data.rankings.slice(0, 5).map((u, i) => `
-          <div class="lr">
-            <b>${i + 1}</b>
-            <span class="a"></span>
-            <span>${u.username}<br><em>${u.challengesSolved || 0} solved</em></span>
-            <span>${u.xp.toLocaleString()} XP</span>
-          </div>
-        `).join('');
-      }
-
-      if (pod && data.rankings.length >= 3) {
-        const top3 = [data.rankings[1], data.rankings[0], data.rankings[2]];
-        const rk = [2, 1, 3];
-        pod.innerHTML = top3.map((u, i) => `
-          <div class="pd p${rk[i]}">
-            <small>0${rk[i]}</small>
-            <b>${u ? u.username : '-'}</b>
-            <span>${u ? u.xp.toLocaleString() : 0} XP</span>
-            <em>${u ? u.challengesSolved : 0} challenges</em>
-          </div>
-        `).join('');
-      }
-
-      if (rows) {
-        rows.innerHTML = '<div class="lrw h"><span>Rank</span><span>Developer</span><span>Challenges</span><span>XP</span></div>' +
-          data.rankings.slice(3).map(u => `
-            <div class="lrw">
-              <b>0${u.rank}</b>
-              <span>${u.username}</span>
-              <span>${u.challengesSolved}</span>
-              <span>${u.xp.toLocaleString()}</span>
-            </div>
-          `).join('');
-      }
-    } catch (e) {
-      console.warn('Leaderboard sync error:', e);
-    }
-  }
-};
-
-// Featured Projects Sync
-const Projects = {
-  async sync() {
-    try {
-      const res = await fetch(`${API_BASE}/projects`);
-      const data = await res.json();
-      if (!data.projects) return;
-
-      const pj = document.getElementById('pj');
-      if (pj && data.projects.length) {
-        pj.innerHTML = data.projects.map(p => `
-          <article class="c pc s4">
-            <div class="cv"></div>
-            <div class="b">
-              <h3>${p.title}</h3>
-              <p>${p.description}</p>
-              <div class="f">
-                <span class="tag">${p.category}</span>
-                <span class="tag">▲ ${p.votesCount || 0} votes</span>
-                <a href="${p.repoUrl}" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
-              </div>
-            </div>
-          </article>
-        `).join('');
-      }
-    } catch (e) {
-      console.warn('Projects sync error:', e);
-    }
-  }
-};
-
-// Initialize after page load
-document.addEventListener('DOMContentLoaded', async () => {
-  await Auth.init();
-  Leaderboard.sync();
-  Projects.sync();
-
-  // Connect Auth buttons in hero navigation
-  const heroLogins = document.querySelectorAll('.xn .xa');
-  heroLogins.forEach(el => {
-    el.style.cursor = 'pointer';
-    el.onclick = (e) => {
-      e.stopPropagation();
-      Modal.open('signup');
-    };
-  });
-
-  // Connect Hackathon register button
-  const hackRegBtn = document.querySelector('#v-hack .btns .bt.d');
-  if (hackRegBtn) {
-    hackRegBtn.onclick = () => {
-      window.open('https://unstop.com/o/vON6wtS?lb=useupllP&utm_medium=Share&utm_source=online_coding_challenge&utm_campaign=Parthhyg96055', '_blank');
-    };
-  }
-
-  // Connect Add Task / Submit Project button in dashboard
-  const addTaskBtn = document.querySelector('#tk .t.dash');
-  if (addTaskBtn) {
-    addTaskBtn.onclick = () => Modal.openProjectModal();
-  }
-
-  // Wire Run Code button in workspace
-  const runBtn = document.getElementById('run');
-  if (runBtn) {
-    runBtn.onclick = () => Workspace.run();
-  }
-
-  // Hook Modal Forms
-  const loginForm = document.getElementById('form-login');
-  if (loginForm) {
-    loginForm.onsubmit = async (e) => {
-      e.preventDefault();
-      const loginVal = document.getElementById('login-id').value;
-      const passVal = document.getElementById('login-pass').value;
-      const errBox = document.getElementById('auth-err');
-      try {
-        await Auth.login(loginVal, passVal);
-        Modal.close();
-        toast('Signed in successfully!');
-      } catch (err) {
-        if (errBox) {
-          errBox.textContent = err.message;
-          errBox.classList.add('show');
-        }
-      }
-    };
-  }
-
-  const signupForm = document.getElementById('form-signup');
-  if (signupForm) {
-    signupForm.onsubmit = async (e) => {
-      e.preventDefault();
-      const email = document.getElementById('reg-email').value;
-      const username = document.getElementById('reg-username').value;
-      const fullName = document.getElementById('reg-fullname').value;
-      const password = document.getElementById('reg-password').value;
-      const errBox = document.getElementById('auth-err');
-      try {
-        await Auth.signup(email, username, fullName, password);
-        Modal.close();
-        toast('Welcome to Dev Harbour!');
-      } catch (err) {
-        if (errBox) {
-          errBox.textContent = err.message;
-          errBox.classList.add('show');
-        }
-      }
-    };
-  }
-
-  const prjForm = document.getElementById('form-submit-project');
-  if (prjForm) {
-    prjForm.onsubmit = async (e) => {
-      e.preventDefault();
-      const title = document.getElementById('prj-title').value;
-      const category = document.getElementById('prj-category').value;
-      const description = document.getElementById('prj-desc').value;
-      const techStack = document.getElementById('prj-tech').value;
-      const repoUrl = document.getElementById('prj-repo').value;
-      const demoUrl = document.getElementById('prj-demo').value;
+      const title = modalContent.querySelector('#p-title').value.trim();
+      const category = modalContent.querySelector('#p-cat').value;
+      const description = modalContent.querySelector('#p-desc').value.trim();
+      const techStack = modalContent.querySelector('#p-tech').value.split(',').map(s => s.trim()).filter(Boolean);
+      const repoUrl = modalContent.querySelector('#p-repo').value.trim();
+      const liveUrl = modalContent.querySelector('#p-demo').value.trim();
 
       try {
         const res = await fetch(`${API_BASE}/projects`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${Auth.token}`
+            'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({ title, category, description, techStack, repoUrl, demoUrl })
+          body: JSON.stringify({ title, category, description, techStack, repoUrl, liveUrl })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Submission failed');
-        toast('Project published to community! +50 XP awarded.');
-        Modal.close();
-        prjForm.reset();
-        Projects.sync();
-        await Auth.init();
+        if (Array.isArray(window.J)) {
+          window.J.unshift([title, description, category]);
+          if (typeof window.rp === 'function') window.rp();
+        }
+        closeModal();
+        showToast('🎉 Project published! +50 XP awarded!');
+        if (currentUser && data.xpEarned) {
+          currentUser.totalXp = (currentUser.totalXp || 0) + data.xpEarned;
+          updateUserUI();
+        }
+        syncLeaderboard();
       } catch (err) {
-        alert(err.message);
+        prjErr.textContent = err.message;
+        prjErr.style.display = 'block';
       }
     };
+
+    modalWrap.classList.add('open');
   }
-});
+
+  // Connect Course Cards to Real Reading & Official Course Catalog
+  function hookCourses() {
+    document.addEventListener('click', async e => {
+      const card = e.target.closest('#pg .c');
+      if (card) {
+        const titleEl = card.querySelector('h3');
+        const courseTitle = titleEl ? titleEl.textContent : '';
+        openCourseDetail(courseTitle);
+      }
+    });
+  }
+
+  async function openCourseDetail(courseTitle) {
+    try {
+      const res = await fetch(`${API_BASE}/courses`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const course = (data.courses || []).find(c => c.title.toLowerCase().includes(courseTitle.toLowerCase())) || data.courses[0];
+      if (!course) return;
+
+      const detailRes = await fetch(`${API_BASE}/courses/${course.id}`);
+      const detailData = detailRes.ok ? await detailRes.json() : { lessons: [] };
+      const lessons = detailData.lessons || [];
+
+      modalContent.innerHTML = `
+        <span class="tag" style="background:var(--soft);color:var(--blk);font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;">${course.provider} · ${course.level}</span>
+        <h3 style="margin-top:10px">${course.title}</h3>
+        <p class="desc">${course.description}</p>
+        <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+          <a href="${course.officialUrl}" target="_blank" rel="noopener noreferrer" class="dh-course-link">
+            Official Course Link ↗ (${course.provider})
+          </a>
+        </div>
+        <h4 style="font-size:15px; font-weight:700; margin-bottom:10px;">Interactive Lessons & Reading:</h4>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          ${lessons.map((l, i) => `
+            <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg); padding:10px 14px; border-radius:12px; border:1px solid var(--line);">
+              <div>
+                <b style="font-size:13.5px; display:block;">${l.title}</b>
+                <span style="font-size:12px; color:var(--mut);">${l.readingTimeMinutes || 10} min read · +${l.xpReward || 25} XP</span>
+              </div>
+              <button class="dh-btn" style="width:auto; padding:6px 16px; margin:0; font-size:12px;" onclick="window.DH_ReadLesson('${course.id}', '${l.id}')">Read</button>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      modalWrap.classList.add('open');
+    } catch (err) {}
+  }
+
+  window.DH_ReadLesson = async function(courseId, lessonId) {
+    try {
+      const res = await fetch(`${API_BASE}/courses/${courseId}/lessons/${lessonId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const l = data.lesson;
+
+      modalContent.innerHTML = `
+        <span class="tag" style="background:var(--soft);color:var(--blk);font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;">Lesson · +${l.xpReward || 25} XP</span>
+        <h3 style="margin-top:10px">${l.title}</h3>
+        <div class="dh-read-content">
+          ${l.contentHtml || l.content}
+        </div>
+        <button class="dh-btn" id="dh-finish-lesson">Complete Lesson (+${l.xpReward || 25} XP)</button>
+      `;
+
+      const finishBtn = modalContent.querySelector('#dh-finish-lesson');
+      finishBtn.onclick = async () => {
+        if (!token) {
+          showToast('Sign in to claim lesson XP');
+          showAuthModal('login');
+          return;
+        }
+        const compRes = await fetch(`${API_BASE}/courses/${courseId}/lessons/${lessonId}/complete`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const compData = await compRes.json();
+        if (compRes.ok) {
+          showToast(`Lesson completed! +${compData.xpEarned || 25} XP awarded!`);
+          if (currentUser) {
+            currentUser.totalXp = compData.totalXp;
+            updateUserUI();
+          }
+          syncLeaderboard();
+        } else {
+          showToast(compData.message || 'Lesson already completed');
+        }
+        closeModal();
+      };
+    } catch (err) {}
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  function init() {
+    initAuth();
+    syncLeaderboard();
+    hookChallengeRunner();
+    hookAddTask();
+    hookProjects();
+    hookCourses();
+  }
+
+})();
