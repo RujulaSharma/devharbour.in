@@ -20,7 +20,7 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stro
 .frame{grid-column:1/-1;display:contents}
 /* sidebar */
 .sb{background:var(--card);border-radius:var(--r);padding:26px 18px;display:flex;flex-direction:column;gap:6px;position:sticky;top:18px;height:calc(100vh - 36px);box-shadow:0 20px 50px -30px rgba(40,34,66,.25)}
-.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;padding:0 10px 22px;letter-spacing:-.02em}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;padding:0 10px 22px;letter-spacing:-.02em;color:var(--ink)}
 .mk{width:30px;height:30px;border-radius:10px;background:var(--blk);display:grid;place-items:center}.mk i{width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#fff,#a99fc0)}
 .nv{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;font-size:14px;font-weight:600;color:#3a3550;text-align:left;transition:var(--t)}
 .nv:hover{background:var(--soft)}.nv.on{background:var(--blk);color:#fff}
@@ -531,11 +531,10 @@ html[data-theme="mercury"] .zc{padding:clamp(18px,5vw,40px);border-radius:26px;b
 @media(prefers-reduced-motion:reduce){#chTry,.zcta .zb,.pd.p1,.fsh i{animation:none!important}}
 
 /* ===== HERO LAYOUT FIX: ZERO OVERLAP ON ALL VIEWPORTS ===== */
-.xw{position:absolute;left:0;right:0;top:38%;transform:translateY(-50%);text-align:center;font-family:'Michroma',var(--font);font-size:clamp(26px,7.5vw,110px);color:rgba(31,28,44,.12);line-height:1;white-space:nowrap;z-index:1;pointer-events:none;user-select:none;transition:transform .2s ease-out,filter .7s,opacity .7s}
+.xw{position:absolute;left:0;right:0;top:38%;transform:translateY(-50%);text-align:center;font-family:'Michroma',var(--font);font-size:clamp(26px,7.5vw,110px);color:#1f1c2c;letter-spacing:.015em;text-shadow:0 2px 0 rgba(255,255,255,.55),0 14px 28px -10px rgba(40,34,66,.28);line-height:1;white-space:nowrap;z-index:1;pointer-events:none;user-select:none;transition:transform .2s ease-out,filter .7s,opacity .7s}
 .xw sup{font-size:.2em;vertical-align:top;font-family:var(--font)}
-html[data-theme="dark"] .xw{color:rgba(255,255,255,.14)!important;text-shadow:none!important}
-html[data-theme="dark"] .xw:after{display:none}
-html[data-theme="mercury"] .xw{color:rgba(30,30,34,.12)!important;text-shadow:none!important}
+html[data-theme="dark"] .xw{color:#fff!important;text-shadow:0 8px 30px rgba(255,255,255,.12)!important}
+html[data-theme="mercury"] .xw{color:#1e1e22!important;text-shadow:0 2px 0 rgba(255,255,255,.75),0 14px 28px -10px rgba(30,30,34,.35)!important}
 
 /* Desktop Hero Arrangement */
 .xbm{display:contents}
@@ -692,7 +691,7 @@ html[data-theme="dark"] .pm-btn.secondary{background:rgba(255,255,255,.06);color
 <section class="view" id="v-projects"><div class="fl" id="pf"></div><div class="g" id="pj"></div><p class="mut" style="margin:14px 6px">Curated developer builds. Test live previews, inspect repos, and track submission criteria.</p></section>
 
 <section class="view" id="v-hack"><div class="g"><div class="c k hb s8"><span class="tag" style="align-self:flex-start;position:relative" id="hT"></span><h2 id="hN" style="margin-top:14px"></h2><p id="hD"></p></div>
- <div class="c s4"><div class="h"><h3>Event details</h3></div><dl class="dl" id="hI"></dl><div class="btns"><button class="bt d" data-t="Registration needs a backend — not connected yet">Register Now</button><button class="bt" style="background:var(--soft)" data-t="Details page coming next">View Details</button></div></div></div></section>
+ <div class="c s4"><div class="h"><h3>Event details</h3></div><dl class="dl" id="hI"></dl><div class="btns"><a href="https://unstop.com/o/vON6wtS?lb=useupllP&utm_medium=Share&utm_source=online_coding_challenge&utm_campaign=Parthhyg96055" target="_blank" rel="noopener noreferrer" class="bt d" style="display:flex;align-items:center;justify-content:center;text-decoration:none">Register Now ↗</a><a href="https://unstop.com/o/vON6wtS?lb=useupllP&utm_medium=Share&utm_source=online_coding_challenge&utm_campaign=Parthhyg96055" target="_blank" rel="noopener noreferrer" class="bt" style="background:var(--soft);display:flex;align-items:center;justify-content:center;text-decoration:none">View Details ↗</a></div></div></div></section>
 
 <section class="view" id="v-work"><div class="g"><div class="c s8"><div class="wb"><strong id="wt">Two Sum</strong><select aria-label="Language"><option>JavaScript</option></select><button class="run" id="run">▶ Run Code</button><button id="rst">Reset</button><button id="cp">Copy</button></div><div class="ed"><pre id="hl" aria-hidden="true"></pre><textarea id="code" spellcheck="false" aria-label="Code editor"></textarea></div></div>
  <div class="c k s4 io"><label for="inp">INPUT</label><textarea id="inp"></textarea><label>CONSOLE / OUTPUT</label><pre id="out">Press Run Code.</pre><div class="rs" id="res"></div></div></div>
@@ -722,7 +721,7 @@ document.addEventListener('click',e=>{const t=e.target.closest('[data-t]');if(t)
 const V=[['home','Dashboard','M3 11l9-8 9 8M5 10v10h14V10'],['learn','Learn','M4 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H4zM20 5h-6'],['practice','Practice','M8 18 2 12l6-6M16 6l6 6-6 6'],['projects','Projects','M3 7h7l2 2h9v10H3z'],['hack','Hackathons','M7 4h10v5a5 5 0 0 1-10 0zM12 14v5M8 20h8'],['work','Workspace','M3 4h18v13H3zM8 21h8M12 17v4'],['comm','Community','M16 20v-2a4 4 0 0 0-8 0v2M12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6']];
 $('nav').innerHTML=V.map(v=>`<button class="nv" data-v="${v[0]}">${I(v[2])}${v[1]}</button>`).join('');
 function show(id){document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id=='v-'+id));document.querySelectorAll('.nv[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v==id));scrollTo({top:0,behavior:'smooth'});document.querySelectorAll('#v-'+id+' .c,#v-'+id+' .t,#v-'+id+' .pk,#v-'+id+' .row').forEach((e,i)=>e.style.setProperty('--d',Math.min(i,14)))}
-const H={tag:'Hackathon · 2026',name:'ORCA CODERS: ORCATHON 2026',desc:'Build in a team, ship in a weekend, and pitch to judges.',info:[['Date & time','To be announced'],['Format','Online / Offline — TBA'],['Team size','TBA'],['Registration fee','TBA']]};
+const H={tag:'Hackathon · 2026',name:'ORCA CODERS: ORCATHON 2026',desc:'Build in a team, ship in a weekend, and pitch to judges. Compete with top student developers across Web, AI & Security.',info:[['Status','Registrations Live on Unstop'],['Prize Pool','₹3,00,000+ & Mentorship'],['Format','Online & Offline (Hybrid)'],['Team size','1 – 4 Developers'],['Registration fee','Free'],['Eligibility','Students & Developers']]};
 $('hT').textContent=H.tag;$('hN').textContent=H.name;$('hD').textContent=H.desc;$('hI').innerHTML=H.info.map(i=>`<div><dt>${i[0]}</dt><dd>${i[1]}</dd></div>`).join('');
 const P=[['Full-Stack Web Development','HTML to databases, end to end.',24,'M8 18 2 12l6-6M16 6l6 6-6 6M14 4l-4 16'],['Data Science & Analytics','Python, statistics and insight.',18,'M4 20V10M10 20V4M16 20v-7M22 20H2'],['Cybersecurity','Threats, defence and ethics.',16,'M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z'],['DevOps & Cloud','Ship and scale reliably.',14,'M7 18a5 5 0 1 1 1-9.9A6 6 0 0 1 20 10a4 4 0 0 1-1 8z'],['Mobile App Development','Apps for phones and tablets.',15,'M7 2h10v20H7zM11 18h2'],['Game Development','Engines, physics, play.',12,'M6 8h12a4 4 0 0 1 4 4v2a3 3 0 0 1-5 2l-1-2H8l-1 2a3 3 0 0 1-5-2v-2a4 4 0 0 1 4-4zM8 11v3']];
 $('pg').innerHTML=P.map((p,i)=>`<article class="c pa s4 ${i==0?'k':''}">${I(p[3])}<h3>${p[0]}</h3><p class="mut">${p[1]}</p><div class="mt mut"><span>${p[2]} modules</span><span>Sign in to track</span></div></article>`).join('');
@@ -733,10 +732,11 @@ const C=[['Two Sum','Easy','Arrays',49,'function twoSum(nums, target) {\n  const
 ['Binary Search','Easy','Arrays',55,'function search(nums, target) {\n  // your code\n  return -1;\n}\nconst [a, b] = input.split("\\n");\nconsole.log(search(JSON.parse(a), +b));','[-1,0,3,5,9,12]\n9','4'],
 ['Min Stack','Medium','Stacks',33,'class MinStack {\n  // push, pop, top, getMin\n}\nconst s = new MinStack(), o = [];\ns.push(-2); s.push(0); s.push(-3);\no.push(s.getMin()); s.pop();\no.push(s.top(), s.getMin());\nconsole.log(o.join(","));','(driver is built in)','-3,0,-2']];
 const J=[
+  ['Emergency E-Card','Full-stack emergency response app with medical profile, SOS alerts, nearby responders and live location sharing.','Web','https://emergency-e-card-1.onrender.com','https://emergency-e-card-1.onrender.com','assets/emergency-e-card-thumbnail.svg',{detail:'During emergencies, delays in accessing critical medical information, contacting trusted people, and finding nearby assistance can make an already difficult situation even more challenging. Emergency E-Card is a full-stack web application built around a streamlined emergency response system. Users can create a medical profile, trigger an SOS button to raise an emergency alert, navigate to the SOS location, discover nearby registered responders, and share a time-limited location-tracking link. It also notifies emergency contacts to connect people in distress with their trusted contacts. Work is ongoing, with further development and improvements in progress.',screenshots:'https://drive.google.com/drive/folders/1qgwt4eNxSx_7NioGoX1IdSpbscnFxWXo',linkedin:'https://lnkd.in/p/diwCmXdU',github:'https://github.com/mohammed-hasan-ECE/emergency-e-card'}],
+  ['Lively!','A community app for writers to publish stories, poems, quotes and journals, and find readers who actually read.','Mobile','https://www.readinlively.com','https://www.readinlively.com','assets/lively-thumbnail.svg',{detail:'Lively! is a community for writers. Publish stories, poems, quotes, and journals, and find readers who actually read. Tagline: "Composes, that make you think." Free on Android.',playStore:'https://play.google.com/store/apps/details?id=com.lively.stories',website:'https://www.readinlively.com'}],
+  ['PipOS — Candy Dreams','A playful pastel dream-world web app with a dream arcade, lullaby music box, dream journal, star store and an animated companion called Pip.','Web, Game','https://shimmering-sherbet-b774ae.netlify.app','https://shimmering-sherbet-b774ae.netlify.app','assets/pipos-thumbnail.svg',{detail:'PipOS is a playful, candy-coloured dream world where you meet Pip, Junior Dream Engineer at Midnight Nursery. Explore a "Little Cosmos" map, read bedtime Story Clouds, play five mini-games in the Dream Arcade (with difficulty levels, touch controls and a boss challenge), listen to a lullaby music box synthesized in the browser, write in a Dream Journal, and chat with Pip. Players earn Dream Stars and XP, spend them in the Star Store, and unlock three Dream Tiers. Progress is saved locally in the browser.\n\nFeatures: dream arcade with 5 mini-games and boss level, lullaby music box, dream journal, star store and XP tiers, daily quests and achievements, animated chat companion with optional voice.',liveUrl:'https://shimmering-sherbet-b774ae.netlify.app'}],
   ['Orbit Notes','Markdown notes with live sync and offline persistence.','Web','https://github.com/RujulaSharma/devharbour.in','https://devharbour.in'],
   ['Tide','A gentle habit tracker for developer streaks.','Mobile','https://github.com/RujulaSharma/devharbour.in','https://devharbour.in'],
-  ['Emergency E-Card','Full-stack emergency response app with medical profile, SOS alerts, nearby responders and live location sharing.','Web','https://emergency-e-card-1.onrender.com','https://emergency-e-card-1.onrender.com','assets/emergency-e-card-thumbnail.svg',{detail:'During emergencies, delays in accessing critical medical information, contacting trusted people, and finding nearby assistance can make an already difficult situation even more challenging. Emergency E-Card is a full-stack web application built around a streamlined emergency response system. Users can create a medical profile, trigger an SOS button to raise an emergency alert, navigate to the SOS location, discover nearby registered responders, and share a time-limited location-tracking link. It also notifies emergency contacts to connect people in distress with their trusted contacts. Work is ongoing, with further development and improvements in progress.',screenshots:'https://drive.google.com/drive/folders/1qgwt4eNxSx_7NioGoX1IdSpbscnFxWXo',linkedin:'https://lnkd.in/p/diwCmXdU',github:'https://github.com/mohammed-hasan-ECE/emergency-e-card'}],
-  ['Lively!','A community app for writers to publish stories, poems, quotes and journals, and find readers who actually read.','Mobile','https://www.readinlively.com','https://www.readinlively.com','assets/lively-thumbnail.svg',{detail:'Lively! is a community for writers. Publish stories, poems, quotes, and journals, and find readers who actually read. Tagline: \"Composes, that make you think.\" Free on Android.',playStore:'https://play.google.com/store/apps/details?id=com.lively.stories',website:'https://www.readinlively.com'}],
   ['Hullcheck','Network port auditing and vulnerability learning kit.','Security','https://github.com/RujulaSharma/devharbour.in','https://devharbour.in'],
   ['Pixel Reef','An underwater 2D canvas platformer engine.','Game','https://github.com/RujulaSharma/devharbour.in','https://devharbour.in'],
   ['Lantern','Accessible docs and API reference generator.','Web','https://github.com/RujulaSharma/devharbour.in','https://devharbour.in'],
@@ -805,7 +805,7 @@ pills($('cf'),cats,cat,v=>{cat=v;rc()});$('cq').oninput=rc;rc();
 const L={Weekly:[['ayesha',12,980],['kabir',10,860],['mei',9,790],['lucas',7,640],['nora',6,510]],'All-time':[['mei',212,18400],['ayesha',198,17120],['kabir',187,15900],['nora',160,13300],['lucas',151,12100]]};
 function rl(k){$('lb').innerHTML=L[k].map((u,i)=>`<div class="lr"><b>${i+1}</b><span class="a"></span><span>${u[0]}<br><em>${u[1]} solved</em></span><span>${u[2]} XP</span></div>`).join('')}
 pills($('lt'),['Weekly','All-time'],'Weekly',rl);rl('Weekly');
-// Project Likes State & Persistence
+// Project Likes State & Persistence (NO FAKE LIKES: strictly real user likes)
 let likesStore = {};
 try {
   likesStore = JSON.parse(localStorage.getItem('dh-project-likes') || '{}');
@@ -813,21 +813,12 @@ try {
   likesStore = {};
 }
 
-const defaultLikes = {
-  'Emergency E-Card': 142,
-  'Lively!': 136,
-  'Orbit Notes': 108,
-  'Tide': 95,
-  'Hullcheck': 74,
-  'Pixel Reef': 68,
-  'Relay': 59,
-  'Lantern': 52
-};
+let serverVotes = {};
 
 function getProjectLikes(title) {
   const userBonus = likesStore[title] ? 1 : 0;
-  const base = defaultLikes[title] || 50;
-  return base + userBonus;
+  const srv = serverVotes[title] || 0;
+  return Math.max(srv, userBonus);
 }
 
 function isProjectLiked(title) {
@@ -842,9 +833,11 @@ window.toggleProjectLike = function(title, event) {
   const liked = isProjectLiked(title);
   if (liked) {
     delete likesStore[title];
+    if (serverVotes[title] && serverVotes[title] > 0) serverVotes[title]--;
     toast(`Removed like from ${title}`);
   } else {
     likesStore[title] = true;
+    serverVotes[title] = (serverVotes[title] || 0) + 1;
     toast(`❤️ Liked ${title}!`);
   }
   try {
@@ -853,14 +846,37 @@ window.toggleProjectLike = function(title, event) {
 
   try {
     const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    fetch(`/api/projects/prj-${slug}/vote`, { method: 'POST' }).catch(() => {});
+    fetch(`/api/projects/prj-${slug}/vote`, { method: 'POST' })
+      .then(r => r.json())
+      .then(res => {
+        if (res && typeof res.votesCount === 'number') {
+          serverVotes[title] = res.votesCount;
+          rp();
+        }
+      })
+      .catch(() => {});
   } catch(e) {}
 
   rp();
 };
 
+// Sync live project votes from server on page load
+try {
+  fetch('/api/projects')
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.projects) {
+        data.projects.forEach(p => {
+          serverVotes[p.title] = p.votesCount || p.votes_count || 0;
+        });
+        rp();
+      }
+    })
+    .catch(() => {});
+} catch(e) {}
+
 function rp(){
-  const filtered = J.filter(j => pc == 'All' || j[2] == pc);
+  const filtered = J.filter(j => pc === 'All' || j[2] === pc || j[2].split(',').map(s=>s.trim()).includes(pc));
   // Sort descending by like count so the most liked project is always on top!
   const sorted = [...filtered].sort((a, b) => getProjectLikes(b[0]) - getProjectLikes(a[0]));
 
@@ -869,6 +885,7 @@ function rp(){
     const liked = isProjectLiked(j[0]);
     const hasImg = Boolean(j[5]);
     const meta = j[6] || null;
+    const tags = j[2].split(',').map(t => `<span class="tag">${t.trim()}</span>`).join('');
     return `<article class="c pc s4" data-title="${j[0]}">
       <div class="cv${hasImg ? ' has-img' : ''}">
         ${hasImg ? `<img src="${j[5]}" alt="${j[0]}" class="pci" loading="lazy">` : ''}
@@ -876,13 +893,13 @@ function rp(){
           <span class="like-heart">${liked ? '❤️' : '🤍'}</span>
           <span class="like-count">${likes}</span>
         </button>
-        ${idx === 0 ? '<span class="px-top-badge">👑 Most Liked</span>' : ''}
+        ${idx === 0 && likes > 0 ? '<span class="px-top-badge">👑 Most Liked</span>' : ''}
       </div>
       <div class="b">
         <h3>${j[0]}</h3>
         <p>${j[1]}</p>
         <div class="f">
-          <span class="tag">${j[2]}</span>
+          ${tags}
           <span class="tag">Verified</span>
           <a href="${j[3]}" target="_blank" rel="noopener noreferrer">View Project ↗</a>
         </div>
@@ -904,6 +921,7 @@ window.openProjectModal=function(title){
   const meta=prj[6]||{};
   const likes=getProjectLikes(prj[0]);
   const liked=isProjectLiked(prj[0]);
+  const tags=prj[2].split(',').map(t=>`<span class="tag">${t.trim()}</span>`).join('');
   let m=document.getElementById('project-modal');
   if(!m){
     m=document.createElement('div');
@@ -919,7 +937,7 @@ window.openProjectModal=function(title){
       <div class="pm-content">
         <div class="pm-tags" style="display:flex;align-items:center;justify-content:space-between;">
           <div style="display:flex;gap:6px;">
-            <span class="tag">${prj[2]}</span>
+            ${tags}
             <span class="tag" style="background:#4a4263;color:#fff;">Verified</span>
           </div>
           <button type="button" class="px-like-btn${liked ? ' active' : ''}" style="position:static;" onclick="toggleProjectLike('${prj[0].replace(/'/g, "\\'")}', event); openProjectModal('${prj[0].replace(/'/g, "\\'")}')">
@@ -929,7 +947,7 @@ window.openProjectModal=function(title){
         </div>
         <h2 style="margin:0 0 8px;font-size:22px;color:var(--ink);font-weight:800;">${prj[0]}</h2>
         <p style="font-weight:600;color:var(--ink);opacity:0.85;margin-bottom:12px;font-size:13.5px;">${prj[1]}</p>
-        <div class="pm-desc">${meta.detail||prj[1]}</div>
+        <div class="pm-desc" style="white-space:pre-line;">${meta.detail||prj[1]}</div>
         <div class="pm-actions">
           <a href="${prj[3]}" target="_blank" rel="noopener noreferrer" class="pm-btn primary">View Project ↗</a>
           ${meta.playStore?`<a href="${meta.playStore}" target="_blank" rel="noopener noreferrer" class="pm-btn secondary">📱 Google Play ↗</a>`:''}

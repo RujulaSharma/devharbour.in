@@ -333,19 +333,8 @@ function seedDatabase() {
       `).run(crypto.randomUUID(), su.id, su.xp);
     }
 
-    // Seed Sample Projects
+    // Seed Sample Projects (all starting at 0 real likes)
     const sampleProjects = [
-      {
-        id: 'prj-lively',
-        userId: adminId,
-        title: 'Lively!',
-        desc: 'A community app for writers to publish stories, poems, quotes and journals, and find readers who actually read.',
-        category: 'Mobile',
-        tech: ['Android', 'React Native', 'Mobile', 'Node.js'],
-        repo: 'https://www.readinlively.com',
-        demo: 'https://www.readinlively.com',
-        votes: 52
-      },
       {
         id: 'prj-emergency-e-card',
         userId: adminId,
@@ -355,7 +344,29 @@ function seedDatabase() {
         tech: ['React', 'Node.js', 'Express', 'MongoDB'],
         repo: 'https://github.com/mohammed-hasan-ECE/emergency-e-card',
         demo: 'https://emergency-e-card-1.onrender.com',
-        votes: 46
+        votes: 0
+      },
+      {
+        id: 'prj-lively',
+        userId: adminId,
+        title: 'Lively!',
+        desc: 'A community app for writers to publish stories, poems, quotes and journals, and find readers who actually read.',
+        category: 'Mobile',
+        tech: ['Android', 'React Native', 'Mobile', 'Node.js'],
+        repo: 'https://www.readinlively.com',
+        demo: 'https://www.readinlively.com',
+        votes: 0
+      },
+      {
+        id: 'prj-pipos',
+        userId: adminId,
+        title: 'PipOS — Candy Dreams',
+        desc: 'A playful pastel dream-world web app with a dream arcade, lullaby music box, dream journal, star store and an animated companion called Pip.',
+        category: 'Web, Game',
+        tech: ['Web', 'Game', 'JavaScript', 'Audio API', 'Canvas'],
+        repo: 'https://shimmering-sherbet-b774ae.netlify.app',
+        demo: 'https://shimmering-sherbet-b774ae.netlify.app',
+        votes: 0
       },
       {
         id: 'prj-orbit-notes',
@@ -366,7 +377,7 @@ function seedDatabase() {
         tech: ['JavaScript', 'Markdown', 'WebSockets'],
         repo: 'https://github.com/RujulaSharma/devharbour.in',
         demo: 'https://devharbour.in',
-        votes: 38
+        votes: 0
       },
       {
         id: 'prj-tide',
@@ -377,7 +388,7 @@ function seedDatabase() {
         tech: ['React Native', 'SQLite', 'Notifications'],
         repo: 'https://github.com/RujulaSharma/devharbour.in',
         demo: 'https://devharbour.in',
-        votes: 24
+        votes: 0
       },
       {
         id: 'prj-hullcheck',
@@ -388,7 +399,7 @@ function seedDatabase() {
         tech: ['Python', 'Sockets', 'Networking'],
         repo: 'https://github.com/RujulaSharma/devharbour.in',
         demo: 'https://devharbour.in',
-        votes: 31
+        votes: 0
       }
     ];
 
