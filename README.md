@@ -52,10 +52,13 @@ devharbour/
 ├── README.md                  # Complete documentation and deployment guide
 ├── server/
 │   ├── index.js               # Full-stack Express server
-│   ├── db.js                  # Persistent database layer (Node v24 SQLite engine)
+│   ├── database.js            # Explicit PostgreSQL / offline SQLite provider selection
+│   ├── db-postgres.js         # Prisma repositories and transactional business rules
+│   ├── prisma.js              # Server-only PostgreSQL adapter and Prisma client
+│   ├── db.js                  # Preserved Node v24 SQLite fallback and test database
 │   ├── auth.js                # Cryptographic hashing & session authorization
 │   ├── execution.js           # Safe sandboxed code runner with hidden test evaluator
-│   ├── schema.sql             # Complete PostgreSQL / Supabase migration schema
+│   ├── schema.sql             # Legacy SQL reference; use prisma/migrations for Prisma
 │   ├── data/
 │   │   ├── courses.json       # Verified official course catalog
 │   │   ├── lessons.json       # Reading mode curriculum content
@@ -82,7 +85,7 @@ devharbour/
 ## 🛠 Local Setup & Running
 
 ### Prerequisites
-- Node.js v20+ or v24+ (Node v24 recommended for zero-dependency native SQLite support).
+- Node.js v24+ (also required by the retained SQLite test/fallback database).
 
 ### 1. Install Dependencies
 ```bash
@@ -93,6 +96,9 @@ npm install
 ```bash
 cp .env.example .env
 ```
+On Windows PowerShell, use `Copy-Item .env.example .env` only if `.env` does not
+already exist. Set `DB_PROVIDER=postgresql`, `DATABASE_URL`, and `DIRECT_URL`
+locally, then run `npm run db:generate`. Keep credentials out of Git and chat.
 
 ### 3. Run Automated Tests
 ```bash
@@ -110,19 +116,25 @@ Open **http://localhost:3000** in your browser.
 
 ## 🗄 Database Configuration
 
-### Option A: Local SQLite (Default - Ready Out of the Box)
-The application automatically creates and seeds `devharbour.sqlite` on first boot with courses, lessons, challenges, and achievements.
+### Supabase PostgreSQL through Prisma (default)
+The Express routes use Prisma 7 and its PostgreSQL adapter. Connection details
+belong in the ignored `.env`; migrations use `DIRECT_URL` and runtime queries use
+`DATABASE_URL`. `npm run db:check` verifies both connections without writing data.
 
-### Option B: Supabase / PostgreSQL Deployment
-1. Create a project at [supabase.com](https://supabase.com).
-2. Open the **SQL Editor** in the Supabase Dashboard.
-3. Paste and run the contents of [`server/schema.sql`](file:///server/schema.sql).
-4. Configure your `.env`:
-   ```env
-   DATABASE_URL=postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres
-   SUPABASE_URL=https://[PROJECT-REF].supabase.co
-   SUPABASE_ANON_KEY=your_anon_key
-   ```
+The initial migration is in `prisma/migrations`. The approved existing SQLite
+records have been imported into Supabase. Startup does not apply migrations,
+seed users, or overwrite records. The older `server/schema.sql` is retained for
+reference and must not be run as the Prisma migration.
+
+See [the Prisma setup guide](prisma/README.md) for run commands, testing,
+migration details, and the explicit offline SQLite fallback.
+
+### Optional local Redis cache
+Public course listings can use authenticated Redis from `compose.yaml`.
+Run `npm run redis:setup`, `docker compose up -d --wait redis`, and
+`npm run redis:check`. The application continues to work when Redis is stopped.
+See [the Redis guide](docs/REDIS.md) for persistence, invalidation, tests, and
+startup/shutdown commands. Supabase is not part of this Compose configuration.
 
 ---
 
