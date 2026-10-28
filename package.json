@@ -6,7 +6,15 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "node server/index.js",
-    "test": "node --test tests/api.test.js"
+    "test": "node --test tests/api.test.js",
+    "db:generate": "prisma generate",
+    "db:validate": "prisma validate",
+    "db:check": "node scripts/check-supabase.js",
+    "test:postgres": "node scripts/test-postgres.js",
+    "redis:setup": "node scripts/setup-redis.js",
+    "redis:check": "node scripts/check-redis.js",
+    "cache:invalidate-courses": "node scripts/invalidate-course-cache.js",
+    "test:redis": "node scripts/test-redis.js"
   },
   "repository": {
     "type": "git",
@@ -15,8 +23,15 @@
   "author": "Dev Harbour Team",
   "license": "MIT",
   "dependencies": {
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "pg": "8.23.1",
+    "redis": "6.3.0"
+  },
+  "devDependencies": {
+    "prisma": "7.10.1"
   }
 }
