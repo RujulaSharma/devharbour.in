@@ -1,0 +1,32 @@
+name: devharbour-local
+
+services:
+  redis:
+    image: redis:8.2.10-alpine3.22@sha256:cead8b06d60a363832e64f5007101ae917fe8a77ec354dfb3be3655a2a351018
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    command: ["sh", "/usr/local/bin/start-devharbour-redis.sh"]
+    read_only: true
+    tmpfs:
+      - /run/redis:rw,noexec,nosuid,size=1m
+    volumes:
+      - redis-data:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/base.conf:ro
+      - ./docker/redis/start-redis.sh:/usr/local/bin/start-devharbour-redis.sh:ro
+    secrets:
+      - redis_password
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=$$(cat /run/secrets/redis_password) redis-cli --no-auth-warning ping | grep -qx PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    stop_grace_period: 20s
+
+volumes:
+  redis-data:
+
+secrets:
+  redis_password:
+    file: ./.local/redis/password
