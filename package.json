@@ -14,7 +14,13 @@
     "redis:setup": "node scripts/setup-redis.js",
     "redis:check": "node scripts/check-redis.js",
     "cache:invalidate-courses": "node scripts/invalidate-course-cache.js",
-    "test:redis": "node scripts/test-redis.js"
+    "test:redis": "node scripts/test-redis.js",
+    "build": "node scripts/build-homepage.js",
+    "typecheck": "tsc -p tsconfig.homepage.json",
+    "lint": "eslint frontend/homepage",
+    "prestart": "npm run build",
+    "predev": "npm run build",
+    "test:homepage": "playwright test"
   },
   "repository": {
     "type": "git",
@@ -28,10 +34,22 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "framer-motion": "14.7.1",
+    "lucide-react": "0.468.0",
     "pg": "8.23.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
     "redis": "6.3.0"
   },
   "devDependencies": {
-    "prisma": "7.10.1"
+    "@playwright/test": "1.64.1",
+    "@types/node": "26.6.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "esbuild": "0.28.2",
+    "eslint": "10.13.0",
+    "prisma": "7.10.1",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.1"
   }
 }

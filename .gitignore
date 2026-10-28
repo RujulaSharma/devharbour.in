@@ -10,3 +10,7 @@ coverage/
 !.env.example
 /generated/
 /.local/
+
+/public/homepage/homepage.js
+/playwright-report/
+/test-results/
