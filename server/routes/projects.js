@@ -1,6 +1,6 @@
 const express = require('express');
-const router = express.Router();
-const db = require('../db');
+const router = require('../async-router').createRouter();
+const db = require('../database');
 const { requireAuth } = require('../auth');
 const eventBus = require('../events');
 
@@ -15,22 +15,22 @@ function isValidHttpUrl(string) {
 }
 
 // GET /api/projects
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const { category, search } = req.query;
-  const projects = db.getProjects({ category, search, status: 'approved' });
+  const projects = await db.getProjects({ category, search, status: 'approved' });
   res.json({ projects });
 });
 
 // GET /api/projects/:id
-router.get('/:id', (req, res) => {
-  const project = db.getProjectById(req.params.id);
+router.get('/:id', async (req, res) => {
+  const project = await db.getProjectById(req.params.id);
   if (!project) {
     return res.status(404).json({ error: 'Project not found.' });
   }
 
   let userInteraction = { voted: false, bookmarked: false };
   if (req.user) {
-    const interactions = db.getUserInteractions(req.user.id);
+    const interactions = await db.getUserInteractions(req.user.id);
     userInteraction.voted = interactions.votes.includes(project.id);
     userInteraction.bookmarked = interactions.bookmarks.includes(project.id);
   }
@@ -39,7 +39,7 @@ router.get('/:id', (req, res) => {
 });
 
 // POST /api/projects
-router.post('/', requireAuth, (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   const { title, description, category, techStack, repoUrl, demoUrl } = req.body;
 
   if (!title || typeof title !== 'string' || title.trim().length < 3) {
@@ -62,7 +62,7 @@ router.post('/', requireAuth, (req, res) => {
     ? techStack.map(s => String(s).trim()).filter(Boolean).slice(0, 8)
     : (typeof techStack === 'string' ? techStack.split(',').map(s => s.trim()).filter(Boolean).slice(0, 8) : []);
 
-  const project = db.createProject({
+  const project = await db.createProject({
     userId: req.user.id,
     title,
     description,
@@ -92,12 +92,12 @@ router.post('/', requireAuth, (req, res) => {
 });
 
 // PUT /api/projects/:id
-router.put('/:id', requireAuth, (req, res) => {
+router.put('/:id', requireAuth, async (req, res) => {
   const { title, description, category, techStack, repoUrl, demoUrl } = req.body;
 
   try {
     const stack = Array.isArray(techStack) ? techStack : (techStack ? techStack.split(',').map(s => s.trim()) : undefined);
-    const updated = db.updateProject(req.params.id, req.user.id, {
+    const updated = await db.updateProject(req.params.id, req.user.id, {
       title,
       description,
       category,
@@ -115,15 +115,15 @@ router.put('/:id', requireAuth, (req, res) => {
     if (err.message === 'Unauthorized') {
       return res.status(403).json({ error: 'You are not authorized to edit this project.' });
     }
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Database operation failed.' });
   }
 });
 
 // DELETE /api/projects/:id
-router.delete('/:id', requireAuth, (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const isAdmin = req.user.role === 'admin' || req.user.role === 'moderator';
-    const deleted = db.deleteProject(req.params.id, req.user.id, isAdmin);
+    const deleted = await db.deleteProject(req.params.id, req.user.id, isAdmin);
     if (!deleted) {
       return res.status(404).json({ error: 'Project not found.' });
     }
@@ -132,15 +132,15 @@ router.delete('/:id', requireAuth, (req, res) => {
     if (err.message === 'Unauthorized') {
       return res.status(403).json({ error: 'You are not authorized to delete this project.' });
     }
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Database operation failed.' });
   }
 });
 
 // POST /api/projects/:id/vote
-router.post('/:id/vote', (req, res) => {
-  let project = db.getProjectById(req.params.id);
+router.post('/:id/vote', async (req, res) => {
+  let project = await db.getProjectById(req.params.id);
   if (!project) {
-    const all = db.getProjects({});
+    const all = await db.getProjects({});
     const cleanParam = req.params.id.toLowerCase().replace(/^prj-/, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     project = all.find(p => p.id === req.params.id || p.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') === cleanParam);
   }
@@ -152,11 +152,11 @@ router.post('/:id/vote', (req, res) => {
   let voted = true;
 
   if (req.user) {
-    const result = db.toggleProjectVote(req.user.id, project.id);
+    const result = await db.toggleProjectVote(req.user.id, project.id);
     voted = result.voted;
     votesCount = result.votesCount;
   } else {
-    const updated = db.incrementProjectVotes(project.id);
+    const updated = await db.incrementProjectVotes(project.id);
     voted = true;
     votesCount = updated.votesCount;
   }
@@ -184,13 +184,13 @@ router.post('/:id/vote', (req, res) => {
 });
 
 // POST /api/projects/:id/bookmark
-router.post('/:id/bookmark', requireAuth, (req, res) => {
-  const project = db.getProjectById(req.params.id);
+router.post('/:id/bookmark', requireAuth, async (req, res) => {
+  const project = await db.getProjectById(req.params.id);
   if (!project) {
     return res.status(404).json({ error: 'Project not found.' });
   }
 
-  const result = db.toggleProjectBookmark(req.user.id, project.id);
+  const result = await db.toggleProjectBookmark(req.user.id, project.id);
   res.json({
     message: result.bookmarked ? 'Saved to your bookmarks.' : 'Bookmark removed.',
     bookmarked: result.bookmarked,

@@ -1,27 +1,27 @@
 const express = require('express');
-const router = express.Router();
-const db = require('../db');
+const router = require('../async-router').createRouter();
+const db = require('../database');
 const { requireAuth } = require('../auth');
 const { executeCode } = require('../execution');
 const eventBus = require('../events');
 
 // GET /api/challenges
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const { category, difficulty, search } = req.query;
-  const challenges = db.getChallenges(category, difficulty, search);
+  const challenges = await db.getChallenges(category, difficulty, search);
   res.json({ challenges });
 });
 
 // GET /api/challenges/:id
-router.get('/:id', (req, res) => {
-  const challenge = db.getChallengeById(req.params.id, false); // hidden tests kept private
+router.get('/:id', async (req, res) => {
+  const challenge = await db.getChallengeById(req.params.id, false); // hidden tests kept private
   if (!challenge) {
     return res.status(404).json({ error: 'Coding challenge not found.' });
   }
 
   let userSubmissions = [];
   if (req.user) {
-    userSubmissions = db.getUserSubmissions(req.user.id, challenge.id);
+    userSubmissions = await db.getUserSubmissions(req.user.id, challenge.id);
   }
 
   res.json({
@@ -39,7 +39,7 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
   }
 
   // Load challenge with secret tests for evaluation
-  const challenge = db.getChallengeById(req.params.id, true);
+  const challenge = await db.getChallengeById(req.params.id, true);
   if (!challenge) {
     return res.status(404).json({ error: 'Challenge not found.' });
   }
@@ -54,7 +54,7 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
     );
 
     // Record submission and award XP if qualifying pass
-    const submissionResult = db.recordSubmission({
+    const submissionResult = await db.recordSubmission({
       userId: req.user.id,
       challengeId: challenge.id,
       code,
@@ -90,13 +90,13 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
       xp: submissionResult.xp
     });
   } catch (err) {
-    res.status(500).json({ error: 'Execution service error: ' + err.message });
+    res.status(500).json({ error: 'Execution service error.' });
   }
 });
 
 // GET /api/challenges/:id/submissions
-router.get('/:id/submissions', requireAuth, (req, res) => {
-  const submissions = db.getUserSubmissions(req.user.id, req.params.id);
+router.get('/:id/submissions', requireAuth, async (req, res) => {
+  const submissions = await db.getUserSubmissions(req.user.id, req.params.id);
   res.json({ submissions });
 });
 
