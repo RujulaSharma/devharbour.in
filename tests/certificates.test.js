@@ -1,7 +1,18 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
+process.env.NODE_ENV = 'test';
+process.env.DB_PROVIDER ||= 'sqlite';
+let temporaryDirectory;
+if (process.env.DB_PROVIDER === 'sqlite' && !process.env.DB_PATH) {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  temporaryDirectory = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'devharbour-certs-'));
+  process.env.DB_PATH = path.join(temporaryDirectory, 'test.sqlite');
+  fs.copyFileSync(path.join(__dirname, '..', 'devharbour.sqlite'), process.env.DB_PATH);
+}
 const app = require('../server/index');
+const database = require('../server/database');
 
 test('Certificates API Suite', async (t) => {
   const server = http.createServer(app);
@@ -9,8 +20,10 @@ test('Certificates API Suite', async (t) => {
   const port = server.address().port;
   const baseUrl = `http://127.0.0.1:${port}`;
 
-  t.after(() => {
-    server.close();
+  t.after(async () => {
+    await new Promise(resolve => server.close(resolve));
+    await database.close();
+    if (temporaryDirectory) require('node:fs').rmSync(temporaryDirectory, { recursive: true });
   });
 
   await t.test('GET /api/certificates/stats returns registry status and participant count', async () => {
