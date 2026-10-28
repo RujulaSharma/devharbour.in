@@ -3,6 +3,8 @@
 > **Learn. Build. Compete. Grow.**  
 > A full-stack developer learning platform where courses, reading mode, coding challenges, XP ledger, community projects, and live leaderboards are connected through real persistent database records and server-side business rules.
 
+The redesigned homepage setup, integration details, preview limitations, and verification commands are documented in [HOMEPAGE-SETUP.md](HOMEPAGE-SETUP.md).
+
 ---
 
 ## 🚀 Key Features Implemented
