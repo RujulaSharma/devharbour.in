@@ -12,17 +12,28 @@ const http = require('node:http');
 // Set test environment
 process.env.NODE_ENV = 'test';
 process.env.PORT = '3099';
+process.env.DB_PROVIDER ||= 'sqlite';
+let temporaryDirectory;
+if (process.env.DB_PROVIDER === 'sqlite' && !process.env.DB_PATH) {
+  const fs = require('node:fs');
+  temporaryDirectory = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'devharbour-api-'));
+  process.env.DB_PATH = path.join(temporaryDirectory, 'test.sqlite');
+  fs.copyFileSync(path.join(__dirname, '..', 'devharbour.sqlite'), process.env.DB_PATH);
+}
 
 const app = require('../server/index');
-const db = require('../server/db');
+const db = require('../server/database');
+const createdUserIds = new Set();
 const { executeCode } = require('../server/execution');
 
 let server;
 const BASE_URL = 'http://localhost:3099/api';
 
 test.before(async () => {
-  await new Promise(resolve => {
+  await db.ready();
+  await new Promise((resolve, reject) => {
     server = app.listen(3099, resolve);
+    server.once('error', reject);
   });
 });
 
@@ -30,6 +41,11 @@ test.after(async () => {
   await new Promise(resolve => {
     server.close(resolve);
   });
+  if (db.provider === 'postgresql') {
+    await require('../server/prisma').getPrisma().users.deleteMany({ where: { id: { in: [...createdUserIds] } } });
+  }
+  await db.close();
+  if (temporaryDirectory) require('node:fs').rmSync(temporaryDirectory, { recursive: true });
 });
 
 // Helper for making API requests
@@ -42,6 +58,7 @@ async function api(endpoint, options = {}) {
     body: options.body ? JSON.stringify(options.body) : undefined
   });
   const data = await res.json().catch(() => ({}));
+  if (endpoint === '/auth/signup' && res.status === 201 && data.user?.id) createdUserIds.add(data.user.id);
   return { status: res.status, ok: res.ok, data };
 }
 
