@@ -3,7 +3,7 @@
  */
 
 const crypto = require('node:crypto');
-const db = require('./db');
+const db = require('./database');
 
 function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString('hex');
@@ -31,7 +31,7 @@ function validatePassword(password) {
 }
 
 // Authentication Middleware: populates req.user if valid token provided
-function authMiddleware(req, res, next) {
+async function authMiddleware(req, res, next) {
   let token = null;
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -43,11 +43,11 @@ function authMiddleware(req, res, next) {
   }
 
   if (token) {
-    const session = db.getSession(token);
+    const session = await db.getSession(token);
     if (session) {
-      const user = db.getUserById(session.user_id);
+      const user = await db.getUserById(session.user_id);
       if (user) {
-        const totalXp = db.getUserTotalXp(user.id);
+        const totalXp = await db.getUserTotalXp(user.id);
         req.user = {
           ...user,
           totalXp,
@@ -88,7 +88,7 @@ module.exports = {
   validateEmail,
   validateUsername,
   validatePassword,
-  authMiddleware,
+  authMiddleware: require('./async-router').asyncHandler(authMiddleware),
   requireAuth,
   requireRole
 };

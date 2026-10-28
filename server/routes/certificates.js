@@ -4,7 +4,7 @@
  */
 
 const express = require('express');
-const router = express.Router();
+const router = require('../async-router').createRouter();
 const {
   findParticipantByEmail,
   findParticipantByEmailAndName,
@@ -13,14 +13,14 @@ const {
   issueCertificate,
   countParticipants,
   countIssuedCertificates
-} = require('../db');
+} = require('../database');
 
 /**
  * POST /api/certificates/claim
  * Validates participant registration against authoritative event registry and issues credential.
  * No OTP required as per official event design.
  */
-router.post('/claim', (req, res) => {
+router.post('/claim', async (req, res) => {
   try {
     const { email, name, eventSlug = 'orca-coders-orcathon-2026' } = req.body;
 
@@ -32,7 +32,7 @@ router.post('/claim', (req, res) => {
     const cleanName = (name || '').trim();
 
     // 1. Check if already claimed and issued
-    const existingCert = getIssuedCertificateByEmail(cleanEmail, eventSlug);
+    const existingCert = await getIssuedCertificateByEmail(cleanEmail, eventSlug);
     if (existingCert) {
       return res.json({
         success: true,
@@ -54,7 +54,7 @@ router.post('/claim', (req, res) => {
     }
 
     // 2. Validate against participant database
-    const participant = findParticipantByEmail(cleanEmail, eventSlug);
+    const participant = await findParticipantByEmail(cleanEmail, eventSlug);
     if (!participant) {
       return res.status(404).json({
         error: `No registration found for "${cleanEmail}" in ORCATHON 2026. Please check for typos or use the email registered on Unstop.`
@@ -72,7 +72,7 @@ router.post('/claim', (req, res) => {
     const recipientOrg = participant.candidate_organisation || '';
 
     // 3. Issue new credential
-    const newCert = issueCertificate({
+    const newCert = await issueCertificate({
       participantId: participant.id,
       recipientName,
       recipientEmail: cleanEmail,
@@ -100,7 +100,7 @@ router.post('/claim', (req, res) => {
       }
     });
   } catch (err) {
-    console.error('[CERTIFICATE CLAIM ERROR]:', err);
+    console.error('Certificate database operation failed.');
     return res.status(500).json({ error: 'Failed to process certificate claim. Please try again.' });
   }
 });
@@ -109,14 +109,14 @@ router.post('/claim', (req, res) => {
  * GET /api/certificates/verify/:credentialId
  * Public verification endpoint to authenticate any issued credential.
  */
-router.get('/verify/:credentialId', (req, res) => {
+router.get('/verify/:credentialId', async (req, res) => {
   try {
     const { credentialId } = req.params;
     if (!credentialId || !credentialId.trim()) {
       return res.status(400).json({ error: 'Valid credential ID is required.' });
     }
 
-    const cert = getIssuedCertificateById(credentialId.trim());
+    const cert = await getIssuedCertificateById(credentialId.trim());
     if (!cert) {
       return res.status(404).json({
         verified: false,
@@ -140,7 +140,7 @@ router.get('/verify/:credentialId', (req, res) => {
       }
     });
   } catch (err) {
-    console.error('[CERTIFICATE VERIFY ERROR]:', err);
+    console.error('Certificate database operation failed.');
     return res.status(500).json({ error: 'Failed to verify credential.' });
   }
 });
@@ -149,10 +149,10 @@ router.get('/verify/:credentialId', (req, res) => {
  * GET /api/certificates/stats
  * Public registry overview statistics
  */
-router.get('/stats', (req, res) => {
+router.get('/stats', async (req, res) => {
   try {
-    const totalParticipants = countParticipants('orca-coders-orcathon-2026');
-    const totalIssued = countIssuedCertificates('orca-coders-orcathon-2026');
+    const totalParticipants = await countParticipants('orca-coders-orcathon-2026');
+    const totalIssued = await countIssuedCertificates('orca-coders-orcathon-2026');
     return res.json({
       event: 'ORCA CODERS: ORCATHON 2026',
       totalParticipants,

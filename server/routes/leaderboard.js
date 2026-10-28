@@ -1,16 +1,16 @@
 const express = require('express');
-const router = express.Router();
-const db = require('../db');
+const router = require('../async-router').createRouter();
+const db = require('../database');
 
 // GET /api/leaderboard
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const timeframe = req.query.timeframe === 'Weekly' ? 'Weekly' : (req.query.timeframe === 'Monthly' ? 'Monthly' : 'All-time');
   const limit = Math.min(50, Math.max(5, parseInt(req.query.limit || '20', 10)));
-  const rankings = db.getLeaderboard(timeframe, limit);
+  const rankings = await db.getLeaderboard(timeframe, limit);
 
   let userRank = null;
   if (req.user) {
-    const fullList = db.getLeaderboard(timeframe, 500);
+    const fullList = await db.getLeaderboard(timeframe, 500);
     const found = fullList.find(r => r.userId === req.user.id);
     if (found) {
       userRank = found;

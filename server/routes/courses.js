@@ -1,28 +1,30 @@
 const express = require('express');
-const router = express.Router();
-const db = require('../db');
+const router = require('../async-router').createRouter();
+const db = require('../database');
 const { requireAuth } = require('../auth');
 const eventBus = require('../events');
+const { courseCache } = require('../course-cache');
 
 // GET /api/courses
-router.get('/', (req, res) => {
-  const category = req.query.category || 'All';
-  const courses = db.getCourses(category);
+router.get('/', async (req, res) => {
+  const category = typeof req.query.category === 'string' && req.query.category ? req.query.category : 'All';
+  const { courses, cache } = await courseCache.list(category, () => db.getCourses(category));
+  res.setHeader('X-Course-Cache', cache);
   res.json({ courses });
 });
 
 // GET /api/courses/lesson/:id (Specific lesson details)
-router.get('/lesson/:id', (req, res) => {
-  const lesson = db.getLessonById(req.params.id);
+router.get('/lesson/:id', async (req, res) => {
+  const lesson = await db.getLessonById(req.params.id);
   if (!lesson) {
     return res.status(404).json({ error: 'Lesson not found.' });
   }
-  const course = db.getCourseById(lesson.course_id);
-  const siblings = db.getCourseLessons(lesson.course_id);
+  const course = await db.getCourseById(lesson.course_id);
+  const siblings = await db.getCourseLessons(lesson.course_id);
 
   let userProgress = null;
   if (req.user) {
-    userProgress = db.getLessonProgress(req.user.id, lesson.id);
+    userProgress = await db.getLessonProgress(req.user.id, lesson.id);
   }
 
   res.json({
@@ -34,26 +36,26 @@ router.get('/lesson/:id', (req, res) => {
 });
 
 // POST /api/courses/lesson/:id/progress
-router.post('/lesson/:id/progress', requireAuth, (req, res) => {
+router.post('/lesson/:id/progress', requireAuth, async (req, res) => {
   const { readingSeconds } = req.body;
   const seconds = Math.max(0, parseInt(readingSeconds || '10', 10));
-  const lesson = db.getLessonById(req.params.id);
+  const lesson = await db.getLessonById(req.params.id);
   if (!lesson) {
     return res.status(404).json({ error: 'Lesson not found.' });
   }
 
-  const result = db.saveLessonProgress(req.user.id, lesson.id, seconds, false);
+  const result = await db.saveLessonProgress(req.user.id, lesson.id, seconds, false);
   res.json(result);
 });
 
 // POST /api/courses/lesson/:id/complete
-router.post('/lesson/:id/complete', requireAuth, (req, res) => {
-  const lesson = db.getLessonById(req.params.id);
+router.post('/lesson/:id/complete', requireAuth, async (req, res) => {
+  const lesson = await db.getLessonById(req.params.id);
   if (!lesson) {
     return res.status(404).json({ error: 'Lesson not found.' });
   }
 
-  const result = db.saveLessonProgress(req.user.id, lesson.id, 30, true);
+  const result = await db.saveLessonProgress(req.user.id, lesson.id, 30, true);
 
   if (result.xp && result.xp.awarded) {
     eventBus.broadcast({
@@ -73,12 +75,12 @@ router.post('/lesson/:id/complete', requireAuth, (req, res) => {
 });
 
 // GET /api/courses/:id
-router.get('/:id', (req, res) => {
-  const course = db.getCourseById(req.params.id);
+router.get('/:id', async (req, res) => {
+  const course = await db.getCourseById(req.params.id);
   if (!course) {
     return res.status(404).json({ error: 'Course not found.' });
   }
-  const lessons = db.getCourseLessons(req.params.id);
+  const lessons = await db.getCourseLessons(req.params.id);
   res.json({ course, lessons });
 });
 

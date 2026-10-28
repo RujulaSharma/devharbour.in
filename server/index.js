@@ -18,6 +18,7 @@ const userRoutes = require('./routes/user');
 const workspaceRoutes = require('./routes/workspace');
 const certificateRoutes = require('./routes/certificates');
 const eventBus = require('./events');
+const database = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -61,14 +62,16 @@ app.get('/api/activity', (req, res) => {
 });
 
 // Platform Health Check
-app.get('/api/health', (req, res) => {
+app.get('/api/health', require('./async-router').asyncHandler(async (req, res) => {
+  await database.ready();
   res.json({
     status: 'healthy',
     platform: 'Dev Harbour',
     version: '1.0.0',
+    database: database.provider,
     timestamp: new Date().toISOString()
   });
-});
+}));
 
 // Serve Frontend Static Assets
 const publicDir = path.join(__dirname, '..', 'public');
@@ -85,15 +88,29 @@ app.use((req, res, next) => {
 
 // Central Error Handler
 app.use((err, req, res, next) => {
-  console.error('[SERVER ERROR]:', err);
-  res.status(err.status || 500).json({
-    error: err.message || 'An unexpected server error occurred.'
+  console.error('[SERVER ERROR]:', err.code || 'REQUEST_FAILED');
+  const status = err.code === 'P2002' ? 409 : (err.status || 500);
+  res.status(status).json({
+    error: status === 409 ? 'This record already exists.' : status >= 500 ? 'An unexpected server error occurred.' : err.message
   });
 });
 
 if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`⚓ Dev Harbour full-stack server running live at http://localhost:${PORT}`);
+  database.ready().then(() => {
+    const server = app.listen(PORT, () => {
+      console.log(`⚓ Dev Harbour full-stack server running live at http://localhost:${PORT} (${database.provider})`);
+    });
+    const shutdown = () => {
+      require('./redis').redis.close();
+      server.close(async () => { await database.close(); process.exit(0); });
+      server.closeIdleConnections();
+      setTimeout(() => process.exit(0), 5000).unref();
+    };
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
+  }).catch(() => {
+    console.error('Database connection failed. Check local environment settings; no SQLite fallback was used.');
+    process.exitCode = 1;
   });
 }
 
