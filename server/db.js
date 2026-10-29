@@ -531,7 +531,7 @@ function seedDatabase() {
   const partCount = db.prepare("SELECT COUNT(*) as count FROM event_participants WHERE event_slug = ?").get('orca-coders-orcathon-2026').count;
   if (partCount === 0) {
     const partFile = path.join(__dirname, 'data', 'orcathon_participants.json');
-    if (fs.existsSync(partFile)) {
+    if (process.env.NODE_ENV !== 'test' && fs.existsSync(partFile)) {
       const participants = JSON.parse(fs.readFileSync(partFile, 'utf8'));
       const stmt = db.prepare("INSERT INTO event_participants (id, event_slug, candidate_name, candidate_email, candidate_organisation, team_name, candidate_role, is_eligible) VALUES (?, 'orca-coders-orcathon-2026', ?, ?, ?, ?, ?, 1)");
       for (const p of participants) {

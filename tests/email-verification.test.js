@@ -25,6 +25,8 @@ async function request(user, route, body, extra = {}) {
   return { status: response.status, data: await response.json(), headers: response.headers };
 }
 test.before(async () => {
+
+  database.db.prepare("INSERT INTO event_participants (id,event_slug,candidate_name,candidate_email,candidate_organisation,is_eligible) VALUES (?,?,?,?,?,1)").run(900002,'orca-coders-orcathon-2026','Verification Fixture','verified-participant@example.test','Test Organisation');
   app.locals.emailVerificationService = service;
   server = app.listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve));
   base = `http://127.0.0.1:${server.address().port}`;
@@ -44,7 +46,7 @@ test('supplied recipients and account identifiers cannot select another mailbox'
     assert.equal((await request(user, '/api/auth/email-verification/send', body)).status, 400);
 });
 test('unverified user cannot read certificates even with a guessed registered email', async () => {
-  const user = await account('poornika0406@gmail.com');
+  const user = await account('verified-participant@example.test');
   assert.equal((await request(user, '/api/certificates/mine')).status, 403);
   assert.equal((await request(user, '/api/certificates/mine?email=someone@example.test')).status, 400);
 });
@@ -60,7 +62,7 @@ test('codes are sent only to canonical own email, stored hashed, and absent from
   assert.equal((await request(user, '/api/auth/email-verification/send', {})).status, 429);
 });
 test('successful verification is one use and reused certificate never creates a duplicate', async () => {
-  const user = await database.getUserByEmail('poornika0406@gmail.com');
+  const user = await database.getUserByEmail('verified-participant@example.test');
   user.token = (await database.createSession(user.id)).token;
   const participant = await database.findParticipantByEmail(user.email);
   const certificate = await database.issueCertificate({ participantId: participant.id, recipientName: participant.candidate_name,
@@ -117,10 +119,10 @@ test('verified unmatched email receives an honest no-match message without regis
   const user = await account(); await service.send(user); await service.confirm(user, '482915');
   const mine = await request(user, '/api/certificates/mine'); assert.equal(mine.status, 200);
   assert.deepEqual(mine.data.certificates, []); assert.match(mine.data.message, /No eligible registration/);
-  assert.equal(JSON.stringify(mine.data).includes('poornika'), false);
+  assert.equal(JSON.stringify(mine.data).includes('verified-participant'), false);
 });
 test('ineligible, revoked, and mismatched certificates are excluded', async () => {
-  const user = await database.getUserByEmail('poornika0406@gmail.com'); user.token = (await database.createSession(user.id)).token;
+  const user = await database.getUserByEmail('verified-participant@example.test'); user.token = (await database.createSession(user.id)).token;
   const participant = await database.findParticipantByEmail(user.email);
   for (const [sql, values, undo, undoValues] of [
     ['UPDATE event_participants SET is_eligible=0 WHERE id=?', [participant.id], 'UPDATE event_participants SET is_eligible=1 WHERE id=?', [participant.id]],
@@ -164,11 +166,11 @@ test('legacy Vercel certificate handlers cannot bypass staff auth or forge crede
   legacy.listen(0, '127.0.0.1'); await new Promise(resolve => legacy.once('listening', resolve));
   const origin = `http://127.0.0.1:${legacy.address().port}`;
   try {
-    const response = await fetch(origin + '/claim', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'poornika0406@gmail.com' }) });
+    const response = await fetch(origin + '/claim', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'verified-participant@example.test' }) });
     assert.equal(response.status, 401); assert.equal(JSON.stringify(await response.json()).includes('recipient_email'), false);
     assert.equal((await fetch(origin + '/verify?id=0001')).status, 404);
     const counts = await (await fetch(origin + '/stats')).json(); assert.equal(counts.totalIssued, await database.countIssuedCertificates());
-    const user = await database.getUserByEmail('poornika0406@gmail.com');
+    const user = await database.getUserByEmail('verified-participant@example.test');
     const certificate = await database.getIssuedCertificateByEmail(user.email);
     assert.equal((await fetch(origin + '/verify?id=' + encodeURIComponent(certificate.credential_id))).status, 200);
     database.db.prepare("UPDATE issued_certificates SET status='Revoked' WHERE credential_id=?").run(certificate.credential_id);
