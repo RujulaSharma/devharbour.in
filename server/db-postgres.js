@@ -354,15 +354,6 @@ async function getIssuedCertificateById(credentialId) {
   if (!credentialId) return null;
   const value = credentialId.trim().toUpperCase();
   let row = await p().issued_certificates.findUnique({ where: { credential_id: value }, include: certificateInclude });
-  if (!row) {
-    const raw = value.replace(/[^0-9]/g, '');
-    if (raw) {
-      const number = raw.length <= 4 ? raw.padStart(4, '0') : raw.startsWith('26') ? raw.slice(2).padStart(4, '0') : raw.slice(-4);
-      row = await p().issued_certificates.findFirst({ where: { OR: [
-        { credential_id: { contains: `-${number}-` } }, { credential_id: { endsWith: `-${number}` } }, { participant_id: String(parseInt(number, 10)) },
-      ] }, include: certificateInclude });
-    }
-  }
   return certificateView(row);
 }
 async function getIssuedCertificateByEmail(value, eventSlug = event) {

@@ -4,6 +4,8 @@ const db = require('../database');
 const { requireAuth } = require('../auth');
 const { executeCode } = require('../execution');
 const eventBus = require('../events');
+const {createLimiter}=require('../security');
+router.use('/:id/submit',createLimiter(10));
 
 // GET /api/challenges
 router.get('/', async (req, res) => {
@@ -38,6 +40,7 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'Code cannot be empty.' });
   }
 
+  if(code.length>16384||language!=='javascript')return res.status(400).json({error:'Only JavaScript submissions up to 16 KB are supported.'});
   // Load challenge with secret tests for evaluation
   const challenge = await db.getChallengeById(req.params.id, true);
   if (!challenge) {
@@ -90,7 +93,7 @@ router.post('/:id/submit', requireAuth, async (req, res) => {
       xp: submissionResult.xp
     });
   } catch (err) {
-    res.status(500).json({ error: 'Execution service error.' });
+    res.status(err.status===400?400:503).json({ error: err.status===400?'Invalid submission.':'Isolated execution is unavailable or exceeded its resource limits. Please retry later.' });
   }
 });
 

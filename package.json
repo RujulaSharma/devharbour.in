@@ -16,11 +16,17 @@
     "cache:invalidate-courses": "node scripts/invalidate-course-cache.js",
     "test:redis": "node scripts/test-redis.js",
     "build": "node scripts/build-homepage.js",
+    "build:vercel": "prisma generate && npm run build",
     "typecheck": "tsc -p tsconfig.homepage.json",
     "lint": "eslint frontend/homepage",
     "prestart": "npm run build",
     "predev": "npm run build",
-    "test:homepage": "playwright test"
+    "test:homepage": "playwright test",
+    "test:security": "node --test tests/security.test.js tests/execution-security.test.js",
+    "test:security:browser": "playwright test -c playwright.security.config.js",
+    "test:email": "node --test tests/email-verification.test.js",
+    "email:check": "node scripts/check-email-verification.js",
+    "db:security": "node scripts/check-runtime-security.js"
   },
   "repository": {
     "type": "git",
@@ -34,6 +40,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "express-rate-limit": "8.7.1",
     "framer-motion": "14.7.1",
     "lucide-react": "0.468.0",
     "pg": "8.23.1",

@@ -1,0 +1,20 @@
+.dh-account-certificates{display:block!important;min-width:0;padding:26px!important;scroll-margin-top:24px}
+.dh-account-certificates h2{font-size:clamp(23px,3vw,32px);margin:8px 0 12px;color:var(--ink,#241c34)}
+.dh-account-certificates p{line-height:1.65;overflow-wrap:anywhere;margin:8px 0 16px;color:var(--mut,#655874)}
+.dh-account-certificates button,.dh-certificate-dialog button,.dh-account-certificates a{font:inherit}
+.dh-account-certificates button,.dh-certificate-dialog button{cursor:pointer;background:#6650ba;color:#fff;border:0;border-radius:12px;padding:12px 18px;min-height:44px}
+.dh-account-certificates button:disabled{opacity:.6;cursor:wait}
+.dh-account-certificates :focus-visible,.dh-certificate-dialog :focus-visible{outline:3px solid #ad76d7;outline-offset:4px}
+.dh-account-certificates .dh-cert-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:16px}
+.dh-account-certificates label{display:block;font-weight:700;margin:16px 0 8px}
+.dh-account-certificates input{font:inherit;max-width:100%;width:210px;box-sizing:border-box;border:1px solid #9d8fb9;border-radius:10px;padding:12px;background:var(--card,#fff);color:var(--ink,#241c34);letter-spacing:5px}
+.dh-account-certificates .dh-cert-error{color:#bc315a;font-weight:600}
+.dh-account-certificates article{border:1px solid var(--line,#d6cde4);padding:20px;border-radius:18px;margin-top:16px;min-width:0}
+.dh-account-certificates article h3{font-size:20px;margin:0 0 8px}
+.dh-account-certificates article a{color:var(--ink,#493279);text-underline-offset:4px;overflow-wrap:anywhere}
+.dh-account-certificates .dh-cert-share{width:100%;letter-spacing:normal;margin-top:12px}
+.dh-certificate-dialog{position:fixed;inset:0;margin:auto;box-sizing:border-box;border:1px solid #bca5df;border-radius:20px;background:var(--card,#fff);color:var(--ink,#241c34);width:min(1024px,92vw);max-height:90dvh;padding:16px;overflow:auto}
+.dh-certificate-dialog::backdrop{background:rgba(25,16,39,.78)}
+.dh-certificate-dialog .dh-cert-dialog-top{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:14px}
+.dh-certificate-dialog h2{font:700 20px system-ui;margin:0}
+@media(max-width:600px){.dh-account-certificates{padding:18px!important}.dh-account-certificates .dh-cert-actions{align-items:stretch}.dh-account-certificates .dh-cert-actions button{flex:1}.dh-certificate-dialog{padding:10px}}

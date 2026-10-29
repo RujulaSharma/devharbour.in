@@ -32,6 +32,22 @@ model certificate_otps {
   verified Int? @default(0)
 }
 
+// Mailbox ownership belongs to an account, never to a supplied certificate email.
+model email_verifications {
+  user_id String @id
+  email String
+  challenge_id String @unique
+  code_hash String?
+  expires_at String?
+  sent_at String
+  attempts Int @default(0)
+  state String
+  verified_at String?
+  hour_started_at String
+  send_count Int
+  user users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
 model challenges {
   id String @id
   title String
@@ -248,6 +264,7 @@ model users {
   related_workspace_snippets_user_id workspace_snippets[] @relation("workspace_snippets_user_id")
   related_workspace_tasks_user_id workspace_tasks[] @relation("workspace_tasks_user_id")
   related_xp_ledger_user_id xp_ledger[] @relation("xp_ledger_user_id")
+  email_verification email_verifications?
   @@index([email], map: "idx_users_email")
   @@index([username], map: "idx_users_username")
   @@unique([username])

@@ -1,196 +1,127 @@
-/**
- * Dev Harbour - Secure Code Execution Sandbox
- * Evaluates student code in isolated, timeout-guarded environments.
- * Validates submissions against both public tests and secret server-side tests.
- */
-
-const vm = require('node:vm');
-
+// Untrusted code never runs in the web-server process. Docker must be available;
+// otherwise execution fails closed, with no VM/process fallback.
+const { spawn, execFile } = require("node:child_process");
+const { readFileSync } = require("node:fs");
+const { join } = require("node:path");
+const { randomUUID } = require("node:crypto");
+const IMAGE =
+  "node@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53";
+let running = 0;
+function unavailable(
+  message = "The isolated execution service is unavailable. Please try again later.",
+) {
+  const error = new Error(message);
+  error.status = 503;
+  return error;
+}
+function executeCode(
+  code,
+  publicTests = [],
+  hiddenTests = [],
+  challengeSlug = "",
+) {
+  if (
+    typeof code !== "string" ||
+    Buffer.byteLength(code) > 16384 ||
+    publicTests.length + hiddenTests.length > 24
+  )
+    return Promise.reject(
+      Object.assign(new Error("Submission is too large."), { status: 400 }),
+    );
+  if (running >= 2)
+    return Promise.reject(
+      unavailable("Execution capacity is busy. Please retry shortly."),
+    );
+  running++;
+  return new Promise((resolve, reject) => {
+    const name = "devharbour-judge-" + randomUUID();
+    const worker = readFileSync(join(__dirname, "execution-worker.js"), "utf8");
+    const args = [
+      "run",
+      "--rm",
+      "-i",
+      "--pull=never",
+      "--name",
+      name,
+      "--network=none",
+      "--read-only",
+      "--cap-drop=ALL",
+      "--security-opt=no-new-privileges",
+      "--pids-limit=32",
+      "--memory=128m",
+      "--memory-swap=128m",
+      "--cpus=0.5",
+      "--user=65534:65534",
+      "--log-driver=none",
+      IMAGE,
+      "node",
+      "--max-old-space-size=64",
+      "--disable-proto=throw",
+      "-e",
+      worker,
+    ];
+    const child = spawn("docker", args, {
+      stdio: ["pipe", "pipe", "pipe"],
+      windowsHide: true,
+      env: { ...process.env, NODE_OPTIONS: "" },
+    });
+    let output = "",
+      finished = false;
+    const cleanup = () =>
+      execFile(
+        "docker",
+        ["rm", "-f", name],
+        { windowsHide: true, timeout: 5000 },
+        () => {},
+      );
+    const finish = (error, result) => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      running--;
+      if (error) {
+        child.kill();
+        cleanup();
+        reject(error);
+      } else resolve(result);
+    };
+    const timer = setTimeout(
+      () =>
+        finish(
+          unavailable("Code execution exceeded its time or resource limit."),
+        ),
+      12000,
+    );
+    child.on("error", () => finish(unavailable()));
+    child.stdin.on("error", () => {});
+    child.stdout.on("data", (chunk) => {
+      output += chunk.toString();
+      if (Buffer.byteLength(output) > 131072)
+        finish(unavailable("Code produced too much output."));
+    });
+    // Never return Docker diagnostics, which could disclose host paths.
+    child.stderr.resume();
+    child.on("close", (exit) => {
+      if (finished) return;
+      if (exit !== 0) return finish(unavailable());
+      try {
+        const result = JSON.parse(output);
+        if (
+          !["passed", "failed", "error"].includes(result.status) ||
+          typeof result.passed !== "boolean"
+        )
+          throw Error();
+        finish(null, result);
+      } catch {
+        finish(unavailable());
+      }
+    });
+    child.stdin.end(
+      JSON.stringify({ code, publicTests, hiddenTests, challengeSlug }),
+    );
+  });
+}
 function deepEqual(a, b) {
-  if (a === b) return true;
-  if (typeof a !== typeof b) return false;
-  if (typeof a !== 'object' || a === null || b === null) return false;
-
-  if (Array.isArray(a) !== Array.isArray(b)) return false;
-
-  if (Array.isArray(a)) {
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) {
-      if (!deepEqual(a[i], b[i])) return false;
-    }
-    return true;
-  }
-
-  const keysA = Object.keys(a);
-  const keysB = Object.keys(b);
-  if (keysA.length !== keysB.length) return false;
-
-  for (const key of keysA) {
-    if (!Object.prototype.hasOwnProperty.call(b, key)) return false;
-    if (!deepEqual(a[key], b[key])) return false;
-  }
-  return true;
+  return require("node:util").isDeepStrictEqual(a, b);
 }
-
-/**
- * Executes student JavaScript code against a suite of test cases.
- * @param {string} code - The student-submitted code
- * @param {Array} publicTests - Tests shown to user [{ args: [...], expected: any }]
- * @param {Array} hiddenTests - Secret tests kept on server [{ args: [...], expected: any }]
- * @param {string} challengeSlug - Slug identifying challenge function
- * @returns {Promise<Object>} Execution result summary
- */
-async function executeCode(code, publicTests = [], hiddenTests = [], challengeSlug = '') {
-  const startTime = Date.now();
-  const logs = [];
-
-  // Sandbox environment: clean, unpolluted, no filesystem or network access
-  const sandbox = {
-    console: {
-      log: (...args) => logs.push(args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ')),
-      error: (...args) => logs.push('[ERROR] ' + args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' '))
-    },
-    Math,
-    JSON,
-    Array,
-    Object,
-    String,
-    Number,
-    Boolean,
-    Map,
-    Set,
-    Date: {
-      now: () => Date.now()
-    },
-    parseInt,
-    parseFloat,
-    isNaN,
-    isFinite
-  };
-
-  const context = vm.createContext(sandbox);
-
-  // 1. Run user code in sandbox to declare functions / classes
-  try {
-    const script = new vm.Script(code, { filename: 'solution.js' });
-    script.runInContext(context, { timeout: 2500 });
-  } catch (err) {
-    return {
-      status: 'error',
-      passed: false,
-      executionTimeMs: Date.now() - startTime,
-      errorMessage: err.name + ': ' + err.message,
-      passedCount: 0,
-      totalCount: publicTests.length + hiddenTests.length,
-      sampleResults: [],
-      logs
-    };
-  }
-
-  // Detect the main target function from context
-  const knownFunctions = ['twoSum', 'isValid', 'maxSubArray', 'reverseList', 'search', 'minStackDriver'];
-  let targetFn = null;
-  let targetName = '';
-
-  for (const name of knownFunctions) {
-    if (typeof context[name] === 'function') {
-      targetFn = context[name];
-      targetName = name;
-      break;
-    }
-  }
-
-  // If no known name, look for any user-defined function in context
-  if (!targetFn) {
-    for (const key of Object.keys(sandbox)) {
-      if (typeof context[key] === 'function' && !['parseInt', 'parseFloat', 'isNaN', 'isFinite'].includes(key)) {
-        targetFn = context[key];
-        targetName = key;
-        break;
-      }
-    }
-  }
-
-  if (!targetFn) {
-    return {
-      status: 'error',
-      passed: false,
-      executionTimeMs: Date.now() - startTime,
-      errorMessage: 'No solution function found in submission. Please check your function name.',
-      passedCount: 0,
-      totalCount: publicTests.length + hiddenTests.length,
-      sampleResults: [],
-      logs
-    };
-  }
-
-  // 2. Evaluate Public Test Cases
-  let passedCount = 0;
-  const sampleResults = [];
-  context.__targetFn__ = targetFn;
-
-  for (let i = 0; i < publicTests.length; i++) {
-    const test = publicTests[i];
-    try {
-      // Deep clone arguments to avoid mutation
-      context.__testArgs__ = JSON.parse(JSON.stringify(test.args));
-      const evalScript = new vm.Script('__targetFn__(...__testArgs__)', { filename: `test_${i}.js` });
-      const result = evalScript.runInContext(context, { timeout: 1500 });
-      const isOk = deepEqual(result, test.expected);
-
-      if (isOk) passedCount++;
-      sampleResults.push({
-        testIndex: i + 1,
-        input: test.args,
-        expected: test.expected,
-        actual: result,
-        passed: isOk
-      });
-    } catch (testErr) {
-      sampleResults.push({
-        testIndex: i + 1,
-        input: test.args,
-        expected: test.expected,
-        error: testErr.message,
-        passed: false
-      });
-    }
-  }
-
-  // 3. Evaluate Hidden Test Cases (kept private - do not leak to client!)
-  let allHiddenPassed = true;
-  for (let j = 0; j < hiddenTests.length; j++) {
-    const hTest = hiddenTests[j];
-    try {
-      context.__testArgs__ = JSON.parse(JSON.stringify(hTest.args));
-      const evalScript = new vm.Script('__targetFn__(...__testArgs__)', { filename: `hidden_test_${j}.js` });
-      const result = evalScript.runInContext(context, { timeout: 1500 });
-      if (deepEqual(result, hTest.expected)) {
-        passedCount++;
-      } else {
-        allHiddenPassed = false;
-      }
-    } catch {
-      allHiddenPassed = false;
-    }
-  }
-
-  const totalCount = publicTests.length + hiddenTests.length;
-  const allPassed = passedCount === totalCount;
-  const executionTimeMs = Date.now() - startTime;
-
-  return {
-    status: allPassed ? 'passed' : 'failed',
-    passed: allPassed,
-    executionTimeMs,
-    passedCount,
-    totalCount,
-    sampleResults,
-    logs: logs.slice(0, 15) // limit log output
-  };
-}
-
-module.exports = {
-  executeCode,
-  deepEqual
-};
+module.exports = { executeCode, deepEqual, IMAGE };

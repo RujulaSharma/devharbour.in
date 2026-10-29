@@ -9,7 +9,7 @@ if (process.env.DB_PROVIDER === 'sqlite' && !process.env.DB_PATH) {
   const path = require('node:path');
   temporaryDirectory = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'devharbour-certs-'));
   process.env.DB_PATH = path.join(temporaryDirectory, 'test.sqlite');
-  fs.copyFileSync(path.join(__dirname, '..', 'devharbour.sqlite'), process.env.DB_PATH);
+  // Initialize a fresh isolated database; never copy private account snapshots.
 }
 const app = require('../server/index');
 const database = require('../server/database');
@@ -26,6 +26,12 @@ test('Certificates API Suite', async (t) => {
     if (temporaryDirectory) require('node:fs').rmSync(temporaryDirectory, { recursive: true });
   });
 
+  const {hashPassword}=require('../server/auth');
+  const password='Certificate-fixture-7!';const {hash,salt}=hashPassword(password);
+  const staff=await database.createUser({email:'cert-fixture@example.test',username:'cert_fixture',fullName:'Certificate Staff Fixture',passwordHash:hash,salt,role:'admin'});
+  const {token}=await database.createSession(staff.id);
+  const staffHeaders={'Content-Type':'application/json',Authorization:'Bearer '+token};
+
   await t.test('GET /api/certificates/stats returns registry status and participant count', async () => {
     const res = await fetch(`${baseUrl}/api/certificates/stats`);
     assert.equal(res.status, 200);
@@ -38,7 +44,7 @@ test('Certificates API Suite', async (t) => {
   await t.test('POST /api/certificates/claim rejects unregistered participant email', async () => {
     const res = await fetch(`${baseUrl}/api/certificates/claim`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: staffHeaders,
       body: JSON.stringify({ email: 'unknown.participant.999@test.com', name: 'Unknown' })
     });
     assert.equal(res.status, 404);
@@ -49,7 +55,7 @@ test('Certificates API Suite', async (t) => {
   await t.test('POST /api/certificates/claim successfully issues certificate for registered participant', async () => {
     const res = await fetch(`${baseUrl}/api/certificates/claim`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: staffHeaders,
       body: JSON.stringify({ email: 'poornika0406@gmail.com', name: 'Poornika R' })
     });
     assert.ok(res.status === 200 || res.status === 201);
@@ -63,7 +69,7 @@ test('Certificates API Suite', async (t) => {
     // Check Poornika's credential
     const claimRes = await fetch(`${baseUrl}/api/certificates/claim`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: staffHeaders,
       body: JSON.stringify({ email: 'poornika0406@gmail.com' })
     });
     const claimBody = await claimRes.json();

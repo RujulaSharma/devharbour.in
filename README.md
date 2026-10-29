@@ -3,6 +3,8 @@
 > **Learn. Build. Compete. Grow.**  
 > A full-stack developer learning platform where courses, reading mode, coding challenges, XP ledger, community projects, and live leaderboards are connected through real persistent database records and server-side business rules.
 
+Local security hardening and required production follow-ups are documented in [SECURITY-SETUP.md](SECURITY-SETUP.md).
+
 The redesigned homepage setup, integration details, preview limitations, and verification commands are documented in [HOMEPAGE-SETUP.md](HOMEPAGE-SETUP.md).
 
 ---
@@ -139,6 +141,12 @@ See [the Redis guide](docs/REDIS.md) for persistence, invalidation, tests, and
 startup/shutdown commands. Supabase is not part of this Compose configuration.
 
 ---
+
+## Verified email and My Certificates
+
+See [email verification setup](docs/EMAIL-VERIFICATION.md) for Resend configuration,
+the reviewed migration requiring owner approval, dashboard ownership checks,
+and isolated tests. Existing event certificates are reused after mailbox verification.
 
 ## 🧪 Verified Automated Test Results
 

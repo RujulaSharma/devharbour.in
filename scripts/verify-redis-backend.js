@@ -30,7 +30,7 @@ async function get(route) {
     const counts = await getPrisma().$transaction(async tx => {
       await tx.$executeRaw`SET TRANSACTION READ ONLY`;
       return { courses: await tx.courses.count(), users: await tx.users.count(), certificates: await tx.issued_certificates.count() };
-    });
+    }, { maxWait: 10000, timeout: 20000 });
     console.log('Live Express API: course MISS → HIT, category filter, public APIs and unauthenticated access checks passed.');
     console.log('Prisma read-only Supabase transaction passed:', JSON.stringify(counts));
   } finally { redis.close(); await getPrisma().$disconnect(); }

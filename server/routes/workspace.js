@@ -2,6 +2,21 @@ const express = require('express');
 const router = require('../async-router').createRouter();
 const db = require('../database');
 const { requireAuth } = require('../auth');
+const {text,httpUrl}=require('../security');
+router.use((req,res,next)=>{
+  if(!['POST','PUT'].includes(req.method))return next();
+  const b=req.body;
+  const invalid=Object.entries(b).some(([key,value])=>{
+    if(value===null||value===undefined)return false;
+    if(['title','name','subject','category','itemType'].includes(key))return !text(value,300);
+    if(['url','target_url','link','link_url'].includes(key))return !httpUrl(value)&&!(typeof value==='string'&&/^#(?:v-)?(?:learn|practice|work|projects|hack|comm|home|timer)$/.test(value));
+    if(['dueDate','due_date','deadline'].includes(key))return typeof value!=='string'||(value!==''&&!/^\d{4}-\d{2}-\d{2}(?:T[0-9:.Z+-]+)?$/.test(value));
+    if(key==='priority')return !['low','medium','high'].includes(value);
+    if(key==='status')return !['pending','in-progress','in_progress','completed','todo','done'].includes(value);
+    return false;
+  });
+  if(invalid)return res.status(400).json({error:'Invalid workspace fields.'});next();
+});
 
 // GET /api/workspace — Retrieve all workspace items for user
 router.get('/', async (req, res) => {

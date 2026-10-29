@@ -14,3 +14,14 @@ coverage/
 /public/homepage/homepage.js
 /playwright-report/
 /test-results/
+
+# Private database/roster copies; historical tracked exports require separate review.
+*.sqlite
+*.sqlite-journal
+*.db
+*.bak
+**/orcathon_participants.json
+**/orcathon_participants.js
+
+# Historical account dump is archived privately, not source code.
+/server/devharbour.sql

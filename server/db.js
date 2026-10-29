@@ -8,7 +8,8 @@ const path = require('node:path');
 const fs = require('node:fs');
 const crypto = require('node:crypto');
 
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'devharbour.sqlite');
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', '.local', 'development.sqlite');
+fs.mkdirSync(path.dirname(path.resolve(DB_PATH)), { recursive: true });
 
 const db = new DatabaseSync(DB_PATH);
 
@@ -42,6 +43,20 @@ function initSchema() {
 
     CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+
+    CREATE TABLE IF NOT EXISTS email_verifications (
+      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      email TEXT NOT NULL,
+      challenge_id TEXT NOT NULL UNIQUE,
+      code_hash TEXT,
+      expires_at TEXT,
+      sent_at TEXT NOT NULL,
+      attempts INTEGER NOT NULL DEFAULT 0 CHECK (attempts BETWEEN 0 AND 5),
+      state TEXT NOT NULL CHECK (state IN ('pending','sent','failed','locked','verified')),
+      verified_at TEXT,
+      hour_started_at TEXT NOT NULL,
+      send_count INTEGER NOT NULL CHECK (send_count BETWEEN 1 AND 5)
+    );
 
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY,
@@ -380,11 +395,11 @@ function seedDatabase() {
     }
   }
 
-  // 5. Seed Initial Admin & Sample Profiles if none exist
+  // 5. Seed sample identities only in isolated test databases, never normal development/production.
   const usersCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
-  if (usersCount === 0) {
+  if (usersCount === 0 && process.env.NODE_ENV === 'test') {
     const demoSalt = crypto.randomBytes(16).toString('hex');
-    const demoHash = crypto.scryptSync('Password123!', demoSalt, 64).toString('hex');
+    const demoHash = crypto.scryptSync(crypto.randomBytes(48).toString('hex'), demoSalt, 64).toString('hex');
 
     // Admin user: Parth
     const adminId = 'usr-admin-parth';
@@ -1269,20 +1284,6 @@ function getIssuedCertificateById(credentialId) {
     WHERE c.credential_id = ?
     LIMIT 1
   `).get(clean);
-
-  if (!cert) {
-    const rawNum = clean.replace(/[^0-9]/g, '');
-    if (rawNum) {
-      const num = rawNum.length <= 4 ? rawNum.padStart(4, '0') : (rawNum.startsWith('26') ? rawNum.slice(2).padStart(4, '0') : rawNum.slice(-4));
-      cert = db.prepare(`
-        SELECT c.*, p.candidate_mobile, p.candidate_location, p.team_name, p.team_id
-        FROM issued_certificates c
-        LEFT JOIN event_participants p ON c.participant_id = p.id
-        WHERE c.credential_id LIKE ? OR c.credential_id LIKE ? OR c.participant_id = ?
-        LIMIT 1
-      `).get('%-' + num + '-%', '%-' + num, String(parseInt(num, 10)));
-    }
-  }
 
   return cert || null;
 }
