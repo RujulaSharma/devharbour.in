@@ -17,6 +17,10 @@ tests/
 # Obsolete static entry/controller are not deployment entrypoints.
 /index.html
 /app.js
+# Express runs on Render; do not create duplicate Vercel API functions.
+/api/
+/server.js
+/server/
 # Vercel serves public files directly from its CDN, bypassing Express middleware.
 public/assets/orcathon_participants.js
 public/assets/orcathon_participants.json

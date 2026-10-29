@@ -1,14 +1,16 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "framework": "express",
+  "framework": null,
   "installCommand": "npm ci --include=dev",
-  "buildCommand": "npm run build:vercel",
+  "buildCommand": "npm run build",
+  "outputDirectory": "public",
   "rewrites": [
     { "source": "/assets/orcathon_participants.js", "destination": "/api/private-assets-unavailable" },
     { "source": "/assets/orcathon_participants.json", "destination": "/api/private-assets-unavailable" },
     { "source": "/data/orcathon_participants.js", "destination": "/api/private-assets-unavailable" },
     { "source": "/data/orcathon_participants.json", "destination": "/api/private-assets-unavailable" },
+    { "source": "/api/:path*", "destination": "https://devharbour-backend.onrender.com/api/:path*" },
     { "source": "/:page(dashboard|courses|practice|timer|workspace|projects|roadmaps|hackathons|community|settings|certificate)", "destination": "/index.html" },
     { "source": "/certificate/verify/:id", "destination": "/index.html" },
     { "source": "/verify/:id", "destination": "/index.html" }
