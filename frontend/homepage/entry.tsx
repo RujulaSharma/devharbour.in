@@ -33,13 +33,13 @@ if (intro) {
   const originalShow = window.show;
   let restoringRoute = false;
   function setPath(path?: string) {
-    if (path && location.pathname !== path) history.pushState(null, "", path);
+    if (path && location.pathname + location.search + location.hash !== path) history.pushState(null, "", path);
   }
   window.show = (view, fromUserAction = false, publicVerification = false) => {
     if (view === 'home' && !window.isAuthenticated?.()) { void window.goApp?.('home'); return; }
     originalShow?.(view, fromUserAction, publicVerification);
-    window.dispatchEvent(new Event("dh:route-changed"));
     if (fromUserAction && !restoringRoute) setPath(platformPath(view));
+    window.dispatchEvent(new Event("dh:route-changed"));
   };
   window.goApp = async (view, path = platformPath(view)) => {
     if (view === 'home') {
@@ -51,9 +51,9 @@ if (intro) {
         return;
       }
     }
+    setPath(path);
     restoringRoute = true;
     try { window.show?.(view, true); } finally { restoringRoute = false; }
-    setPath(path);
   };
   function showLanding() {
     if (!intro) return;
@@ -71,7 +71,7 @@ if (intro) {
     const view = platformRoutes[location.pathname.replace(/\/$/, "")];
     restoringRoute = true;
     try {
-      if (view === 'home') void window.goApp?.('home');
+      if (view === 'home') void window.goApp?.('home', location.pathname + location.search + location.hash);
       else if (view) window.show?.(view, true);
       else if (location.pathname === "/") showLanding();
     } finally { restoringRoute = false; }

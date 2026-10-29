@@ -39,7 +39,16 @@
    if(request!==version)return;list.replaceChildren();controls.forEach(([key,b])=>b.setAttribute('aria-pressed',String(filter===key)));
    if(!courses){node('p','Loading your learning library…',list);return;}
    const shown=courses.filter(c=>filter==='continue'?c.started&&c.completedLessons<c.totalLessons:filter==='saved'?c.saved:filter==='completed'?c.totalLessons>0&&c.completedLessons===c.totalLessons:true);
-   if(!shown.length){const empty=node('div','',list);empty.className='learning-empty';node('h4',filter==='saved'?'Build your learning list':'Ready for your next skill?',empty);node('p',filter==='saved'?'Save a course from Explore More. It will stay in your account across devices.':'Start a course from Explore More. Your lessons and progress will appear here.',empty);button('Explore More',()=>{filter='explore';paint();},empty);return;}
+   if(!shown.length){
+    const empty=node('div','',list);empty.className='learning-empty';
+    const hasCourses=courses.some(course=>course.started||course.saved);
+    node('h4',filter==='saved'?'You haven’t saved any courses yet.':filter==='completed'?'No completed courses yet.':hasCourses?'No courses in progress right now.':'You haven’t added any courses yet.',empty);
+    node('p',filter==='saved'?'Browse available courses and select Save course to keep them in your account.':'Browse courses to start learning. Your saved courses and lesson progress will appear here.',empty);
+    button('View available courses',()=>{filter='explore';paint();},empty);
+    button('View my certificates',()=>window.goApp?.('home','/dashboard?section=certificates'),empty);
+    node('p','Course-provider certificates depend on the provider’s requirements. Your eligible DevHarbour certificates appear under Certificates.',empty);
+    return;
+   }
    for(const course of shown){const card=node('article','',list);card.className='learning-course';
     node('span',course.category||'Learning',card).className='learning-category';node('h4',course.title,card);node('p',course.description||`${course.provider||'DevHarbour'} · ${course.level||'All levels'}`,card);if(course.durationHours)node('small',`${course.durationHours}h`,card);
     const progress=node('progress','',card);progress.max=Math.max(1,course.totalLessons);progress.value=course.completedLessons;progress.setAttribute('aria-label',course.title+' progress');
