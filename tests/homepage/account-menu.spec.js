@@ -1,0 +1,77 @@
+const {test,expect}=require('@playwright/test');
+test('signed-in profile opens account dropdown instead of editing modal',async({page})=>{
+ await page.route('**/api/auth/me',route=>route.fulfill({json:{user:{id:'ui-test',username:'menu_test',fullName:'Menu Test'}}}));
+ await page.route('**/api/user/summary',route=>route.fulfill({json:{stats:{totalXp:125,level:2,completedLessons:3,solvedChallenges:4,submittedProjects:1}}}));
+ await page.goto('/settings',{waitUntil:'domcontentloaded'});
+ const shell=page.locator('#dh-platform-navigation');
+ const trigger=shell.getByRole('button',{name:'Open account options'});
+ await expect(trigger).toBeVisible();
+ await expect(shell.getByRole('navigation',{name:'Main navigation',exact:true}).getByRole('link',{name:'Dashboard',exact:true})).toHaveCount(0);
+ await expect(shell.getByRole('link',{name:'Sign In',exact:true})).toHaveCount(0);
+ await expect(shell.getByRole('link',{name:'Get Started',exact:true})).toHaveCount(0);
+ await trigger.click();
+ await expect(shell.getByRole('link',{name:'Dashboard',exact:true})).toBeVisible();
+ await expect(shell.getByRole('button',{name:'Saved Courses',exact:true})).toBeEnabled();
+ await expect(page.locator('#account-progress')).toContainText('125');
+ const menu=shell.getByRole('navigation',{name:'Account options'});
+ await expect(menu).toBeVisible();await expect(page.locator('#dh-profile-modal')).not.toHaveClass(/open/);
+ await expect(menu.getByRole('button',{name:'Sign Out'})).toBeVisible();
+ await menu.getByRole('link',{name:'Settings',exact:true}).click();await expect(page).toHaveURL(/\/settings$/);await expect(menu).toHaveCount(0);
+ await trigger.click();await page.keyboard.press('Escape');await expect(menu).toHaveCount(0);
+ await trigger.click();await menu.getByRole('button',{name:'Profile',exact:true}).click();await expect(page.locator('#dh-profile-modal')).toHaveClass(/open/);
+ await page.evaluate(()=>window.closeProfileModal());
+ await page.setViewportSize({width:390,height:844});await expect(trigger).toBeVisible();await trigger.click();await expect(menu).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.route('**/api/auth/logout',route=>route.fulfill({json:{message:'Signed out'}}));
+ await menu.getByRole('button',{name:'Sign Out'}).click();await expect(trigger).toHaveCount(0);
+ await expect(page.locator('#dh-homepage').getByRole('link',{name:'Dashboard',exact:true})).toHaveCount(0);
+ await expect(page.locator('#account-progress')).toBeEmpty();
+});
+test('guests do not see Dashboard and direct access asks for sign-in',async({page})=>{
+ await page.route('**/api/auth/me',route=>route.fulfill({status:401,json:{error:'Sign in required'}}));
+ await page.goto('/dashboard',{waitUntil:'domcontentloaded'});
+ await expect(page).toHaveURL(/\/$/);
+ await expect(page.locator('#dh-auth-modal')).toHaveClass(/open/);
+ await expect(page.locator('#dh-homepage').getByRole('link',{name:'Dashboard',exact:true})).toHaveCount(0);
+ await page.setViewportSize({width:390,height:844});
+ await page.locator('#dh-homepage').getByRole('button',{name:'Toggle navigation',exact:true}).click({force:true});
+ await expect(page.locator('#dh-homepage').getByRole('link',{name:'Dashboard',exact:true})).toHaveCount(0);
+});
+
+test('dashboard uses account data and settings save privacy while theme stays in dropdown',async({page})=>{
+ await page.route('**/api/user/dashboard',r=>r.fulfill({json:{history:[],projects:[],practice:{total:0,solved:0,breakdown:[],categories:[]}}}));
+ await page.route('**/api/auth/me',r=>r.fulfill({json:{user:{id:'dashboard-test',username:'tester',fullName:'Dashboard Tester'}}}));
+ await page.route('**/api/user/summary',r=>r.fulfill({json:{stats:{totalXp:240,level:2,completedLessons:4,solvedChallenges:3,submittedProjects:1},xpHistory:[{note:'Completed a lesson',amount:25}]}}));
+ await page.route('**/api/user/settings',r=>r.fulfill({json:{settings:{profile_public:1,theme:'dark',email_notifications:1}}}));
+ await page.goto('/settings',{waitUntil:'domcontentloaded'});
+ await expect(page.locator('#account-progress')).toContainText('240');
+ await expect(page.locator('#account-progress')).toContainText('Recent Activity');
+ await expect(page.locator('#wp-chart')).toBeHidden();
+ const shell=page.locator('#dh-platform-navigation');await shell.getByRole('button',{name:'Open account options'}).click();
+ const toggle=shell.getByRole('button',{name:/Theme:/});await expect(toggle).toBeVisible();const old=await toggle.getAttribute('aria-pressed');await toggle.click();await expect(toggle).not.toHaveAttribute('aria-pressed',old);
+ await shell.getByRole('navigation',{name:'Account options'}).getByRole('link',{name:'Settings',exact:true}).click();
+ const settings=page.locator('#account-settings');await expect(settings.getByRole('checkbox')).toBeChecked();
+ await expect(page.locator('#v-settings [data-theme-set]')).toHaveCount(0);
+ await settings.getByRole('checkbox').uncheck();const request=page.waitForRequest(r=>r.url().endsWith('/api/user/settings')&&r.method()==='POST');
+ await settings.getByRole('button',{name:'Save preferences'}).click();expect((await request).postDataJSON()).toEqual({profilePublic:false});await expect(settings).toContainText('Preferences saved.');
+ await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+
+test('learning tabs save courses, resume lessons, and handle empty libraries',async({page})=>{
+ let saved=false;
+ const course={id:'course-ui',title:'Web Foundations',provider:'DevHarbour',category:'Web',level:'Beginner',totalLessons:3,completedLessons:1,started:true,nextLesson:{id:'lesson-ui',title:'HTML structure'}};
+ await page.route('**/api/auth/me',r=>r.fulfill({json:{user:{id:'learning-ui',username:'learner',fullName:'Learning Test'}}}));
+ await page.route('**/api/user/summary',r=>r.fulfill({json:{stats:{totalXp:75,level:1,completedLessons:1,streakDays:2},xpHistory:[]}}));
+ await page.route('**/api/user/learning',r=>r.fulfill({json:{courses:[{...course,saved}]}}));
+ await page.route('**/api/user/learning/*/save',r=>{saved=r.request().method()==='POST';return r.fulfill({json:{saved}})});
+ await page.route('**/api/courses/lesson/**',r=>r.fulfill({json:{lesson:{content:'Learn semantic HTML safely.'},progress:{},xp:{}}}));
+ await page.goto('/dashboard',{waitUntil:'domcontentloaded'});
+ const learning=page.locator('#my-learning');await expect(learning.getByRole('heading',{name:'Web Foundations'})).toBeVisible();
+ await learning.getByRole('button',{name:'Saved',exact:true}).click();await expect(learning).toContainText('Build your learning list');
+ await learning.getByRole('button',{name:'Explore More',exact:true}).first().click();
+ await learning.getByRole('button',{name:'Save course',exact:true}).click();await expect(learning.getByRole('button',{name:'Remove saved course'})).toBeVisible();
+ await learning.getByRole('button',{name:'Saved',exact:true}).click();await expect(learning).toContainText('Web Foundations');
+ await learning.getByRole('button',{name:'Continue course'}).click();await expect(page.getByRole('dialog',{name:'Course lesson'})).toContainText('Learn semantic HTML safely.');
+ await page.getByRole('dialog').getByRole('button',{name:'Mark lesson complete'}).click();await expect(page.getByRole('dialog')).toHaveCount(0);
+ await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});

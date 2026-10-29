@@ -302,3 +302,37 @@ test("brute-force login attempts receive HTTP 429", async () => {
   assert.equal(response.status, 429);
   assert.ok(response.headers.get("ratelimit"));
 });
+
+test('privacy updates preserve other preferences and reject invalid values', async () => {
+  const headers = bearer(alice);
+  let result = await api('/api/user/settings', {method:'POST',headers,body:{theme:'dark',emailNotifications:false,profilePublic:true}});
+  assert.equal(result.status,200);
+  result = await api('/api/user/settings',{method:'POST',headers,body:{profilePublic:false}});
+  assert.equal(result.status,200);
+  assert.equal(result.data.settings.theme,'dark');
+  assert.equal(Number(result.data.settings.email_notifications),0);
+  assert.equal(Number(result.data.settings.profile_public),0);
+  assert.equal((await api('/api/user/settings',{method:'POST',headers,body:{profilePublic:'yes'}})).status,400);
+});
+
+test('learning library, saved courses, and lesson progress are private and persistent', async () => {
+  assert.equal((await api('/api/user/learning')).status,401);
+  const headers=bearer(alice), other=bearer(bob);
+  const before=await api('/api/user/learning',{headers});assert.equal(before.status,200);
+  const course=before.data.courses.find(c=>c.nextLesson);assert.ok(course);
+  const url='/api/user/learning/'+encodeURIComponent(course.id)+'/save';
+  assert.equal((await api(url,{method:'POST',headers,body:{}})).status,200);
+  assert.equal((await api(url,{method:'POST',headers,body:{}})).status,200);
+  let own=await api('/api/user/learning',{headers});assert.equal(own.data.courses.find(c=>c.id===course.id).saved,true);
+  const otherData=await api('/api/user/learning',{headers:other});assert.equal(otherData.data.courses.find(c=>c.id===course.id).saved,false);
+  const lesson='/api/courses/lesson/'+encodeURIComponent(course.nextLesson.id);
+  assert.equal((await api(lesson+'/progress',{method:'POST',headers,body:{readingSeconds:10}})).status,200);
+  own=await api('/api/user/learning',{headers});assert.equal(own.data.courses.find(c=>c.id===course.id).started,true);
+  await api(lesson+'/complete',{method:'POST',headers,body:{}});
+  own=await api('/api/user/learning',{headers});assert.ok(own.data.courses.find(c=>c.id===course.id).completedLessons>0);
+  assert.equal((await api(url,{method:'DELETE',headers:other})).status,200);
+  assert.equal((await api('/api/user/learning',{headers})).data.courses.find(c=>c.id===course.id).saved,true);
+  await api(url,{method:'DELETE',headers});assert.equal((await api('/api/user/learning',{headers})).data.courses.find(c=>c.id===course.id).saved,false);
+});
+
+test('private dashboard details exclude other users and submission source code',async()=>{assert.equal((await api('/api/user/dashboard')).status,401);const result=await api('/api/user/dashboard',{headers:bearer(alice)});assert.equal(result.status,200);assert.ok(Array.isArray(result.data.history));assert.equal(result.data.dailyGoalSupported,false);assert.equal(JSON.stringify(result.data).includes('password_hash'),false);assert.equal('code' in result.data,false);});

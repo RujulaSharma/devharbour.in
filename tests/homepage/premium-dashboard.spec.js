@@ -1,0 +1,21 @@
+const{test,expect}=require('@playwright/test');
+test('premium reference layout, real states, sidebar, tabs and responsive heatmap',async({page})=>{
+ await page.route('**/api/auth/me',r=>r.fulfill({json:{user:{id:'premium-test',username:'learner',fullName:'Test Learner'}}}));
+ await page.route('**/api/user/summary',r=>r.fulfill({json:{stats:{totalXp:300,level:3,completedLessons:2,solvedChallenges:1,submittedProjects:0},xpHistory:[]}}));
+ await page.route('**/api/user/dashboard',r=>r.fulfill({json:{history:[{created_at:'2026-10-29 05:00:00',amount:10,note:'Completed lesson'}],projects:[],practice:{total:10,solved:1,breakdown:[{difficulty:'Easy',count:1},{difficulty:'Medium',count:0},{difficulty:'Hard',count:0}],categories:['Arrays']},dailyGoalSupported:false}}));
+ await page.route('**/api/user/learning',r=>r.fulfill({json:{courses:[]}}));
+ await page.route('**/api/auth/email-verification',r=>r.fulfill({json:{verified:true,email:'test@example.test',configured:true}}));await page.route('**/api/certificates/mine',r=>r.fulfill({json:{certificates:[],message:'No certificates issued to this account yet.'}}));
+ await page.setViewportSize({width:1600,height:1000});await page.goto('/dashboard',{waitUntil:'domcontentloaded'});
+ await expect(page.getByRole('heading',{name:'Keep learning. Keep building.'})).toBeVisible();
+ await expect(page.locator('.account-metrics>div')).toHaveCount(5);
+ await expect(page.locator('.contribution-cell[aria-label]')).toHaveCount(369);
+ await expect(page.getByRole('heading',{name:'⌘  DSA & Practice'})).toBeVisible();
+ await expect(page.locator('.premium-sidebar')).toBeVisible();await expect(page.locator('#dh-platform-navigation')).toBeHidden();
+ await page.getByRole('button',{name:'Collapse or expand sidebar'}).click();await expect(page.locator('body')).toHaveClass(/dashboard-collapsed/);
+ await page.getByRole('button',{name:'Collapse or expand sidebar'}).click();
+ for(const label of ['In Progress','Saved','Completed'])await page.locator('#my-learning').getByRole('button',{name:label,exact:true}).click();
+ await expect(page.locator('#my-learning')).toContainText('Ready for your next skill?');
+ await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));await page.screenshot({path:'.local/premium-dashboard-1600.png',timeout:15000});
+ await page.setViewportSize({width:390,height:844});await page.getByRole('button',{name:'Toggle dashboard sidebar'}).click();await expect(page.locator('body')).toHaveClass(/dashboard-drawer/);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
