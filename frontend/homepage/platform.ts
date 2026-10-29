@@ -31,6 +31,10 @@ type Roadmap = { name: string; sub: string; color: string; nodes: string[] };
 type Hackathon = { name: string; desc: string; status: string };
 declare global {
   interface Window {
+    currentUser?: { id: string; username?: string; fullName?: string } | null;
+    authSessionReady?: Promise<void>;
+    openProfileModal?: () => void;
+    handleLogout?: () => void;
     enter?: (view: string) => void;
     show?: (view: string, fromUserAction?: boolean, publicVerification?: boolean) => void;
     isAuthenticated?: () => boolean;
@@ -39,6 +43,7 @@ declare global {
     goLanding?: () => void;
     setPlatformTheme?: (theme: "light" | "dark") => void;
     openMyCertificates?: () => Promise<void>;
+    openSavedCourses?: () => Promise<void>;
     DHHomepage?: {
       hackathon: { name: string; desc: string; info: string[][] };
       paths: { title: string; modules?: { title: string }[] }[];

@@ -1,0 +1,14 @@
+/* Reusable local-calendar activity components; only recorded XP events are counted. */
+(function(global){
+ const key=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+ function parse(value){return new Date(/Z$|[+-]\d\d:\d\d$/.test(value)?value:value.replace(' ','T')+'Z');}
+ function activity(history,now=new Date()){
+  const counts=new Map();for(const row of history){const d=parse(row.created_at||'');if(!Number.isNaN(+d))counts.set(key(d),(counts.get(key(d))||0)+1);}
+  let streak=0,d=new Date(now.getFullYear(),now.getMonth(),now.getDate());if(!counts.has(key(d)))d.setDate(d.getDate()-1);while(counts.has(key(d))){streak++;d.setDate(d.getDate()-1);}
+  const end=new Date(now.getFullYear(),now.getMonth(),now.getDate()),start=new Date(end);start.setDate(start.getDate()-364);start.setDate(start.getDate()-start.getDay());const days=[];
+  for(let date=new Date(start);date<=end;date.setDate(date.getDate()+1))days.push({date:key(date),count:counts.get(key(date))||0,month:date.getDate()<=7&&date.getDay()===0?date.toLocaleDateString(undefined,{month:'short'}):''});
+  return {days,streak};
+ }
+ function ContributionHeatmap(parent,history){const data=activity(history);const title=document.createElement('h3');title.textContent=`Learning Streak · ${data.streak} days`;parent.append(title);const caption=document.createElement('p');caption.textContent='Recorded learning rewards · local dates';parent.append(caption);const scroll=document.createElement('div');scroll.className='contribution-scroll';const months=document.createElement('div');months.className='contribution-months';for(let i=0;i<data.days.length;i+=7){const label=document.createElement('span');label.textContent=data.days.slice(i,i+7).find(d=>d.month)?.month||'';months.append(label);}scroll.append(months);const grid=document.createElement('div');grid.className='contribution-grid';grid.setAttribute('aria-label','Learning activity over the past year');for(const day of data.days){const cell=document.createElement('button');cell.type='button';cell.className='contribution-cell';cell.dataset.intensity=String(Math.min(day.count,4));cell.title=`${day.date}: ${day.count} learning activities`;cell.setAttribute('aria-label',cell.title);grid.append(cell);}scroll.append(grid);parent.append(scroll);const legend=document.createElement('p');legend.className='heatmap-legend';legend.textContent='Sun · Mon · Tue · Wed · Thu · Fri · Sat | Less ';for(let i=0;i<=4;i++){const cell=document.createElement('span');cell.className='contribution-cell';cell.dataset.intensity=i;legend.append(cell);}legend.append(' More');parent.append(legend);return data;}
+ global.DHDashboard={activity,ContributionHeatmap};if(typeof module!=='undefined')module.exports={activity};
+})(typeof window==='undefined'?globalThis:window);
