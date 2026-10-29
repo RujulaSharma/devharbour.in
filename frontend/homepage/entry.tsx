@@ -36,11 +36,21 @@ if (intro) {
     if (path && location.pathname !== path) history.pushState(null, "", path);
   }
   window.show = (view, fromUserAction = false, publicVerification = false) => {
+    if (view === 'home' && !window.isAuthenticated?.()) { void window.goApp?.('home'); return; }
     originalShow?.(view, fromUserAction, publicVerification);
     window.dispatchEvent(new Event("dh:route-changed"));
     if (fromUserAction && !restoringRoute) setPath(platformPath(view));
   };
-  window.goApp = (view, path = platformPath(view)) => {
+  window.goApp = async (view, path = platformPath(view)) => {
+    if (view === 'home') {
+      await window.authSessionReady;
+      if (!window.isAuthenticated?.()) {
+        window.goLanding?.();
+        history.replaceState(null, '', '/');
+        window.openAuthModal?.('login');
+        return;
+      }
+    }
     restoringRoute = true;
     try { window.show?.(view, true); } finally { restoringRoute = false; }
     setPath(path);
@@ -61,11 +71,15 @@ if (intro) {
     const view = platformRoutes[location.pathname.replace(/\/$/, "")];
     restoringRoute = true;
     try {
-      if (view) window.show?.(view, true);
+      if (view === 'home') void window.goApp?.('home');
+      else if (view) window.show?.(view, true);
       else if (location.pathname === "/") showLanding();
     } finally { restoringRoute = false; }
   }
   window.addEventListener("popstate", restoreRoute);
+  window.addEventListener('dh:auth-changed', () => {
+    if (!window.currentUser && location.pathname === '/dashboard') window.goLanding?.();
+  });
   // Exact-ID certificate routes are handled by the existing certificate viewer.
   if (platformRoutes[location.pathname.replace(/\/$/, "")]) restoreRoute();
 }
