@@ -2,9 +2,13 @@
 #dh-platform-navigation{position:fixed;top:16px;left:3%;width:94%;z-index:3000}
 #dh-platform-navigation[hidden]{display:none!important}
 .app>.sb{display:none!important}
+/* Account actions are provided by the shared navbar, not a second toolbar. */
+.app>main>.top>.act{display:none!important}
 body.dh-platform-visible .app{display:block;max-width:none;margin:0;padding:var(--dh-navbar-space) 24px 24px!important}
 body.dh-platform-visible .app>main{min-width:0}
 body.dh-platform-visible #my-certificates{scroll-margin-top:var(--dh-navbar-space)}
 @media(max-width:1280px){:root{--dh-navbar-space:180px}}
 @media(max-width:600px){:root{--dh-navbar-space:210px}}
 @media(max-width:800px){#dh-platform-navigation{top:12px}body.dh-platform-visible .app{padding:var(--dh-navbar-space) 12px 12px!important}}
+/* Keep the shared navigation pinned to the viewport edge on every platform view. */
+#dh-platform-navigation{top:0;left:0;width:100%;z-index:4000}
