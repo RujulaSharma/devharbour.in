@@ -1,10 +1,10 @@
 const { test, expect } = require("@playwright/test");
 const root = (page) => page.locator("#dh-homepage");
 async function open(page) {
-  await page.goto("/");
+  await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(root(page).locator("h1")).toBeVisible();
 }
-test("public data, curriculum and in-page navigation use existing features", async ({
+test("public data, curriculum and page navigation use existing features", async ({
   page,
   request,
 }) => {
@@ -22,7 +22,8 @@ test("public data, curriculum and in-page navigation use existing features", asy
   await expect(root(page).locator(".roadmap-list")).toContainText(
     "Full-Stack Web Development",
   );
-  await expect(root(page).locator(".leader-row")).toHaveCount(3);
+  const rankings=(await (await request.get("/api/leaderboard?timeframe=All-time&limit=50")).json()).rankings;
+  await expect(root(page).locator(".leader-row")).toHaveCount(Math.min(3,rankings.length));
   const missing = await root(page).evaluate((host) =>
     Array.from(host.shadowRoot.querySelectorAll('a[href^="#"]'))
       .map((a) => a.getAttribute("href"))
@@ -33,8 +34,10 @@ test("public data, curriculum and in-page navigation use existing features", asy
       ),
   );
   expect(missing).toEqual([]);
-  await root(page).locator('.nav-links a[href="#courses"]').click();
-  await expect(root(page).locator("#courses")).toBeInViewport();
+  await root(page).locator('.nav-links a').filter({ hasText: /^Courses$/ }).click();
+  await expect(page.locator("#v-learn")).toHaveClass(/on/);
+  await expect(page).toHaveURL(/\/courses$/);
+  await expect(page.locator("#intro")).toHaveClass(/out/);
   expect(errors).toEqual([]);
 });
 test("hero changes every four seconds, keeps one scene, and can pause", async ({
@@ -99,6 +102,7 @@ test("existing login modal and dashboard routes remain accessible", async ({
   // Reload closes the modal without issuing authentication or database writes.
   await open(page);
   for (const view of [
+    "home",
     "practice",
     "work",
     "projects",
@@ -106,13 +110,40 @@ test("existing login modal and dashboard routes remain accessible", async ({
     "hack",
     "comm",
   ]) {
-    await root(page).locator(`a[href="#platform-${view}"]`).first().click();
+    const paths = { home: "/dashboard", work: "/workspace", projects: "/projects", learn: "/courses", hack: "/hackathons", comm: "/community" };
+    const path = paths[view];
+    await root(page).locator(path ? `a[href="${path}"]` : `a[href="#platform-${view}"]`).first().click();
     await expect(page.locator(`#v-${view}`)).toHaveClass(/on/);
     await expect(page.locator("#intro")).toHaveClass(/out/);
     await page.evaluate(() => window.goLanding());
     await expect(root(page).locator("h1")).toBeVisible();
   }
 });
+test("navbar uses page URLs with reload, back and forward support", async ({ page }) => {
+  await open(page);
+  const nav = root(page).locator('.nav-links');
+  await nav.getByRole('link', { name: 'Courses', exact: true }).click();
+  await expect(page).toHaveURL(/\/courses$/);
+  await expect(page.locator('#v-learn')).toHaveClass(/on/);
+  await page.evaluate(() => window.goLanding());
+  await nav.getByRole('link', { name: 'Projects', exact: true }).click();
+  await expect(page).toHaveURL(/\/projects$/);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(root(page).locator('h1')).toBeVisible();
+  await page.goForward();
+  await expect(page.locator('#v-projects')).toHaveClass(/on/);
+  await page.reload();
+  await expect(page).toHaveURL(/\/projects$/);
+  await expect(page.locator('#v-projects')).toHaveClass(/on/);
+  await expect(page.locator('#intro')).toHaveClass(/out/);
+  await page.locator('#dh-platform-navigation .nav-links').getByRole('link', { name: 'Courses', exact: true }).click();
+  await expect(page).toHaveURL(/\/courses$/);
+  await page.goto('/community');
+  await expect(page.locator('#v-comm')).toHaveClass(/on/);
+  await expect(page.locator('#intro')).toHaveClass(/out/);
+});
+
 test("desktop competition rows retain 70/30 proportions", async ({ page }) => {
   await open(page);
   await root(page).locator("#hackathons").scrollIntoViewIfNeeded();
@@ -153,8 +184,10 @@ for (const width of [768, 390])
     expect(layout.stats).toBeGreaterThan(layout.buttons);
     await root(page).getByRole("button", { name: "Toggle navigation" }).click();
     await expect(root(page).locator(".mobile-menu")).toBeVisible();
-    await root(page).locator('.mobile-menu a[href="#projects"]').click();
-    await expect(root(page).locator("#projects")).toBeInViewport();
+    await root(page).locator('.mobile-menu a[href="/projects"]').click();
+    await expect(page.locator("#v-projects")).toHaveClass(/on/);
+    await expect(page.locator("#intro")).toHaveClass(/out/);
+    await page.evaluate(() => window.goLanding());
     await page.evaluate(() => document.getElementById("intro").scrollTo(0, 0));
     await page.screenshot({ path: `.local/homepage-${width}.png` });
   });
