@@ -10,11 +10,13 @@ test('premium reference layout, real states, sidebar, tabs and responsive heatma
  await expect(page.locator('.account-metrics>div')).toHaveCount(5);
  await expect(page.locator('.contribution-cell[aria-label]')).toHaveCount(369);
  await expect(page.getByRole('heading',{name:'⌘  DSA & Practice'})).toBeVisible();
- await expect(page.locator('.premium-sidebar')).toBeVisible();await expect(page.locator('#dh-platform-navigation')).toBeHidden();
+ await expect(page.locator('.premium-sidebar')).toBeVisible();await expect(page.locator('#dh-platform-navigation')).toBeVisible();
+ const navBounds=await page.locator('#dh-platform-navigation').boundingBox();expect(navBounds.y).toBe(0);const sideBounds=await page.locator('.premium-sidebar').boundingBox();expect(sideBounds.y).toBeGreaterThanOrEqual(navBounds.height);
+ await page.evaluate(()=>window.scrollTo(0,400));expect((await page.locator('#dh-platform-navigation').boundingBox()).y).toBe(0);await page.evaluate(()=>window.scrollTo(0,0));
  await page.getByRole('button',{name:'Collapse or expand sidebar'}).click();await expect(page.locator('body')).toHaveClass(/dashboard-collapsed/);
  await page.getByRole('button',{name:'Collapse or expand sidebar'}).click();
  for(const label of ['In Progress','Saved','Completed'])await page.locator('#my-learning').getByRole('button',{name:label,exact:true}).click();
- await expect(page.locator('#my-learning')).toContainText('Ready for your next skill?');
+ await expect(page.locator('#my-learning')).toContainText('No completed courses yet.');
  await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));await page.screenshot({path:'.local/premium-dashboard-1600.png',timeout:15000});
  await page.setViewportSize({width:390,height:844});await page.getByRole('button',{name:'Toggle dashboard sidebar'}).click();await expect(page.locator('body')).toHaveClass(/dashboard-drawer/);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
