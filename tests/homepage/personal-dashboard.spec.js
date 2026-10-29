@@ -15,4 +15,8 @@ test('sidebar shows only personal projects, preserves section on reload and back
  await sidebar.getByTitle('Workspace', {exact:true}).click();await expect(section).toContainText('My Task');
  await sidebar.getByTitle('Hackathons', {exact:true}).click();await expect(section).toContainText('does not have a personal hackathon');
  await expect(sidebar.getByTitle('Hackathons', {exact:true})).toHaveAttribute('aria-current','page');
+ await sidebar.getByTitle('Dashboard',{exact:true}).click();await expect(page).toHaveURL(/\/dashboard$/);await expect(page.locator('body')).toHaveAttribute('data-personal-section','overview');await expect(page.locator('.my-learning')).toBeVisible();
+ await page.goBack();await expect(page.locator('body')).toHaveAttribute('data-personal-section','hackathons');
+ for(const [label,section]of [['My Courses','courses'],['Certificates','certificates'],['Settings','settings'],['Roadmaps','roadmaps'],['Community','community']]){await sidebar.getByTitle(label,{exact:true}).click();await expect(page.locator('body')).toHaveAttribute('data-personal-section',section);if(section==='courses'){await expect(page.locator('#my-learning')).toContainText('You haven’t added any courses yet.');await expect(page.locator('#my-learning').getByRole('button',{name:'View available courses',exact:true})).toBeVisible();await expect(page.locator('#my-learning').getByRole('button',{name:'View my certificates',exact:true})).toBeVisible();}}
+
 });

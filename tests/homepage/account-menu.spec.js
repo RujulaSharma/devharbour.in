@@ -67,8 +67,8 @@ test('learning tabs save courses, resume lessons, and handle empty libraries',as
  await page.route('**/api/courses/lesson/**',r=>r.fulfill({json:{lesson:{content:'Learn semantic HTML safely.'},progress:{},xp:{}}}));
  await page.goto('/dashboard',{waitUntil:'domcontentloaded'});
  const learning=page.locator('#my-learning');await expect(learning.getByRole('heading',{name:'Web Foundations'})).toBeVisible();
- await learning.getByRole('button',{name:'Saved',exact:true}).click();await expect(learning).toContainText('Build your learning list');
- await learning.getByRole('button',{name:'Explore More',exact:true}).first().click();
+ await learning.getByRole('button',{name:'Saved',exact:true}).click();await expect(learning).toContainText('You haven’t saved any courses yet.');
+ await learning.getByRole('button',{name:'View available courses',exact:true}).first().click();
  await learning.getByRole('button',{name:'Save course',exact:true}).click();await expect(learning.getByRole('button',{name:'Remove saved course'})).toBeVisible();
  await learning.getByRole('button',{name:'Saved',exact:true}).click();await expect(learning).toContainText('Web Foundations');
  await learning.getByRole('button',{name:'Continue course'}).click();await expect(page.getByRole('dialog',{name:'Course lesson'})).toContainText('Learn semantic HTML safely.');
