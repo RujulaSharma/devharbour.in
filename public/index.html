@@ -5563,6 +5563,7 @@ async function completeServerAuth(path,body,msg){
   try{
     const response=await fetch(path,{method:'POST',headers:getAuthHeaders(),body:JSON.stringify(body)});
     const data=await response.json();
+    if(response.status===429){const seconds=Number(data.retryAfter||response.headers.get('Retry-After'));throw new Error(Number.isFinite(seconds)&&seconds>0?'Too many attempts. Please try again in '+Math.ceil(seconds/60)+' minute(s).':data.error||'Too many attempts. Please wait and retry.');}
     if(!response.ok||!data.user)throw new Error(data.error||'Authentication failed.');
     currentUser=data.user;updateAuthUI();closeAuthModal();
     toast('Welcome, @'+currentUser.username+'!');

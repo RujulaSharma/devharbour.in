@@ -55,13 +55,18 @@ function allowedOrigin(req, origin) {
     return false;
   }
 }
-function createLimiter(limit, windowMs = 60000) {
+function createLimiter(limit, windowMs = 60000, options = {}) {
   return rateLimit({
     windowMs,
     limit,
     standardHeaders: "draft-7",
     legacyHeaders: false,
-    message: { error: "Too many requests. Please wait before trying again." },
+    handler(req, res, next, config) {
+      const retryAfter = Math.max(1, Math.ceil(((req.rateLimit?.resetTime?.getTime() || Date.now() + windowMs) - Date.now()) / 1000));
+      res.set('Retry-After', String(retryAfter));
+      res.status(config.statusCode).json({ error: 'Too many requests. Please wait before trying again.', retryAfter });
+    },
+    ...options,
   });
 }
 function validateShape(value, depth = 0) {
@@ -159,9 +164,10 @@ function configureSecurity(app) {
       return res.status(404).json({ error: "Not found" });
     next();
   });
-  app.use("/api", createLimiter(300));
-  app.use("/api/auth/login", createLimiter(15, 15 * 60000));
-  app.use("/api/auth/signup", createLimiter(20, 15 * 60000));
+  // Coarse overload guard: proxy addresses may represent many visitors.
+  // Account-specific credential limits run after JSON parsing in auth routes.
+  app.use("/api", createLimiter(3000));
+  app.use(['/api/auth/login','/api/auth/signup'],createLimiter(1500,15*60000));
   app.use("/api/certificates/claim", createLimiter(10, 15 * 60000));
   app.use("/api/certificates/verify", createLimiter(60));
 }
