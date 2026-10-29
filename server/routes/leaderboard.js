@@ -5,7 +5,7 @@ const db = require('../database');
 // GET /api/leaderboard
 router.get('/', async (req, res) => {
   const timeframe = req.query.timeframe === 'Weekly' ? 'Weekly' : (req.query.timeframe === 'Monthly' ? 'Monthly' : 'All-time');
-  const limit = Math.min(50, Math.max(5, parseInt(req.query.limit || '20', 10)));
+  const limit = Math.min(50, Math.max(5, (parseInt(req.query.limit || '20', 10)||20)));
   const rankings = await db.getLeaderboard(timeframe, limit);
 
   let userRank = null;

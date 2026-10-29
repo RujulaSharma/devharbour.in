@@ -18,7 +18,7 @@ if (process.env.DB_PROVIDER === 'sqlite' && !process.env.DB_PATH) {
   const fs = require('node:fs');
   temporaryDirectory = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'devharbour-api-'));
   process.env.DB_PATH = path.join(temporaryDirectory, 'test.sqlite');
-  fs.copyFileSync(path.join(__dirname, '..', 'devharbour.sqlite'), process.env.DB_PATH);
+  // Initialize a fresh isolated database; never copy private account snapshots.
 }
 
 const app = require('../server/index');

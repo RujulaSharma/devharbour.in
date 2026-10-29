@@ -16,7 +16,8 @@ async function main() {
   if (!process.argv.includes('--confirm-import')) {
     throw new Error('Run only after explicit approval, with --confirm-import.');
   }
-  const sourcePath = path.resolve(process.env.SQLITE_IMPORT_PATH || process.env.DB_PATH || 'devharbour.sqlite');
+  if (!process.env.SQLITE_IMPORT_PATH) throw new Error('Set SQLITE_IMPORT_PATH explicitly to an approved private backup.');
+  const sourcePath = path.resolve(process.env.SQLITE_IMPORT_PATH);
   fs.mkdirSync('.local', { recursive: true });
   const snapshotPath = path.resolve('.local', `supabase-import-${Date.now()}.sqlite`);
   const original = new DatabaseSync(sourcePath, { readOnly: true });

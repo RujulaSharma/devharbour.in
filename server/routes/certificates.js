@@ -5,6 +5,7 @@
 
 const express = require('express');
 const router = require('../async-router').createRouter();
+const {requireAuth,requireRole}=require('../auth');
 const {
   findParticipantByEmail,
   findParticipantByEmailAndName,
@@ -18,9 +19,10 @@ const {
 /**
  * POST /api/certificates/claim
  * Validates participant registration against authoritative event registry and issues credential.
- * No OTP required as per official event design.
+ * Staff-only issuance remains separate from verified account certificate access.
  */
-router.post('/claim', async (req, res) => {
+// Mailbox verification permits reading existing own certificates, never issuance.
+router.post('/claim', requireAuth, requireRole('admin','moderator'), async (req, res) => {
   try {
     const { email, name, eventSlug = 'orca-coders-orcathon-2026' } = req.body;
 
@@ -28,6 +30,7 @@ router.post('/claim', async (req, res) => {
       return res.status(400).json({ error: 'Please enter your registered email address.' });
     }
 
+    if(email.length>254||(name!==undefined&&(typeof name!=='string'||name.length>100))||eventSlug!=='orca-coders-orcathon-2026')return res.status(400).json({error:'Invalid claim details.'});
     const cleanEmail = email.trim().toLowerCase();
     const cleanName = (name || '').trim();
 
@@ -109,6 +112,18 @@ router.post('/claim', async (req, res) => {
  * GET /api/certificates/verify/:credentialId
  * Public verification endpoint to authenticate any issued credential.
  */
+router.get('/mine', requireAuth, async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  if (Object.keys(req.query).length) return res.status(400).json({ error: 'Certificates are matched only to your signed-in account.' });
+  try {
+    if (!await require('../email-verification').forRequest(req).isVerified(req.user))
+      return res.status(403).json({ error: 'Verify your account email before accessing My Certificates.', requiresEmailVerification: true });
+    return res.json(await require('../my-certificates').findMine(req.user));
+  } catch {
+    return res.status(503).json({ error: 'My Certificates is temporarily unavailable. Please contact the organiser.' });
+  }
+});
+
 router.get('/verify/:credentialId', async (req, res) => {
   try {
     const { credentialId } = req.params;
@@ -124,6 +139,7 @@ router.get('/verify/:credentialId', async (req, res) => {
       });
     }
 
+    if (cert.status !== 'Valid') return res.status(410).json({ verified: false, error: 'This certificate is no longer valid. Contact the organiser.' });
     return res.json({
       verified: true,
       credential: {

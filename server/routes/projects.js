@@ -3,6 +3,8 @@ const router = require('../async-router').createRouter();
 const db = require('../database');
 const { requireAuth } = require('../auth');
 const eventBus = require('../events');
+const {text,httpUrl}=require('../security');
+router.use((req,res,next)=>{if(['POST','PUT'].includes(req.method)){const b=req.body;if(['title','description','category'].some(key=>b[key]!==undefined&&!text(b[key],key==='description'?5000:200))||['repoUrl','demoUrl'].some(key=>b[key]!==undefined&&!httpUrl(b[key]))||(b.techStack!==undefined&&!(typeof b.techStack==='string'&&text(b.techStack,500))&&!(Array.isArray(b.techStack)&&b.techStack.length<=8&&b.techStack.every(item=>text(item,50)))))return res.status(400).json({error:'Invalid project fields.'});}next();});
 
 function isValidHttpUrl(string) {
   if (!string) return false;
@@ -137,7 +139,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
 });
 
 // POST /api/projects/:id/vote
-router.post('/:id/vote', async (req, res) => {
+router.post('/:id/vote', requireAuth, async (req, res) => {
   let project = await db.getProjectById(req.params.id);
   if (!project) {
     const all = await db.getProjects({});
@@ -148,22 +150,11 @@ router.post('/:id/vote', async (req, res) => {
     return res.status(404).json({ error: 'Project not found.' });
   }
 
-  let votesCount = 0;
-  let voted = true;
-
-  if (req.user) {
-    const result = await db.toggleProjectVote(req.user.id, project.id);
-    voted = result.voted;
-    votesCount = result.votesCount;
-  } else {
-    const updated = await db.incrementProjectVotes(project.id);
-    voted = true;
-    votesCount = updated.votesCount;
-  }
+  const {voted,votesCount}=await db.toggleProjectVote(req.user.id,project.id);
 
   // Real-Time Broadcast to all connected clients!
-  const likerName = req.user ? (req.user.username || req.user.full_name) : (req.body && req.body.username ? req.body.username : 'A developer');
-  const userLoc = (req.body && req.body.location ? req.body.location : (req.user && req.user.location ? req.user.location : 'Navi Mumbai')).trim();
+  const likerName = req.user.username;
+  const userLoc = req.user.location || '';
 
   eventBus.broadcast({
     type: 'project_voted',
