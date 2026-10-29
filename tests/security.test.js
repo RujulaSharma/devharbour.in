@@ -348,3 +348,15 @@ test('personal dashboard project and workspace lists cannot select another accou
  }
  assert.equal(first.data.submissions.some(row=>'code'in row||'error_message'in row),false);
 });
+
+test('different signup accounts behind one proxy do not share a 20-attempt bucket',async()=>{
+ for(let i=0;i<25;i++){
+  const r=await api('/api/auth/signup',{method:'POST',body:{email:`shared-proxy-${i}@example.test`,username:`proxy_${i}`,fullName:'Proxy Test',password:'short'}});
+  assert.equal(r.status,400);
+ }
+ let limited;
+ for(let i=0;i<6;i++)limited=await api('/api/auth/signup',{method:'POST',body:{email:'limited-signup@example.test',username:'limited_signup',fullName:'Limit Fixture',password:'short'}});
+ assert.equal(limited.status,429);assert.ok(limited.data.retryAfter>0);assert.ok(Number(limited.headers.get('retry-after'))>0);
+ const other=await api('/api/auth/signup',{method:'POST',body:{email:'unrelated-account@example.test',username:'unrelated_account',fullName:'Other Fixture',password:'short'}});
+ assert.equal(other.status,400);
+});

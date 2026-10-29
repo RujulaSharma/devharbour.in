@@ -4,6 +4,11 @@ const db = require('../database');
 const { hashPassword, verifyPassword, validateEmail, validateUsername, validatePassword, requireAuth } = require('../auth');
 const eventBus = require('../events');
 const {isLegacySeedUser,publicUser,setSessionCookie,clearSessionCookie,text,httpUrl}=require('../security');
+const {createLimiter}=require('../security');
+const accountKey = field => req => require('node:crypto').createHash('sha256')
+  .update(typeof req.body?.[field] === 'string' ? req.body[field].trim().toLowerCase().slice(0,254) : 'invalid-input').digest('hex');
+router.post('/login',createLimiter(15,15*60000,{keyGenerator:accountKey('login'),skipSuccessfulRequests:true}));
+router.post('/signup',createLimiter(5,15*60000,{keyGenerator:accountKey('email')}));
 
 // POST /api/auth/signup
 router.post('/signup', async (req, res) => {

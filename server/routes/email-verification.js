@@ -2,7 +2,7 @@ const router = require('../async-router').createRouter();
 const { requireAuth } = require('../auth');
 const { rateLimit } = require('express-rate-limit');
 const { forRequest } = require('../email-verification');
-const sendLimit = rateLimit({ windowMs: 3600000, limit: 100, standardHeaders: true, legacyHeaders: false });
+const sendLimit = rateLimit({ windowMs: 3600000, limit: 10, keyGenerator: req => req.user.id, standardHeaders: true, legacyHeaders: false });
 const confirmLimit = rateLimit({ windowMs: 3600000, limit: 60, keyGenerator: req => req.user.id, standardHeaders: true, legacyHeaders: false });
 router.use(requireAuth, (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 function reply(res, result) { const { status = 200, ...body } = result; return res.status(status).json(body); }
