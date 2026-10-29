@@ -1,0 +1,24 @@
+# Local secrets and backups must never be uploaded.
+.git/
+node_modules/
+.local/
+.env
+.env.*
+*.log
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.db
+*.bak
+server/devharbour.sql
+test-results/
+playwright-report/
+tests/
+# Obsolete static entry/controller are not deployment entrypoints.
+/index.html
+/app.js
+# Vercel serves public files directly from its CDN, bypassing Express middleware.
+public/assets/orcathon_participants.js
+public/assets/orcathon_participants.json
+public/data/orcathon_participants.js
+public/data/orcathon_participants.json

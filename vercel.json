@@ -1,11 +1,30 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
+  "framework": "express",
+  "installCommand": "npm ci --include=dev",
+  "buildCommand": "npm run build:vercel",
   "rewrites": [
-    { "source": "/api/certificates/claim", "destination": "/api/certificates/claim.js" },
-    { "source": "/api/certificates/stats", "destination": "/api/certificates/stats.js" },
-    { "source": "/api/certificates/verify/:id", "destination": "/api/certificates/verify/[id].js" },
-    { "source": "/certificate/verify/(.*)", "destination": "/index.html" },
-    { "source": "/certificate", "destination": "/index.html" },
-    { "source": "/verify/(.*)", "destination": "/index.html" }
+    { "source": "/assets/orcathon_participants.js", "destination": "/api/private-assets-unavailable" },
+    { "source": "/assets/orcathon_participants.json", "destination": "/api/private-assets-unavailable" },
+    { "source": "/data/orcathon_participants.js", "destination": "/api/private-assets-unavailable" },
+    { "source": "/data/orcathon_participants.json", "destination": "/api/private-assets-unavailable" },
+    { "source": "/:page(dashboard|courses|practice|timer|workspace|projects|roadmaps|hackathons|community|settings|certificate)", "destination": "/index.html" },
+    { "source": "/certificate/verify/:id", "destination": "/index.html" },
+    { "source": "/verify/:id", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "no-referrer" }
+      ]
+    },
+    {
+      "source": "/index.html",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache, max-age=0, must-revalidate" }]
+    }
   ]
 }
