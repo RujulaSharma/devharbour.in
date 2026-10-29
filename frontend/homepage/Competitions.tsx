@@ -105,7 +105,7 @@ export default function Competitions({
                   <span className="leader-medal">{person.xp} XP</span>
                 </div>
               ))}
-              {!rankings.length && <p>Rankings unavailable.</p>}
+              {!rankings.length && <p>No ranked students yet. Start with a coding challenge.</p>}
             </div>
             <div className="leaderboard-foot">
               <span className="live-dot" /> Verified platform XP rankings{" "}

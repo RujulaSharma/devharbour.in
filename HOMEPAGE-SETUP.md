@@ -2,6 +2,8 @@
 
 The supplied Next.js design has been adapted into the existing Express application. React, Framer Motion and Lucide render only the homepage, bundled by esbuild. There is no Next.js server or second application. The existing dashboard, authentication, backend, Prisma models and Redis modules remain in place.
 
+The legacy landing DOM is hidden by critical HTML styles before first paint. A neutral DevHarbour loading state stays visible until the new homepage commits; script failures show Reload rather than revealing the old design. The versioned bundle is preloaded. See [Vercel deployment setup](docs/VERCEL-DEPLOYMENT.md) for the canonical public entry and Express build configuration.
+
 ## Run locally on Windows
 
 From this repository in PowerShell:
@@ -16,7 +18,11 @@ npm start
 
 Open http://localhost:3000. Both `npm start` and `npm run dev` build the homepage before starting the existing Express server. Stop the server with Ctrl+C. Restart with `npm start`. After editing homepage components, run `npm run build` and refresh the browser; the Express server does not need a restart for static asset changes. Stop Redis with `docker compose stop redis`; this preserves its volume. PostgreSQL credentials and secrets stay in ignored local environment files. Do not run migrations as part of this UI update.
 
-If port 3000 is occupied by a previous development server, stop that server before starting another. The dashboard sidebar logo returns to the homepage.
+If port 3000 is occupied by a previous development server, stop that server before starting another. The main navbar logo returns to the homepage.
+
+Navbar and footer links open existing dashboard pages at `/dashboard`, `/courses`, `/hackathons`, `/projects`, `/roadmaps`, and `/community`. Roadmaps uses the existing Learning view. These URLs support direct opening, refresh, and browser Back/Forward. Sidebar navigation also updates the URL. The build adds a content version to the homepage bundle URL so refreshing loads the current navigation code.
+
+The same navbar component appears on the homepage and in a fixed platform header on all dashboard views. The sidebar and its toggle/drawer are removed from the visible layout. Learn, Practice, Timer, Workspace, Certificates and Settings are reachable from the navbar alongside the existing links. Navbar links remain directly visible in compact rows on narrower previews and mobile screens; the menu provides an additional list. Page spacing grows with the taller navbar. The light/dark button uses the existing theme setter, stays in sync with Settings, and preserves the existing saved preference and automatic schedule behavior. The navbar also reflects the selected light/dark appearance.
 
 ## Source and integration points
 
@@ -25,7 +31,7 @@ If port 3000 is occupied by a previous development server, stop that server befo
 - `frontend/homepage/Competitions.tsx`: featured hackathon, live rankings and DSA/practice panels.
 - `frontend/homepage/ui.tsx`: shared buttons, labels and section reveals.
 - `frontend/homepage/platform.ts`: public API reads and existing application navigation/authentication bridge. API failures display unavailable states rather than fabricated results.
-- `frontend/homepage/entry.tsx`: mount inside the existing landing container with Shadow DOM to isolate CSS; use the existing `show` router and `openAuthModal` authentication UI. The former landing DOM is retained as a fallback when the bundle cannot load.
+- `frontend/homepage/entry.tsx`: mount inside the existing landing container with Shadow DOM to isolate CSS; use the existing `show` router and `openAuthModal` authentication UI. The former landing DOM is retained for legacy bindings and stays hidden even if the bundle cannot load.
 - `frontend/homepage/design.css`: supplied design styles adapted to the isolated host.
 - `frontend/homepage/enhancements.css`: responsive sizing, real-content bounds and accessibility adjustments.
 - `scripts/build-homepage.js`: production bundle to ignored `public/homepage/homepage.js`; build it after a fresh checkout.
@@ -59,6 +65,6 @@ npm run db:check
 node scripts/verify-redis-backend.js
 ```
 
-The homepage browser suite exercises public data, section links, four-second scene timing, pause, reduced motion, desktop 70/30 panels, mobile/tablet widths, login UI, existing dashboard routes and unavailable API states. It does not submit forms against Supabase. API and certificate regression tests use isolated temporary SQLite copies. `db:check` uses read-only PostgreSQL transactions; the live backend verifier changes only Redis cache keys, verifies MISS/HIT and reads public APIs and database counts. Do not run `test:postgres` against production as part of homepage verification because that suite creates test records.
+The homepage browser suite exercises public data, section links, four-second scene timing, pause, reduced motion, desktop 70/30 panels, mobile/tablet widths, login UI, existing dashboard routes and unavailable API states. It does not submit forms against Supabase. API and certificate regression tests use fresh isolated temporary SQLite databases. `db:check` uses read-only PostgreSQL transactions; the live backend verifier changes only Redis cache keys, verifies MISS/HIT and reads public APIs and database counts. Do not run `test:postgres` against production as part of homepage verification because that suite creates test records.
 
 ESLint covers the new TypeScript frontend; TypeScript additionally checks unused local declarations. The esbuild production bundle is the production build for this Express application, not a Next.js build. Browser screenshots and test reports remain ignored under `.local` or generated test output directories. Google-hosted fonts use local sans-serif fallbacks if unavailable.

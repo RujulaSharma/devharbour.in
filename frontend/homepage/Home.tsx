@@ -1,4 +1,5 @@
 import Hero from "./Hero";
+import Navbar from "./Navbar";
 import Competitions from "./Competitions";
 import { Pill, SectionTag, Reveal } from "./ui";
 import {
@@ -7,7 +8,7 @@ import {
   navigate,
   handleNavigation,
 } from "./platform";
-import { useState, useRef } from "react";
+import { useState, useRef, useLayoutEffect } from "react";
 import { useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
@@ -15,8 +16,6 @@ import {
   ArrowLeft,
   Code2,
   Users,
-  Menu,
-  X,
   Play,
   Heart,
   GitBranch,
@@ -213,10 +212,15 @@ function CodeDemo() {
   );
 }
 export default function Home() {
+  useLayoutEffect(() => {
+    document.getElementById("intro")?.setAttribute("data-homepage-ready", "true");
+    const boot = document.getElementById("dh-homepage-boot");
+    if (boot) boot.hidden = true;
+  }, []);
   const { courses, projects, rankings, hackathon, roadmaps, errors } =
     useHomepageData();
   const paths = roadmaps.length ? roadmaps : referencePaths;
-  const [menu, setMenu] = useState(false),
+  const
     [project, setProject] = useState(1),
     [roadmap, setRoadmap] = useState(0);
   const carousel = useRef<HTMLDivElement>(null);
@@ -229,50 +233,7 @@ export default function Home() {
   }
   return (
     <main id="top" onClick={handleNavigation}>
-      <header className="navbar">
-        <a className="logo" href="#top">
-          <span className="logo-icon">⌘</span> DevHarbour
-        </a>
-        <nav className="nav-links">
-          <a href="#hackathons">Hackathons</a>
-          <a href="#courses">Courses</a>
-          <a href="#projects">Projects</a>
-          <a href="#roadmaps">Roadmaps</a>
-          <a href="#community">Community</a>
-        </nav>
-        <div className="nav-auth">
-          <a href="#join">Sign In</a>
-          <a href="#join" className="nav-btn">
-            Get Started
-          </a>
-        </div>
-        <button
-          className="mobile-menu-button"
-          onClick={() => setMenu(!menu)}
-          aria-label="Toggle navigation"
-          aria-expanded={menu}
-        >
-          {menu ? <X /> : <Menu />}
-        </button>
-        {menu && (
-          <nav className="mobile-menu">
-            {["Hackathons", "Courses", "Projects", "Roadmaps", "Community"].map(
-              (n) => (
-                <a
-                  key={n}
-                  onClick={() => setMenu(false)}
-                  href={"#" + n.toLowerCase()}
-                >
-                  {n}
-                </a>
-              ),
-            )}
-            <a href="#join" onClick={() => setMenu(false)}>
-              Get Started
-            </a>
-          </nav>
-        )}
-      </header>
+      <Navbar />
       <Hero
         courseCount={courses.length}
         projectCount={projects.filter((p) => p.id).length}
@@ -306,7 +267,7 @@ export default function Home() {
               From fundamentals to advanced topics, learn with industry experts
               and hands-on projects.
             </p>
-            <Pill href="#platform-learn">Explore All Courses</Pill>
+            <Pill href="/courses">Explore All Courses</Pill>
           </Reveal>
           <div className="course-pane">
             <div className="carousel-arrows">
@@ -358,7 +319,7 @@ export default function Home() {
               Explore amazing projects built by our community. Get inspired,
               contribute, and showcase your own work to the world.
             </p>
-            <Pill href="#platform-projects">Browse Projects</Pill>
+            <Pill href="/projects">Browse Projects</Pill>
           </Reveal>
           <div className="project-stage">
             <div
@@ -457,7 +418,7 @@ export default function Home() {
               Follow structured paths, track your progress, and become job-ready
               with in-demand skills.
             </p>
-            <Pill href="#platform-learn">Explore Learning Paths</Pill>
+            <Pill href="/courses">Explore Learning Paths</Pill>
           </Reveal>
           <div className="roadmap-diagram">
             <div className="route-node node-1">
@@ -555,7 +516,7 @@ export default function Home() {
                 Practice coding challenges
               </li>
             </ul>
-            <Pill href="#platform-work">Launch CodeSpace</Pill>
+            <Pill href="/workspace">Launch CodeSpace</Pill>
           </Reveal>
           <CodeDemo />
         </div>
@@ -585,7 +546,7 @@ export default function Home() {
                   Discussions and posts are not yet available through a platform
                   API.
                 </p>
-                <a className="pill" href="#platform-comm">
+                <a className="pill" href="/community">
                   Open Community <ArrowUpRight size={16} />
                 </a>
               </div>
@@ -621,7 +582,7 @@ export default function Home() {
         <p>Learn, build and grow alongside the DevHarbour community.</p>
         <div className="center-actions">
           <Pill href="#join">Get Started Free</Pill>
-          <a className="border-button" href="#courses">
+          <a className="border-button" href="/courses">
             Explore Platform
           </a>
         </div>
@@ -667,19 +628,19 @@ export default function Home() {
           </div>
           <div>
             <b>Platform</b>
-            <a href="#hackathons">Hackathons</a>
-            <a href="#courses">Courses</a>
-            <a href="#projects">Projects</a>
-            <a href="#roadmaps">Roadmaps</a>
-            <a href="#community">Community</a>
+            <a href="/hackathons">Hackathons</a>
+            <a href="/courses">Courses</a>
+            <a href="/projects">Projects</a>
+            <a href="/roadmaps">Roadmaps</a>
+            <a href="/community">Community</a>
           </div>
           <div>
             <b>Resources</b>
-            <a href="#courses">Learning resources</a>
-            <a href="#codespace">Workspace</a>
-            <a href="#community">Community</a>
-            <a href="#projects">Projects</a>
-            <a href="#community">Connect</a>
+            <a href="/courses">Learning resources</a>
+            <a href="/workspace">Workspace</a>
+            <a href="/community">Community</a>
+            <a href="/projects">Projects</a>
+            <a href="/community">Connect</a>
           </div>
           <div>
             <b>Company</b>

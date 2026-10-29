@@ -2,11 +2,15 @@ import { createRoot } from "react-dom/client";
 import Home from "./Home";
 import design from "./design.css";
 import enhancements from "./enhancements.css";
+import { platformPath, platformRoutes } from "./platform";
+import { installPlatformShell } from "./shell";
 
 const intro = document.getElementById("intro");
 if (intro) {
   const fonts = document.createElement("link");
   fonts.rel = "stylesheet";
+  fonts.media = "print";
+  fonts.onload = () => { fonts.media = "all"; };
   fonts.href =
     "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap";
   document.head.appendChild(fonts);
@@ -22,27 +26,46 @@ if (intro) {
   createRoot(mount).render(<Home />);
   const isolation = document.createElement("style");
   isolation.textContent =
-    "#intro.dh-redesigned{display:block;overflow-y:auto;overflow-x:clip;background:#0d0c17}#intro.dh-redesigned>:not(#dh-homepage){display:none!important}#dh-homepage{display:block;min-height:100%;color:#fff}";
+    "#intro.dh-redesigned{display:block;overflow-y:auto;overflow-x:clip;background:#0d0c17}#intro.dh-redesigned>:not(#dh-homepage):not(#dh-homepage-boot){display:none!important}#dh-homepage{display:block;min-height:100%;color:#fff}";
   document.head.appendChild(isolation);
   intro.classList.add("dh-redesigned");
-  window.goApp = (view) => window.show?.(view, true);
-  window.goLanding = () => {
+  installPlatformShell(intro, design + enhancements);
+  const originalShow = window.show;
+  let restoringRoute = false;
+  function setPath(path?: string) {
+    if (path && location.pathname !== path) history.pushState(null, "", path);
+  }
+  window.show = (view, fromUserAction = false, publicVerification = false) => {
+    originalShow?.(view, fromUserAction, publicVerification);
+    window.dispatchEvent(new Event("dh:route-changed"));
+    if (fromUserAction && !restoringRoute) setPath(platformPath(view));
+  };
+  window.goApp = (view, path = platformPath(view)) => {
+    restoringRoute = true;
+    try { window.show?.(view, true); } finally { restoringRoute = false; }
+    setPath(path);
+  };
+  function showLanding() {
+    if (!intro) return;
     intro.classList.remove("out");
     intro.scrollTop = 0;
     document.body.style.overflow = "hidden";
     document.documentElement.style.overflow = "hidden";
-  };
-  const logo = document.querySelector<HTMLElement>(".sb .logo");
-  if (logo) {
-    logo.setAttribute("role", "button");
-    logo.tabIndex = 0;
-    logo.title = "Return to DevHarbour homepage";
-    logo.addEventListener("click", () => window.goLanding?.());
-    logo.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        window.goLanding?.();
-      }
-    });
+    window.dispatchEvent(new Event("dh:route-changed"));
   }
+  window.goLanding = () => {
+    showLanding();
+    setPath("/");
+  };
+  function restoreRoute() {
+    const view = platformRoutes[location.pathname.replace(/\/$/, "")];
+    restoringRoute = true;
+    try {
+      if (view) window.show?.(view, true);
+      else if (location.pathname === "/") showLanding();
+    } finally { restoringRoute = false; }
+  }
+  window.addEventListener("popstate", restoreRoute);
+  // Exact-ID certificate routes are handled by the existing certificate viewer.
+  if (platformRoutes[location.pathname.replace(/\/$/, "")]) restoreRoute();
 }

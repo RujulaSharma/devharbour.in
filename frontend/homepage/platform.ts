@@ -32,10 +32,13 @@ type Hackathon = { name: string; desc: string; status: string };
 declare global {
   interface Window {
     enter?: (view: string) => void;
-    show?: (view: string, fromUserAction?: boolean) => void;
+    show?: (view: string, fromUserAction?: boolean, publicVerification?: boolean) => void;
+    isAuthenticated?: () => boolean;
     openAuthModal?: (tab: string) => void;
-    goApp?: (view: string) => void;
+    goApp?: (view: string, path?: string) => void;
     goLanding?: () => void;
+    setPlatformTheme?: (theme: "light" | "dark") => void;
+    openMyCertificates?: () => Promise<void>;
     DHHomepage?: {
       hackathon: { name: string; desc: string; info: string[][] };
       paths: { title: string; modules?: { title: string }[] }[];
@@ -54,6 +57,15 @@ export const initialProjects: Project[] = ["snap", "harbour", "task"].map(
     symbol: "⌘",
   }),
 );
+export const platformRoutes: Record<string, string> = {
+  "/dashboard": "home", "/courses": "learn", "/projects": "projects",
+  "/hackathons": "hack", "/roadmaps": "learn", "/community": "comm",
+  "/workspace": "work", "/practice": "practice", "/timer": "timer",
+  "/settings": "settings",
+};
+export function platformPath(view: string) {
+  return Object.keys(platformRoutes).find(path => platformRoutes[path] === view);
+}
 export function navigate(view: string) {
   window.goApp?.(view);
 }
@@ -70,6 +82,21 @@ export function handleNavigation(event: MouseEvent<HTMLElement>) {
   )
     return;
   const href = link.getAttribute("href") || "";
+  if (href === "/certificate") {
+    event.preventDefault();
+    window.openMyCertificates?.();
+    return;
+  }
+  if (href === "/") {
+    event.preventDefault();
+    window.goLanding?.();
+    return;
+  }
+  if (platformRoutes[href]) {
+    event.preventDefault();
+    window.goApp?.(platformRoutes[href], href);
+    return;
+  }
   if (!href.startsWith("#")) return;
   event.preventDefault();
   if (href.startsWith("#platform-")) {
@@ -77,7 +104,7 @@ export function handleNavigation(event: MouseEvent<HTMLElement>) {
     return;
   }
   if (href === "#join") {
-    if (localStorage.getItem("dh_token")) navigate("home");
+    if (window.isAuthenticated?.()) navigate("home");
     else
       window.openAuthModal?.(
         link.textContent?.includes("Sign In") ? "login" : "signup",
