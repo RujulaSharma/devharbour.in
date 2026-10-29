@@ -30,11 +30,11 @@ test('SPA routes serve the canonical homepage with first-paint protection', asyn
     assert.ok(html.includes(`as="script" href="${script}"`));
   }
 });
-test('Vercel config builds the current homepage and preserves Express API routing', () => {
+test('Vercel serves the frontend and proxies API traffic to Render', () => {
   const config = require('../vercel.json');
-  assert.equal(config.framework, 'express');
-  assert.equal(config.buildCommand, 'npm run build:vercel');
-  assert.equal(config.outputDirectory, undefined);
+  assert.equal(config.framework, null);
+  assert.equal(config.buildCommand, 'npm run build');
+  assert.equal(config.outputDirectory, 'public');
   const ignore = fs.readFileSync(path.join(__dirname, '../.vercelignore'), 'utf8');
   assert.ok(ignore.includes('/index.html')); assert.ok(ignore.includes('.local/'));
   for (const folder of ['assets', 'data']) for (const ext of ['js', 'json']) {
@@ -42,5 +42,8 @@ test('Vercel config builds the current homepage and preserves Express API routin
     assert.ok(ignore.includes('public' + file));
     assert.ok(config.rewrites.some(rule => rule.source === file && rule.destination === '/api/private-assets-unavailable'));
   }
-  assert.equal(config.rewrites.some(rule => rule.source.startsWith('/api/')), false);
+  assert.ok(ignore.includes('/api/')); assert.ok(ignore.includes('/server/'));
+  const proxy = config.rewrites.find(rule => rule.source === '/api/:path*');
+  assert.equal(proxy.destination, 'https://devharbour-backend.onrender.com/api/:path*');
+  assert.ok(config.rewrites.indexOf(proxy) < config.rewrites.findIndex(rule => rule.destination === '/index.html'));
 });
