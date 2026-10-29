@@ -16,7 +16,7 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: APP_ORIGINS
-        sync: false
+        value: https://devharbour.in,https://www.devharbour.in
       - key: APP_BASE_URL
         sync: false
       - key: RESEND_API_KEY

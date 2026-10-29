@@ -46,4 +46,9 @@ test('Vercel serves the frontend and proxies API traffic to Render', () => {
   const proxy = config.rewrites.find(rule => rule.source === '/api/:path*');
   assert.equal(proxy.destination, 'https://devharbour-backend.onrender.com/api/:path*');
   assert.ok(config.rewrites.indexOf(proxy) < config.rewrites.findIndex(rule => rule.destination === '/index.html'));
+  const headers = config.headers.find(rule => rule.source === '/(.*)').headers;
+  assert.ok(headers.some(header => header.key === 'Content-Security-Policy' && header.value.includes("frame-ancestors 'none'")));
+  assert.ok(headers.some(header => header.key === 'Permissions-Policy' && header.value.includes('camera=()')));
+  const render = fs.readFileSync(path.join(__dirname, '../render.yaml'), 'utf8');
+  assert.ok(render.includes('https://devharbour.in,https://www.devharbour.in'));
 });
