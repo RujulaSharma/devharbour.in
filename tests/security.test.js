@@ -336,3 +336,15 @@ test('learning library, saved courses, and lesson progress are private and persi
 });
 
 test('private dashboard details exclude other users and submission source code',async()=>{assert.equal((await api('/api/user/dashboard')).status,401);const result=await api('/api/user/dashboard',{headers:bearer(alice)});assert.equal(result.status,200);assert.ok(Array.isArray(result.data.history));assert.equal(result.data.dailyGoalSupported,false);assert.equal(JSON.stringify(result.data).includes('password_hash'),false);assert.equal('code' in result.data,false);});
+
+test('personal dashboard project and workspace lists cannot select another account',async()=>{
+ const first=await api('/api/user/dashboard',{headers:bearer(alice)});
+ const second=await api('/api/user/dashboard?userId='+alice.user?.id,{headers:bearer(bob)});
+ assert.equal(first.status,200);assert.equal(second.status,200);
+ const project=first.data.projects[0];if(project)assert.equal(second.data.projects.some(p=>p.id===project.id),false);
+ for(const key of ['tasks','notes','assignments','snippets','bookmarks']){
+  const ids=new Set(first.data.workspace[key].map(row=>row.id));
+  assert.equal(second.data.workspace[key].some(row=>ids.has(row.id)),false);
+ }
+ assert.equal(first.data.submissions.some(row=>'code'in row||'error_message'in row),false);
+});
