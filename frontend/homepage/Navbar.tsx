@@ -32,6 +32,8 @@ export default function Navbar({ platform = false }: { platform?: boolean }) {
     const outside = (event: PointerEvent) => { if (account.current && !event.composedPath().includes(account.current)) setAccountOpen(false); };
     const escape = (event: KeyboardEvent) => { if (event.key === "Escape") { const wasOpen = !!account.current?.querySelector('.account-dropdown'); closeMenu(); if (wasOpen) account.current?.querySelector('button')?.focus(); } };
     window.addEventListener("dh:auth-changed", authChanged);
+    // Session restoration can finish between the first render and effect setup.
+    authChanged();
     window.addEventListener("dh:profile-menu", toggleAccount);
     document.addEventListener("pointerdown", outside);
     window.addEventListener("dh:route-changed", closeMenu);
