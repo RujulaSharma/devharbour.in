@@ -34,63 +34,18 @@ test("public data, curriculum and page navigation use existing features", async 
       ),
   );
   expect(missing).toEqual([]);
+  await root(page).locator('.nav-links summary').filter({hasText:/^Learn/}).click();
   await root(page).locator('.nav-links a').filter({ hasText: /^Courses$/ }).click();
   await expect(page.locator("#v-learn")).toHaveClass(/on/);
   await expect(page).toHaveURL(/\/courses$/);
   await expect(page.locator("#intro")).toHaveClass(/out/);
   expect(errors).toEqual([]);
 });
-test("hero changes every four seconds, keeps one scene, and can pause", async ({
-  page,
-}) => {
-  await open(page);
-  const changes = await root(page).evaluate(
-    (host) =>
-      new Promise((resolve) => {
-        const h = host.shadowRoot.querySelector("h1"),
-          times = [];
-        let last = h.textContent;
-        const started = performance.now();
-        const observer = new MutationObserver(() => {
-          if (h.textContent !== last) {
-            last = h.textContent;
-            times.push(performance.now() - started);
-            if (times.length === 2) {
-              observer.disconnect();
-              resolve(times);
-            }
-          }
-        });
-        observer.observe(h, {
-          subtree: true,
-          childList: true,
-          characterData: true,
-        });
-      }),
-  );
-  expect(changes[1] - changes[0]).toBeGreaterThan(3600);
-  expect(changes[1] - changes[0]).toBeLessThan(4400);
-  await page.waitForTimeout(800);
-  await expect(root(page).locator(".hero-copy-frame")).toHaveCount(1);
-  await expect(root(page).locator(".hero-art-slide")).toHaveCount(1);
-  await root(page)
-    .getByRole("button", { name: "Pause hero animation" })
-    .click();
-  const title = await root(page).locator("h1").textContent();
-  await page.waitForTimeout(4400);
-  expect(await root(page).locator("h1").textContent()).toBe(title);
-  const layout = await root(page).evaluate((host) => {
-    const q = (s) => host.shadowRoot.querySelector(s).getBoundingClientRect();
-    return { buttons: q(".hero-buttons").bottom, stats: q(".hero-stats").top };
-  });
-  expect(layout.stats).toBeGreaterThan(layout.buttons);
-  await root(page).getByRole("button", { name: "Show slide 1" }).click();
-  await expect(root(page).locator("h1")).toContainText(
-    "Your Developer Journey",
-  );
-  expect(await page.locator("#intro").getAttribute("class")).not.toContain(
-    "out",
-  );
+test('single hero has no carousel and motion can be paused',async({page})=>{
+ await open(page);await expect(root(page).locator('.hero-dots')).toHaveCount(0);await expect(root(page).locator('.harbour-scene')).toHaveCount(1);
+ const title=await root(page).locator('h1').textContent();await page.waitForTimeout(4500);expect(await root(page).locator('h1').textContent()).toBe(title);
+ await root(page).getByRole('button',{name:'Pause hero motion'}).click();await expect(root(page).locator('.harbour-art')).toHaveClass(/is-still/);
+ await root(page).getByRole('button',{name:'Resume hero motion'}).click();await expect(root(page).locator('.harbour-art')).not.toHaveClass(/is-still/);
 });
 test("existing login modal and dashboard routes remain accessible", async ({
   page,
@@ -102,7 +57,6 @@ test("existing login modal and dashboard routes remain accessible", async ({
   // Reload closes the modal without issuing authentication or database writes.
   await open(page);
   for (const view of [
-    "home",
     "practice",
     "work",
     "projects",
@@ -110,23 +64,28 @@ test("existing login modal and dashboard routes remain accessible", async ({
     "hack",
     "comm",
   ]) {
-    const paths = { home: "/dashboard", work: "/workspace", projects: "/projects", learn: "/courses", hack: "/hackathons", comm: "/community" };
+    const paths = { work: "/workspace", projects: "/projects", learn: "/courses", hack: "/hackathons", comm: "/community" };
     const path = paths[view];
-    await root(page).locator(path ? `a[href="${path}"]` : `a[href="#platform-${view}"]`).first().click();
+    await root(page).locator(path ? `footer a[href="${path}"]` : `a[href="#platform-${view}"]`).first().click();
     await expect(page.locator(`#v-${view}`)).toHaveClass(/on/);
     await expect(page.locator("#intro")).toHaveClass(/out/);
     await page.evaluate(() => window.goLanding());
     await expect(root(page).locator("h1")).toBeVisible();
   }
+  await page.goto('/dashboard',{waitUntil:'domcontentloaded'});
+  await expect(page.locator('#dh-auth-modal.open')).toBeVisible();
+  await expect(page).toHaveURL(/\/$/);
 });
 test("navbar uses page URLs with reload, back and forward support", async ({ page }) => {
   await open(page);
   const nav = root(page).locator('.nav-links');
+  await nav.locator('summary').filter({hasText:/^Learn/}).click();
   await nav.getByRole('link', { name: 'Courses', exact: true }).click();
   await expect(page).toHaveURL(/\/courses$/);
   await expect(page.locator('#v-learn')).toHaveClass(/on/);
   await page.evaluate(() => window.goLanding());
-  await nav.getByRole('link', { name: 'Projects', exact: true }).click();
+  await nav.locator('summary').filter({hasText:/^Build/}).click();
+  await nav.getByRole('link', { name: 'Project Gallery', exact: true }).click();
   await expect(page).toHaveURL(/\/projects$/);
   await page.goBack();
   await expect(page).toHaveURL(/\/$/);
@@ -137,7 +96,9 @@ test("navbar uses page URLs with reload, back and forward support", async ({ pag
   await expect(page).toHaveURL(/\/projects$/);
   await expect(page.locator('#v-projects')).toHaveClass(/on/);
   await expect(page.locator('#intro')).toHaveClass(/out/);
-  await page.locator('#dh-platform-navigation .nav-links').getByRole('link', { name: 'Courses', exact: true }).click();
+  const platformNav=page.locator('#dh-platform-navigation .nav-links');
+  await platformNav.locator('summary').filter({hasText:/^Learn/}).click();
+  await platformNav.getByRole('link', { name: 'Courses', exact: true }).click();
   await expect(page).toHaveURL(/\/courses$/);
   await page.goto('/community');
   await expect(page.locator('#v-comm')).toHaveClass(/on/);
@@ -178,12 +139,13 @@ for (const width of [768, 390])
       const q = (s) => host.shadowRoot.querySelector(s).getBoundingClientRect();
       return {
         buttons: q(".hero-buttons").bottom,
-        stats: q(".hero-stats").top,
+        stats: q(".hero-socials").top,
       };
     });
     expect(layout.stats).toBeGreaterThan(layout.buttons);
     await root(page).getByRole("button", { name: "Toggle navigation" }).click();
     await expect(root(page).locator(".mobile-menu")).toBeVisible();
+    await root(page).locator('.mobile-menu summary').filter({hasText:/^Build/}).click();
     await root(page).locator('.mobile-menu a[href="/projects"]').click();
     await expect(page.locator("#v-projects")).toHaveClass(/on/);
     await expect(page.locator("#intro")).toHaveClass(/out/);

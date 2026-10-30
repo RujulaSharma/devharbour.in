@@ -8,7 +8,7 @@ import {
   navigate,
   handleNavigation,
 } from "./platform";
-import { useState, useRef, useLayoutEffect } from "react";
+import { useState, useRef, useLayoutEffect, useEffect } from "react";
 import { useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
@@ -224,7 +224,17 @@ export default function Home() {
     [project, setProject] = useState(1),
     [roadmap, setRoadmap] = useState(0);
   const carousel = useRef<HTMLDivElement>(null);
+  const page = useRef<HTMLElement>(null);
   const reduce = useReducedMotion();
+  useEffect(() => {
+    const scroller=document.getElementById('intro');
+    if(!scroller)return;
+    let frame=0;
+    const paint=()=>{frame=0;const distance=scroller.scrollHeight-scroller.clientHeight;page.current?.style.setProperty('--scroll-progress',String(distance>0?scroller.scrollTop/distance:0));};
+    const scroll=()=>{if(!frame)frame=requestAnimationFrame(paint);};
+    scroller.addEventListener('scroll',scroll,{passive:true});paint();
+    return ()=>{scroller.removeEventListener('scroll',scroll);cancelAnimationFrame(frame);};
+  },[]);
   function moveCourse(n: number) {
     carousel.current?.scrollBy({
       left: n * 260,
@@ -232,13 +242,10 @@ export default function Home() {
     });
   }
   return (
-    <main id="top" onClick={handleNavigation}>
+    <main ref={page} id="top" className="homepage-editorial" onClick={handleNavigation}>
+      <div className="page-reading-progress" aria-hidden="true" />
       <Navbar />
-      <Hero
-        courseCount={courses.length}
-        projectCount={projects.filter((p) => p.id).length}
-        rankingCount={rankings.length}
-      />
+      <Hero />
       <div className="ticker">
         <span>✦ Learn with real course providers</span>
         <span>⌘ Build in your workspace</span>
