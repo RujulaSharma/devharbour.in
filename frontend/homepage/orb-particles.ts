@@ -57,4 +57,3 @@ export function createParticleData(count: number) {
   }
   return { sphere, clusters, random, colors };
 }
-

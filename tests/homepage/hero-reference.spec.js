@@ -1,0 +1,20 @@
+const {test,expect}=require('@playwright/test');
+for(const width of [1600,768,390])test(`full supplied hero preserves surrounding site at ${width}px`,async({page})=>{
+  await page.setViewportSize({width,height:1000});await page.emulateMedia({reducedMotion:'reduce'});
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  await page.goto('/',{waitUntil:'domcontentloaded'});const home=page.locator('#dh-homepage'),hero=home.locator('.particle-hero');
+  await expect(hero.locator('h1')).toHaveText('Build whatyou imagine.');
+  await expect(hero).toHaveCSS('background-color','rgb(8, 8, 11)');
+  await expect(home.locator('.navbar')).toHaveCSS('background-color','rgb(245, 240, 251)');
+  await expect(home.locator('.nav-links details')).toHaveCount(5);
+  await expect(hero.locator('.hero-footnote')).toContainText('ONE PLACE. INFINITE POSSIBILITIES.');
+  await expect(hero.locator('.hero-index')).toContainText('CREATED TO CREATE.');
+  await expect(home.locator('#hackathons')).toBeAttached();await expect(home.locator('.course-card').first()).toBeAttached();
+  await hero.getByRole('button',{name:'Explore DevHarbour'}).click();await expect(hero.locator('.orb-stage')).toHaveAttribute('data-mode','clusters');
+  await hero.getByRole('button',{name:'Reset sphere'}).click();await expect(hero.locator('.orb-stage')).toHaveAttribute('data-mode','orb');
+  await hero.getByRole('button',{name:'Start Building'}).click();await expect(home.locator('#hackathons')).toBeInViewport();
+  await page.locator('#intro').evaluate(node=>node.scrollTop=0);
+  await expect(hero.locator('.center-word')).toHaveClass(/visible/);
+  expect(await page.locator('#intro').evaluate(node=>node.scrollWidth<=node.clientWidth+1)).toBe(true);
+  await page.screenshot({path:`.local/full-supplied-hero-${width}.png`,timeout:10000});expect(errors).toEqual([]);
+});

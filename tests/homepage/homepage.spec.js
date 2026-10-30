@@ -42,10 +42,10 @@ test("public data, curriculum and page navigation use existing features", async 
   expect(errors).toEqual([]);
 });
 test('single hero has no carousel and motion can be paused',async({page})=>{
- await open(page);await expect(root(page).locator('.hero-dots')).toHaveCount(0);await expect(root(page).locator('.harbour-scene')).toHaveCount(1);
+ await open(page);await expect(root(page).locator('.hero-dots')).toHaveCount(0);await expect(root(page).locator('.orb-canvas canvas')).toHaveCount(1);
  const title=await root(page).locator('h1').textContent();await page.waitForTimeout(4500);expect(await root(page).locator('h1').textContent()).toBe(title);
- await root(page).getByRole('button',{name:'Pause hero motion'}).click();await expect(root(page).locator('.harbour-art')).toHaveClass(/is-still/);
- await root(page).getByRole('button',{name:'Resume hero motion'}).click();await expect(root(page).locator('.harbour-art')).not.toHaveClass(/is-still/);
+ await root(page).getByRole('button',{name:'Pause hero motion'}).click();await expect(root(page).locator('.orb-stage')).toHaveAttribute('data-paused','true');
+ await root(page).getByRole('button',{name:'Resume hero motion'}).click();await expect(root(page).locator('.orb-stage')).toHaveAttribute('data-paused','false');
 });
 test("existing login modal and dashboard routes remain accessible", async ({
   page,
@@ -138,8 +138,8 @@ for (const width of [768, 390])
     const layout = await root(page).evaluate((host) => {
       const q = (s) => host.shadowRoot.querySelector(s).getBoundingClientRect();
       return {
-        buttons: q(".hero-buttons").bottom,
-        stats: q(".hero-socials").top,
+        buttons: q(".hero-actions").bottom,
+        stats: q(".hero-footnote").top,
       };
     });
     expect(layout.stats).toBeGreaterThan(layout.buttons);
