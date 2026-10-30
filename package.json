@@ -37,6 +37,7 @@
   "dependencies": {
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
+    "@react-three/fiber": "9.1.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
@@ -46,13 +47,15 @@
     "pg": "8.23.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "redis": "6.3.0"
+    "redis": "6.3.0",
+    "three": "0.175.0"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
     "@types/node": "26.6.5",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "@types/three": "0.175.0",
     "esbuild": "0.28.2",
     "eslint": "10.13.0",
     "prisma": "7.10.1",

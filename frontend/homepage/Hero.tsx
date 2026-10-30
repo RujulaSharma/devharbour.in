@@ -1,40 +1,28 @@
-import {useState,useEffect} from 'react';
-import {motion,useMotionValue,useSpring,useReducedMotion} from 'framer-motion';
-import {ArrowUpRight,Pause,Play,Instagram,Linkedin,MessageCircle} from 'lucide-react';
-import {Pill,SectionTag} from './ui';
-import HeroArtwork from './HeroArtwork';
+import {useState} from 'react';
+import {motion,useReducedMotion} from 'framer-motion';
+import ParticleOrb,{type Mode} from './ParticleOrb';
+const appear={hidden:{opacity:0,y:27},visible:{opacity:1,y:0}};
 export default function Hero(){
- const reduce=useReducedMotion();const [paused,setPaused]=useState(false);
- const x=useMotionValue(0),y=useMotionValue(0);const rx=useSpring(y,{stiffness:80,damping:22}),ry=useSpring(x,{stiffness:80,damping:22});
- const still=!!reduce||paused;
- const scroll=useMotionValue(0),drift=useSpring(scroll,{stiffness:65,damping:25});
- useEffect(()=>{
-  const intro=document.getElementById('intro');if(!intro)return;
-  const update=()=>scroll.set(still?0:-Math.min(45,intro.scrollTop*.08));
-  intro.addEventListener('scroll',update,{passive:true});update();
-  return()=>intro.removeEventListener('scroll',update);
- },[scroll,still]);
- return <section className="hero hero-sculpture" aria-label="DevHarbour highlights">
-  <div className="hero-content">
-   <motion.div className="sculpture-copy" initial={reduce?false:{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{duration:.8}}>
-    <SectionTag>A SPACE FOR YOUR NEXT CHAPTER</SectionTag>
-    <h1>Good ideas<br/>deserve <em>to<br className="desktop-break"/> be built.</em></h1>
-    <div className="hero-manifesto"><span>Learn.</span><span>Build.</span><span>Connect.</span></div>
-    <p>Learn a new skill. Build something you’re proud of.<br/>Connect with people who are figuring it out, too.</p>
-    <div className="hero-buttons"><Pill href="#join">Find your starting point</Pill><a className="sculpture-secondary" href="/projects">See what people are building <ArrowUpRight size={16}/></a></div>
-    <nav className="hero-socials" aria-label="DevHarbour social communities">
-      <a href="https://www.instagram.com/devharbour.official" target="_blank" rel="noopener noreferrer"><Instagram size={17}/><span>Instagram</span><ArrowUpRight size={12}/></a>
-      <a href="https://www.linkedin.com/company/devharbour/" target="_blank" rel="noopener noreferrer"><Linkedin size={17}/><span>LinkedIn</span><ArrowUpRight size={12}/></a>
-      <a href="https://chat.whatsapp.com/Dt87L7lU5SOBSfKDKuNS8s" target="_blank" rel="noopener noreferrer"><MessageCircle size={17}/><span>WhatsApp Community</span><ArrowUpRight size={12}/></a>
-    </nav>
-   </motion.div>
+ const [mode,setMode]=useState<Mode>('orb'),[paused,setPaused]=useState(false);
+ const reduce=useReducedMotion(),still=!!reduce||paused;
+ const discover=()=>{const root=document.getElementById('dh-homepage')?.shadowRoot;root?.getElementById('hackathons')?.scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'});};
+ return <section className="hero particle-hero" id="home" aria-label="DevHarbour highlights">
+  <div className="hero-grid" aria-hidden="true"/>
+  <div className="hero-layout">
+   <div className="hero-content">
+    <motion.div className="eyebrow" initial={reduce?false:'hidden'} animate="visible" variants={appear} transition={{delay:.18}}>✦ &nbsp; A PLACE FOR THE NEXT GENERATION OF BUILDERS</motion.div>
+    <motion.h1 initial={reduce?false:'hidden'} animate="visible" variants={appear} transition={{delay:.3,duration:.8}}>Build what<br/>you <em>imagine.</em></motion.h1>
+    <motion.p className="hero-description" initial={reduce?false:'hidden'} animate="visible" variants={appear} transition={{delay:.48,duration:.7}}>Learn new skills. Create meaningful projects. Explore opportunities. Build your future with DevHarbour.</motion.p>
+    <motion.div className="hero-actions" initial={reduce?false:'hidden'} animate="visible" variants={appear} transition={{delay:.65}}>
+     <motion.button whileHover={reduce?{}:{y:-3,scale:1.025}} whileTap={reduce?{}:{scale:.96}} className="button-primary" onClick={discover}>Start Building <span>↗</span></motion.button>
+     <motion.button whileHover={reduce?{}:{y:-3}} whileTap={reduce?{}:{scale:.97}} className="button-secondary" onClick={()=>setMode('clusters')}>Explore DevHarbour <span>↗</span></motion.button>
+    </motion.div>
+    <motion.div className="hero-footnote" initial={reduce?false:'hidden'} animate="visible" variants={appear} transition={{delay:.9}}><div className="footnote-line"/><span>ONE PLACE. INFINITE POSSIBILITIES.</span></motion.div>
+   </div>
+   <div className="hero-art"><ParticleOrb still={still} mode={mode} onModeChange={setMode}/></div>
   </div>
-  <div className="sculpture-stage">
-   <motion.div className={'hero-art harbour-art '+(still?'is-still':'')} style={{rotateX:still?0:rx,rotateY:still?0:ry,y:still?0:drift,transformPerspective:1400}}
-    onPointerMove={e=>{if(still||e.pointerType!=='mouse')return;const r=e.currentTarget.getBoundingClientRect();x.set(((e.clientX-r.left)/r.width-.5)*9);y.set(-((e.clientY-r.top)/r.height-.5)*7);}}
-    onPointerLeave={()=>{x.set(0);y.set(0);}}><HeroArtwork/><div className="harbour-brand"><strong>DevHarbour</strong><span>LEARN / BUILD / CONNECT</span></div></motion.div>
-   <div className="art-caption"><span>THE HARBOUR / IDEAS IN MOTION</span><button type="button" onClick={()=>setPaused(!paused)} disabled={!!reduce} aria-label={paused?'Resume hero motion':'Pause hero motion'} aria-pressed={paused}>{paused||reduce?<Play size={12}/>:<Pause size={12}/>}<span>{reduce?'Reduced motion':paused?'Resume motion':'Pause motion'}</span></button></div>
-  </div>
-  <a href="#hackathons" className="hero-discover">SCROLL TO FIND YOUR NEXT THING <span>↓</span></a>
+  <motion.button className="scroll-cue" onClick={discover} animate={still?{}:{y:[0,7,0]}} transition={{repeat:Infinity,duration:2.4}}>SCROLL TO DISCOVER <span>↓</span></motion.button>
+  <div className="hero-index">CREATED TO CREATE. &nbsp; / &nbsp; EST. 2026</div>
+  <button className="hero-motion-control" type="button" onClick={()=>setPaused(!paused)} disabled={!!reduce} aria-label={paused?'Resume hero motion':'Pause hero motion'} aria-pressed={paused}>{reduce?'Reduced motion':paused?'Resume motion':'Pause motion'}</button>
  </section>;
 }
