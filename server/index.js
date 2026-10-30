@@ -81,6 +81,11 @@ app.get('/api/health', require('./async-router').asyncHandler(async (req, res) =
 
 // Serve Frontend Static Assets
 const publicDir = path.join(__dirname, '..', 'public');
+const publicPages = require('../scripts/public-pages').pages;
+app.get(Object.keys(publicPages).map(slug => '/' + slug), (req, res) => {
+  const slug = req.path.replace(/^\//, '').replace(/\/$/, '');
+  res.sendFile(path.join(publicDir, 'site-pages', slug + '.html'));
+});
 app.use(express.static(publicDir));
 
 // SPA Fallback
@@ -89,7 +94,11 @@ app.use((req, res, next) => {
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ error: 'Endpoint not found' });
   }
-  res.sendFile(path.join(publicDir, 'index.html'));
+  const route = req.path.replace(/\/$/, '') || '/';
+  if (['/','/dashboard','/courses','/practice','/timer','/workspace','/projects','/roadmaps','/hackathons','/community','/settings','/certificate'].includes(route) || /^\/(?:certificate\/verify|verify)\/[^/]+$/.test(route)) {
+    return res.sendFile(path.join(publicDir, 'index.html'));
+  }
+  res.status(404).sendFile(path.join(publicDir, '404.html'));
 });
 
 // Central Error Handler

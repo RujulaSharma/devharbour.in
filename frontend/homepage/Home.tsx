@@ -581,6 +581,20 @@ export default function Home() {
           </div>
         </div>
       </section>
+      <section className="section public-guides" aria-labelledby="guides-title">
+        <SectionTag>LEARN SOMETHING YOU CAN USE</SectionTag>
+        <h2 id="guides-title">A little direction. <em>A better next step.</em></h2>
+        <p>Practical guides to help you choose, practise, build and share.</p>
+        <div className="public-guide-grid">
+          {[
+            ["choose-a-course", "Choose a course you can finish", "Set a clear outcome and turn lessons into hands-on practice."],
+            ["build-your-first-project", "Build your first useful project", "Scope a small app, test its behaviour and document your work."],
+            ["practise-dsa", "Make coding practice count", "Understand the contract, test edge cases and explain complexity."],
+            ["hackathon-checklist", "Get ready for a hackathon", "Plan a demo-sized idea and submit a project people can run."],
+          ].map(([slug, title, description]) => <a key={slug} href={"/guides/" + slug}><h3>{title}</h3><p>{description}</p><span>Read guide <ArrowUpRight size={16} aria-hidden="true" /></span></a>)}
+        </div>
+        <a href="/resources">View all learning guides →</a>
+      </section>
       <section id="join" className="final-cta">
         <SectionTag>READY TO START YOUR JOURNEY?</SectionTag>
         <h2>
@@ -643,7 +657,7 @@ export default function Home() {
           </div>
           <div>
             <b>Resources</b>
-            <a href="/courses">Learning resources</a>
+            <a href="/resources">Learning guides</a>
             <a href="/workspace">Workspace</a>
             <a href="/community">Community</a>
             <a href="/projects">Projects</a>
@@ -651,10 +665,11 @@ export default function Home() {
           </div>
           <div>
             <b>Company</b>
-            <span className="unavailable">About · coming soon</span>
-            <span className="unavailable">Contact · coming soon</span>
-            <span className="unavailable">Privacy Policy · coming soon</span>
-            <span className="unavailable">Terms of Service · coming soon</span>
+            <a href="/about">About</a>
+            <a href="/contact">Contact</a>
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/cookies">Cookie Policy</a>
+            <a href="/terms">Terms of Use</a>
           </div>
           <div className="subscribe">
             <b>Subscribe</b>

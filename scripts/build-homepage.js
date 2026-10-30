@@ -1,4 +1,5 @@
 const esbuild = require("esbuild");
+require('./public-pages').buildPublicPages();
 esbuild
   .build({
     entryPoints: ["frontend/homepage/entry.tsx"],
