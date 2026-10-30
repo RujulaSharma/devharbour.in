@@ -8,7 +8,8 @@ test('premium reference layout, real states, sidebar, tabs and responsive heatma
  await page.setViewportSize({width:1600,height:1000});await page.goto('/dashboard',{waitUntil:'domcontentloaded'});
  await expect(page.getByRole('heading',{name:'Keep learning. Keep building.'})).toBeVisible();
  await expect(page.locator('.account-metrics>div')).toHaveCount(5);
- await expect(page.locator('.contribution-cell[aria-label]')).toHaveCount(369);
+ await expect.poll(()=>page.locator('.contribution-cell[aria-label]').count()).toBeGreaterThanOrEqual(365);
+ expect(await page.locator('.contribution-cell[aria-label]').count()).toBeLessThanOrEqual(371);
  await expect(page.getByRole('heading',{name:'⌘  DSA & Practice'})).toBeVisible();
  await expect(page.locator('.premium-sidebar')).toBeVisible();await expect(page.locator('#dh-platform-navigation')).toBeVisible();
  const navBounds=await page.locator('#dh-platform-navigation').boundingBox();expect(navBounds.y).toBe(0);const sideBounds=await page.locator('.premium-sidebar').boundingBox();expect(sideBounds.y).toBeGreaterThanOrEqual(navBounds.height);

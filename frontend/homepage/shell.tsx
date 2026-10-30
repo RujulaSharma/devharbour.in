@@ -12,10 +12,15 @@ export function installPlatformShell(intro: HTMLElement, styles: string) {
   shadow.append(style);
   const mount = document.createElement("div"); shadow.append(mount);
   document.body.prepend(host);
+  const measure = () => {
+    if (!host.hidden) document.documentElement.style.setProperty('--dh-navbar-space', `${Math.ceil(mount.getBoundingClientRect().height) + 16}px`);
+  };
+  new ResizeObserver(measure).observe(mount);
   function syncVisibility() {
     const visible = intro.classList.contains("out");
     host.hidden = !visible;
     document.body.classList.toggle("dh-platform-visible", visible);
+    measure();
   }
   new MutationObserver(syncVisibility).observe(intro, { attributes: true, attributeFilter: ["class"] });
   syncVisibility();

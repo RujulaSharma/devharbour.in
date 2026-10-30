@@ -24,3 +24,5 @@ body:has(#v-home.on).dh-platform-visible .app,body.dashboard-collapsed:has(#v-ho
 /* Override the general personal-section hide rule with matching specificity. */
 body[data-personal-section][data-personal-section=courses] #v-home .learning-layout{display:block!important}
 body[data-personal-section][data-personal-section=certificates] #my-certificates{display:block!important}
+/* The year grid scrolls horizontally only; keep native scrollbars unobtrusive. */
+.contribution-scroll{overflow-x:auto;overflow-y:hidden;max-height:none;scrollbar-width:thin;scrollbar-color:#6745a0 #191925;overscroll-behavior-x:contain}.contribution-grid{overflow:visible}.premium-sidebar{scrollbar-width:thin;scrollbar-color:#453366 #121218}
