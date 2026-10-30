@@ -1,0 +1,45 @@
+/* Hero-only selectors from the supplied particle homepage; navbar and other sections are excluded. */
+.homepage-editorial .particle-hero{min-height:950px;height:100svh;max-height:1120px;position:relative;overflow:hidden;background:radial-gradient(ellipse 33% 55% at 75% 51%,#211535 0%,transparent 90%),radial-gradient(ellipse 35% 40% at 55% 70%,#130e20 0%,transparent 85%),#08080b}
+.homepage-editorial .particle-hero:before{content:'';position:absolute;width:48vw;height:48vw;border-radius:50%;background:radial-gradient(circle,#8466c00a,transparent 70%);top:15%;right:0;pointer-events:none}
+.homepage-editorial .particle-hero .hero-grid{position:absolute;inset:0;opacity:.23;background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px);background-size:90px 90px;mask-image:linear-gradient(to bottom,transparent,#000 45%,transparent)}
+.homepage-editorial .particle-hero .hero-layout{max-width:1490px;height:100%;margin:0 auto;padding:0 5.4%;display:grid;grid-template-columns:43% 57%;align-items:center;position:relative}
+.homepage-editorial .particle-hero .hero-content{z-index:3;padding-top:70px;pointer-events:none}
+.homepage-editorial .particle-hero .hero-content button{pointer-events:auto}
+.homepage-editorial .particle-hero .eyebrow{font-size:10px;letter-spacing:2.1px;color:#b898ed;font-weight:700}
+.homepage-editorial .particle-hero h1{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.01;letter-spacing:-5px;margin:27px 0;font-size:clamp(65px,6.1vw,104px)}
+.homepage-editorial .particle-hero h1 em{font-weight:500;font-style:normal;color:#b392f7}
+.homepage-editorial .particle-hero .hero-description{font-size:16px;line-height:1.85;color:#aba6b5;max-width:410px}
+.homepage-editorial .particle-hero .hero-actions{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:34px}
+.homepage-editorial .particle-hero .button-primary,.homepage-editorial .particle-hero .button-secondary{padding:17px 20px;border-radius:7px;font-size:13px;font-weight:700;transition:box-shadow .25s}
+.homepage-editorial .particle-hero .button-primary{color:#150e22;background:#b392f7;border:1px solid #b392f7}
+.homepage-editorial .particle-hero .button-primary:hover{box-shadow:0 12px 45px #aa82e83d}
+.homepage-editorial .particle-hero .button-secondary{color:#eee8fb;background:#ffffff08;border:1px solid #ffffff24}
+.homepage-editorial .particle-hero .button-primary span,.homepage-editorial .particle-hero .button-secondary span{margin-left:18px}
+.homepage-editorial .particle-hero .hero-footnote{margin-top:80px;display:flex;align-items:center;gap:15px;color:#66606d;font-size:10px;letter-spacing:1.5px}
+.homepage-editorial .particle-hero .footnote-line{width:40px;height:1px;background:#716582}
+.homepage-editorial .particle-hero .hero-art{height:100%;min-height:600px;position:relative}
+.homepage-editorial .particle-hero .scroll-cue{position:absolute;bottom:55px;left:50%;transform:translateX(-50%);border:0;background:transparent;color:#938d9c;font-size:10px;letter-spacing:2px}
+.homepage-editorial .particle-hero .scroll-cue span{display:block;font-size:20px;margin-top:12px;color:#b69be8}
+.homepage-editorial .particle-hero .hero-index{position:absolute;bottom:59px;right:5.4%;font-size:9px;letter-spacing:1.3px;color:#615a6b}
+@media(max-width:1050px){.homepage-editorial .particle-hero .hero-layout{grid-template-columns:48% 52%}
+.homepage-editorial .particle-hero h1{font-size:70px;letter-spacing:-3.7px}
+.homepage-editorial .particle-hero .hero-content{padding-top:55px}
+}
+@media(max-width:740px){.homepage-editorial .particle-hero{height:auto;min-height:920px;max-height:none}
+.homepage-editorial .particle-hero .hero-layout{display:flex;flex-direction:column;align-items:stretch;padding:130px 7% 0}
+.homepage-editorial .particle-hero .hero-content{padding:0}
+.homepage-editorial .particle-hero h1{font-size:clamp(51px,10vw,76px);letter-spacing:-3px;margin:20px 0}
+.homepage-editorial .particle-hero .hero-description{font-size:14px;max-width:480px}
+.homepage-editorial .particle-hero .hero-actions{margin-top:24px}
+.homepage-editorial .particle-hero .hero-footnote{margin-top:29px}
+.homepage-editorial .particle-hero .hero-art{height:440px;min-height:440px}
+.homepage-editorial .particle-hero .scroll-cue{bottom:20px}
+.homepage-editorial .particle-hero .hero-index{display:none}
+}
+@media(max-width:400px){.homepage-editorial .particle-hero h1{font-size:50px}
+.homepage-editorial .particle-hero .button-primary,.homepage-editorial .particle-hero .button-secondary{padding:13px}
+}
+.homepage-editorial .particle-hero{display:block;padding:0;color:#f5f1ff;font-family:'DM Sans',sans-serif;gap:0;border:0;box-sizing:border-box}.homepage-editorial .particle-hero:after{display:none}.homepage-editorial .particle-hero:before{left:auto;bottom:auto;height:48vw}.homepage-editorial .particle-hero .hero-content{min-height:0;max-width:none}.homepage-editorial .particle-hero h1 em{font-family:inherit}.homepage-editorial .particle-hero .hero-art{width:auto;max-width:none;aspect-ratio:auto;margin:0;transform:none}.homepage-editorial .particle-hero .supplied-orb{background:none;overflow:visible}.homepage-editorial .particle-hero button{font-family:inherit;cursor:pointer}.homepage-editorial .particle-hero button:focus-visible{outline:2px solid #d3bdff;outline-offset:4px}.homepage-editorial .particle-hero .hero-motion-control{position:absolute;bottom:20px;right:5.4%;display:block;margin:12px 0 0 auto;padding:5px 0;color:#938d9c;border:0;background:none;font-size:10px}.homepage-editorial .particle-hero .hero-motion-control:disabled{cursor:default}@media(prefers-reduced-motion:reduce){.homepage-editorial .particle-hero *,.homepage-editorial .particle-hero *:before,.homepage-editorial .particle-hero *:after{transition:none!important;animation:none!important}}
+.homepage-editorial .particle-hero .hero-motion-control,.homepage-editorial .particle-hero .scroll-cue,.homepage-editorial .particle-hero .hero-index{z-index:4}
+.homepage-editorial .particle-hero h1{color:#f5f1ff}.homepage-editorial .particle-hero h1 em{-webkit-text-fill-color:currentColor;letter-spacing:inherit}.homepage-editorial .particle-hero .hero-content{padding-left:0}
+@media(max-width:740px){.homepage-editorial .particle-hero .hero-layout{padding-bottom:85px}.homepage-editorial .particle-hero .hero-motion-control{bottom:10px;right:7%;font-size:9px}.homepage-editorial .particle-hero .scroll-cue{bottom:15px}}

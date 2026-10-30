@@ -3,6 +3,8 @@ import Home from "./Home";
 import design from "./design.css";
 import enhancements from "./enhancements.css";
 import editorial from "./editorial.css";
+import orb from "./orb.css";
+import heroReference from "./hero-reference.css";
 import { platformPath, platformRoutes } from "./platform";
 import { installPlatformShell } from "./shell";
 
@@ -19,7 +21,7 @@ if (intro) {
   host.id = "dh-homepage";
   const shadow = host.attachShadow({ mode: "open" });
   const style = document.createElement("style");
-  style.textContent = design + enhancements + editorial;
+  style.textContent = design + enhancements + editorial + orb + heroReference;
   shadow.appendChild(style);
   const mount = document.createElement("div");
   shadow.appendChild(mount);
