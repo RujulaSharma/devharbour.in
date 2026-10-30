@@ -7,7 +7,7 @@ const groups = [
   {label:'Practice',items:[{label:'DSA & Challenges',path:'/practice'},{label:'Focus Timer',path:'/timer'}]},
   {label:'Build',items:[{label:'Workspace',path:'/workspace'},{label:'Project Gallery',path:'/projects'}]},
   {label:'Explore',items:[{label:'Hackathons',path:'/hackathons'},{label:'Community',path:'/community'}]},
-  {label:'Resources',items:[{label:'Certificates',path:'/certificate'}]},
+  {label:'Resources',items:[{label:'Learning Guides',path:'/resources'},{label:'Certificates',path:'/certificate'},{label:'About',path:'/about'},{label:'Contact',path:'/contact'},{label:'Privacy Policy',path:'/privacy'}]},
 ];
 
 export default function Navbar({ platform = false }: { platform?: boolean }) {
