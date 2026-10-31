@@ -29,3 +29,19 @@ coverage/
 
 # Historical account dump is archived privately, not source code.
 /server/devharbour.sql
+
+# Legacy incoming exports/tools retained locally, outside the secure runtime.
+/index.html
+/api/index.js
+/generate_all_certificates_pdf.py
+/output/
+/public/certificates/
+/public/downloads/
+/scripts/generate_supabase_sql.py
+/scripts/migrate_to_supabase.js
+/scripts/setup_supabase_db.js
+/server/supabase.js
+/server/supabase_schema.sql
+/standalone/
+/start_devharbour.bat
+/supabase/
