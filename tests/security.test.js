@@ -127,6 +127,11 @@ test("private exports, dotfiles and database files are not downloadable", async 
     "/assets%2forcathon_participants.json",
     "/.env",
     "/devharbour.sqlite",
+    "/certificates/orcathon_2026_all_certificates.pdf",
+    "/downloads/devharbour_standalone.html",
+    "/downloads/devharbour_standalone.zip",
+    "/output/certificates_manifest.json",
+    "/standalone/index.html",
   ])
     assert.equal((await fetch(base + route)).status, 404, route);
 });

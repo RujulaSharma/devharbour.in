@@ -26,3 +26,12 @@ public/assets/orcathon_participants.js
 public/assets/orcathon_participants.json
 public/data/orcathon_participants.js
 public/data/orcathon_participants.json
+
+# Never ship bulk participant/certificate exports or standalone copies.
+output/
+standalone/
+supabase/
+public/certificates/
+public/downloads/
+generate_all_certificates_pdf.py
+scripts/setup_supabase_db.js

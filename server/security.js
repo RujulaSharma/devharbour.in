@@ -158,6 +158,7 @@ function configureSecurity(app) {
     }
     if (
       /(?:^|\/)\./.test(decoded) ||
+      /^\/(?:certificates|downloads|output|standalone)(?:\/|$)/i.test(decoded) ||
       /\.(?:sqlite(?:-wal|-shm)?|sql|db|bak|env)$/i.test(decoded) ||
       /(?:^|\/)orcathon_participants\.(?:js|json)(?:$|[:/])/i.test(decoded)
     )
