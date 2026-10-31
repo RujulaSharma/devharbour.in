@@ -34,7 +34,8 @@ test('guests do not see Dashboard and direct access asks for sign-in',async({pag
  await expect(page.locator('#dh-auth-modal')).toHaveClass(/open/);
  await expect(page.locator('#dh-homepage').getByRole('link',{name:'Dashboard',exact:true})).toHaveCount(0);
  await page.setViewportSize({width:390,height:844});
- await page.locator('#dh-homepage').getByRole('button',{name:'Toggle navigation',exact:true}).click({force:true});
+ await page.evaluate(()=>window.closeAuthModal?.());
+ await page.locator('#dh2-homepage .dh2-mobile-nav summary').click();
  await expect(page.locator('#dh-homepage').getByRole('link',{name:'Dashboard',exact:true})).toHaveCount(0);
 });
 
