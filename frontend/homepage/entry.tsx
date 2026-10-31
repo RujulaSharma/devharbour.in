@@ -30,9 +30,17 @@ if (intro) {
   createRoot(mount).render(<Dh2Home />);
   const isolation = document.createElement("style");
   isolation.textContent =
-    "#intro.dh-redesigned{display:block;overflow-y:auto;overflow-x:clip;background:#0d0c17}#intro.dh-redesigned>:not(#dh-homepage):not(#dh-homepage-boot){display:none!important}#dh-homepage{display:block;min-height:100%;color:#fff}";
+    "#intro.dh-redesigned{display:block;overflow-y:auto;overflow-x:clip;background:#efe9fd;color:#211c32;transition:background .3s ease}html[data-theme='dark'] #intro.dh-redesigned{background:#000000;color:#fff}html[data-theme='light'] #intro.dh-redesigned{background:#efe9fd;color:#211c32}#intro.dh-redesigned>:not(#dh-homepage):not(#dh-homepage-boot){display:none!important}#dh-homepage{display:block;min-height:100%}html[data-theme='dark'] #dh-homepage{color:#fff}html[data-theme='light'] #dh-homepage{color:#211c32}";
   document.head.appendChild(isolation);
   intro.classList.add("dh-redesigned");
+  const syncHostTheme = () => {
+    const t = document.documentElement.getAttribute("data-theme") || "light";
+    host.setAttribute("data-theme", t);
+    if (intro) intro.style.background = t === "dark" ? "#000000" : "#efe9fd";
+  };
+  const themeObserver = new MutationObserver(syncHostTheme);
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  syncHostTheme();
   installPlatformShell(intro, design + enhancements);
   const originalShow = window.show;
   let restoringRoute = false;
