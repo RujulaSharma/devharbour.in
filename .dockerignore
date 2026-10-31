@@ -1,0 +1,25 @@
+.git
+node_modules
+.local
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite-*
+*.db
+*.bak
+*.log
+server/devharbour.sql
+public/assets/orcathon_participants.*
+public/data/orcathon_participants.*
+test-results
+playwright-report
+
+# Never ship bulk participant/certificate exports or standalone copies.
+output/
+standalone/
+supabase/
+public/certificates/
+public/downloads/
+generate_all_certificates_pdf.py
+scripts/setup_supabase_db.js

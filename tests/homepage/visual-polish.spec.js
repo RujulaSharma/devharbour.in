@@ -1,0 +1,7 @@
+const{test,expect}=require('@playwright/test');
+for(const width of[1240,390])test(`compact navbar and legible closing banner at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:900});await page.route('**/api/auth/me',r=>r.fulfill({json:{user:{id:'polish-test',fullName:'Layout Tester',username:'layout'}}}));
+ await page.goto('/settings',{waitUntil:'domcontentloaded'});const host=page.locator('#dh-platform-navigation');await host.getByRole('button',{name:'Open account options'}).click();const dropdown=host.getByRole('navigation',{name:'Account options'});await expect(dropdown).toBeVisible();await expect(dropdown.getByRole('link',{name:'Dashboard',exact:true})).toHaveCSS('font-size','12px');
+ const bounds=await dropdown.boundingBox();expect(bounds.y+bounds.height).toBeLessThanOrEqual(900);const nav=await host.boundingBox();const padding=await page.evaluate(()=>parseFloat(getComputedStyle(document.querySelector('.app')).paddingTop));expect(padding-nav.height).toBeGreaterThanOrEqual(0);expect(padding-nav.height).toBeLessThanOrEqual(20);
+ await page.goto('/',{waitUntil:'domcontentloaded'});const home=page.locator('#dh-homepage');await expect(home.locator('h1')).toBeVisible();await home.locator('.final-cta').scrollIntoViewIfNeeded();await expect(home.locator('.final-cta')).toHaveCSS('background-color','rgb(229, 217, 241)');await expect(home.locator('.final-cta h2')).toHaveCSS('color','rgb(40, 26, 54)');await page.screenshot({path:`.local/polished-footer-${width}.png`,timeout:15000});
+});

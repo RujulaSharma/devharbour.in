@@ -1,11 +1,17 @@
 const express = require('express');
-const router = express.Router();
-const db = require('../db');
+const router = require('../async-router').createRouter();
+const db = require('../database');
 const { hashPassword, verifyPassword, validateEmail, validateUsername, validatePassword, requireAuth } = require('../auth');
 const eventBus = require('../events');
+const {isLegacySeedUser,publicUser,setSessionCookie,clearSessionCookie,text,httpUrl}=require('../security');
+const {createLimiter}=require('../security');
+const accountKey = field => req => require('node:crypto').createHash('sha256')
+  .update(typeof req.body?.[field] === 'string' ? req.body[field].trim().toLowerCase().slice(0,254) : 'invalid-input').digest('hex');
+router.post('/login',createLimiter(15,15*60000,{keyGenerator:accountKey('login'),skipSuccessfulRequests:true}));
+router.post('/signup',createLimiter(5,15*60000,{keyGenerator:accountKey('email')}));
 
 // POST /api/auth/signup
-router.post('/signup', (req, res) => {
+router.post('/signup', async (req, res) => {
   const { email, username, fullName, password, location, bio } = req.body;
 
   if (!validateEmail(email)) {
@@ -21,16 +27,18 @@ router.post('/signup', (req, res) => {
     return res.status(400).json({ error: 'Password must be at least 8 characters long.' });
   }
 
+  if(fullName.length>100||email.length>254||!text(fullName,100)||(location!==undefined&&!text(location,200))||(bio!==undefined&&!text(bio,2000)))return res.status(400).json({error:'Invalid profile fields.'});
+
   // Check unique constraints
-  if (db.getUserByEmail(email)) {
+  if (await db.getUserByEmail(email)) {
     return res.status(409).json({ error: 'An account with this email address already exists.' });
   }
-  if (db.getUserByUsername(username)) {
+  if (await db.getUserByUsername(username)) {
     return res.status(409).json({ error: 'This username is already taken. Please choose another.' });
   }
 
   const { salt, hash } = hashPassword(password);
-  const user = db.createUser({
+  const user = await db.createUser({
     email,
     username,
     fullName,
@@ -41,7 +49,8 @@ router.post('/signup', (req, res) => {
     bio: bio || ''
   });
 
-  const { token, expiresAt } = db.createSession(user.id);
+  const { token, expiresAt } = await db.createSession(user.id);
+  setSessionCookie(res,token,expiresAt);
 
   // Broadcast real-time user signup
   eventBus.broadcast({
@@ -56,7 +65,7 @@ router.post('/signup', (req, res) => {
     token,
     expiresAt,
     user: {
-      ...user,
+      ...publicUser(user),
       totalXp: 0,
       level: 1
     }
@@ -64,17 +73,18 @@ router.post('/signup', (req, res) => {
 });
 
 // POST /api/auth/login
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const { login, password } = req.body; // login can be email or username
 
-  if (!login || !password) {
+  if (typeof login!=='string'||login.length>254||typeof password!=='string'||!password||Buffer.byteLength(password)>1024) {
     return res.status(400).json({ error: 'Email/Username and password are required.' });
   }
 
   const isEmail = login.includes('@');
-  const user = isEmail ? db.getUserByEmail(login) : db.getUserByUsername(login);
+  const user = isEmail ? await db.getUserByEmail(login) : await db.getUserByUsername(login);
 
-  if (!user) {
+  if (!user || isLegacySeedUser(user)) {
+    verifyPassword(password,'0'.repeat(32),'0'.repeat(128));
     return res.status(401).json({ error: 'Invalid credentials. Please verify your email/username and password.' });
   }
 
@@ -83,9 +93,10 @@ router.post('/login', (req, res) => {
     return res.status(401).json({ error: 'Invalid credentials. Please verify your email/username and password.' });
   }
 
-  const { token, expiresAt } = db.createSession(user.id);
-  const totalXp = db.getUserTotalXp(user.id);
-  const streak = db.updateStreak(user.id);
+  const { token, expiresAt } = await db.createSession(user.id);
+  setSessionCookie(res,token,expiresAt);
+  const totalXp = await db.getUserTotalXp(user.id);
+  const streak = await db.updateStreak(user.id);
 
   res.json({
     message: 'Welcome back to Dev Harbour!',
@@ -110,19 +121,20 @@ router.post('/login', (req, res) => {
 });
 
 // POST /api/auth/logout
-router.post('/logout', requireAuth, (req, res) => {
+router.post('/logout', requireAuth, async (req, res) => {
   if (req.token) {
-    db.deleteSession(req.token);
+    await db.deleteSession(req.token);
   }
+  clearSessionCookie(res);
   res.json({ message: 'Successfully signed out.' });
 });
 
 // GET /api/auth/me
-router.get('/me', requireAuth, (req, res) => {
+router.get('/me', requireAuth, async (req, res) => {
   const user = req.user;
-  const settings = db.getUserSettings(user.id);
-  const interactions = db.getUserInteractions(user.id);
-  const achievements = db.getUserAchievements(user.id);
+  const settings = await db.getUserSettings(user.id);
+  const interactions = await db.getUserInteractions(user.id);
+  const achievements = await db.getUserAchievements(user.id);
 
   res.json({
     user: {
@@ -147,21 +159,18 @@ router.get('/me', requireAuth, (req, res) => {
 });
 
 // PUT /api/auth/profile
-router.put('/profile', requireAuth, (req, res) => {
+router.put('/profile', requireAuth, async (req, res) => {
   const { fullName, bio, githubUrl, portfolioUrl, location, avatarUrl } = req.body;
-  const updated = db.updateUserProfile(req.user.id, {
-    fullName,
-    bio,
-    githubUrl,
-    portfolioUrl,
-    location,
-    avatarUrl
+  if(Object.entries({fullName,bio,location}).some(([key,value])=>value!==undefined&&!text(value,key==='bio'?2000:200))||[githubUrl,portfolioUrl,avatarUrl].some(value=>value!==undefined&&!httpUrl(value)))return res.status(400).json({error:'Invalid profile fields or URL.'});
+  const updated = await db.updateUserProfile(req.user.id, {
+    fullName: fullName??req.user.full_name, bio:bio??req.user.bio, githubUrl:githubUrl??req.user.github_url,
+    portfolioUrl:portfolioUrl??req.user.portfolio_url,location:location??req.user.location,avatarUrl:avatarUrl??req.user.avatar_url,
   });
 
   res.json({
     message: 'Profile updated successfully.',
     user: {
-      ...updated,
+      ...publicUser(updated),
       totalXp: req.user.totalXp,
       level: req.user.level
     }

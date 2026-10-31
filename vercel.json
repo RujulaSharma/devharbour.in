@@ -1,20 +1,102 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
+  "framework": null,
+  "installCommand": "npm ci --include=dev",
+  "buildCommand": "npm run build",
+  "outputDirectory": "public",
   "rewrites": [
-    { "source": "/api/certificates/claim", "destination": "/api/certificates/claim.js" },
-    { "source": "/api/certificates/stats", "destination": "/api/certificates/stats.js" },
-    { "source": "/api/certificates/verify/:id", "destination": "/api/certificates/verify/[id].js" },
-    { "source": "/api/(.*)", "destination": "/api/index.js" },
-    { "source": "/certificate/verify/(.*)", "destination": "/index.html" },
-    { "source": "/certificate", "destination": "/index.html" },
-    { "source": "/verify/(.*)", "destination": "/index.html" },
-    { "source": "/courses(.*)", "destination": "/index.html" },
-    { "source": "/challenges(.*)", "destination": "/index.html" },
-    { "source": "/projects(.*)", "destination": "/index.html" },
-    { "source": "/leaderboard(.*)", "destination": "/index.html" },
-    { "source": "/workspace(.*)", "destination": "/index.html" },
-    { "source": "/profile(.*)", "destination": "/index.html" },
-    { "source": "/settings(.*)", "destination": "/index.html" },
-    { "source": "/claim(.*)", "destination": "/index.html" }
+    {
+      "source": "/certificates/:path*",
+      "destination": "/api/private-assets-unavailable"
+    },
+    {
+      "source": "/downloads/:path*",
+      "destination": "/api/private-assets-unavailable"
+    },
+    {
+      "source": "/output/:path*",
+      "destination": "/api/private-assets-unavailable"
+    },
+    {
+      "source": "/standalone/:path*",
+      "destination": "/api/private-assets-unavailable"
+    },
+    {
+      "source": "/assets/orcathon_participants.js",
+      "destination": "/api/private-assets-unavailable"
+    },
+    {
+      "source": "/assets/orcathon_participants.json",
+      "destination": "/api/private-assets-unavailable"
+    },
+    {
+      "source": "/data/orcathon_participants.js",
+      "destination": "/api/private-assets-unavailable"
+    },
+    {
+      "source": "/data/orcathon_participants.json",
+      "destination": "/api/private-assets-unavailable"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://devharbour-backend.onrender.com/api/:path*"
+    },
+    {
+      "source": "/:page(about|contact|privacy|cookies|terms|resources)",
+      "destination": "/site-pages/:page.html"
+    },
+    {
+      "source": "/guides/:guide(choose-a-course|build-your-first-project|practise-dsa|hackathon-checklist)",
+      "destination": "/site-pages/guides/:guide.html"
+    },
+    {
+      "source": "/:page(dashboard|courses|practice|timer|workspace|projects|roadmaps|hackathons|community|settings|certificate)",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/certificate/verify/:id",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/verify/:id",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=()"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+        }
+      ]
+    },
+    {
+      "source": "/index.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, max-age=0, must-revalidate"
+        }
+      ]
+    }
   ]
 }

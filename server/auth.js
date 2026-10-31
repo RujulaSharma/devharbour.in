@@ -3,7 +3,8 @@
  */
 
 const crypto = require('node:crypto');
-const db = require('./db');
+const db = require('./database');
+const {cookieToken,isLegacySeedUser}=require('./security');
 
 function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString('hex');
@@ -12,6 +13,7 @@ function hashPassword(password) {
 }
 
 function verifyPassword(password, salt, expectedHash) {
+  if(typeof password!=='string'||Buffer.byteLength(password)>1024||typeof salt!=='string'||!/^([a-f0-9]{128})$/i.test(expectedHash||''))return false;
   const hash = crypto.scryptSync(password, salt, 64).toString('hex');
   return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(expectedHash, 'hex'));
 }
@@ -27,27 +29,25 @@ function validateUsername(username) {
 }
 
 function validatePassword(password) {
-  return typeof password === 'string' && password.length >= 8;
+  return typeof password === 'string' && password.length >= 8 && Buffer.byteLength(password)<=1024;
 }
 
 // Authentication Middleware: populates req.user if valid token provided
-function authMiddleware(req, res, next) {
+async function authMiddleware(req, res, next) {
   let token = null;
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
     token = authHeader.substring(7);
   } else if (req.headers['x-auth-token']) {
     token = req.headers['x-auth-token'];
-  } else if (req.query && req.query.token) {
-    token = req.query.token;
-  }
+  } else { token=cookieToken(req); }
 
-  if (token) {
-    const session = db.getSession(token);
+  if (typeof token==='string' && /^[a-f0-9]{64}$/.test(token)) {
+    const session = await db.getSession(token);
     if (session) {
-      const user = db.getUserById(session.user_id);
-      if (user) {
-        const totalXp = db.getUserTotalXp(user.id);
+      const user = await db.getUserById(session.user_id);
+      if (user && !isLegacySeedUser(user)) {
+        const totalXp = await db.getUserTotalXp(user.id);
         req.user = {
           ...user,
           totalXp,
@@ -88,7 +88,7 @@ module.exports = {
   validateEmail,
   validateUsername,
   validatePassword,
-  authMiddleware,
+  authMiddleware: require('./async-router').asyncHandler(authMiddleware),
   requireAuth,
   requireRole
 };

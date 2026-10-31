@@ -1,0 +1,357 @@
+// Draft mapped from the committed SQLite database and reviewed against server/db.js.
+// IDs, JSON strings, integer flags and text timestamps retain their existing formats.
+// Reconcile with the actual Supabase schema before applying any migration.
+generator client {
+  provider = "prisma-client-js"
+  output = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model achievements {
+  id String @id
+  key String
+  title String
+  description String
+  badge_icon String? @default("trophy")
+  xp_bonus Int? @default(50)
+  condition_type String
+  condition_value Int? @default(1)
+  created_at String? @default(dbgenerated("to_char(timezone('UTC', CURRENT_TIMESTAMP), 'YYYY-MM-DD HH24:MI:SS')"))
+  related_user_achievements_achievement_id user_achievements[] @relation("user_achievements_achievement_id")
+  @@unique([key])
+}
+
+model certificate_otps {
+  id String @id
+  email String
+  otp String
+  expires_at Int
+  verified Int? @default(0)
+}
+
+// Mailbox ownership belongs to an account, never to a supplied certificate email.
+model email_verifications {
+  user_id String @id
+  email String
+  challenge_id String @unique
+  code_hash String?
+  expires_at String?
+  sent_at String
+  attempts Int @default(0)
+  state String
+  verified_at String?
+  hour_started_at String
+  send_count Int
+  user users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model challenges {
+  id String @id
+  title String
+  slug String
+  difficulty String
+  category String
+  time_estimate String? @default("20 min")
+  description String
+  examples_json String @default("[]")
+  starter_code_js String
+  solution_template String? @default("")
+  public_tests_json String @default("[]")
+  hidden_tests_json String @default("[]")
+  xp_reward Int? @default(25)
+  created_at String? @default(dbgenerated("to_char(timezone('UTC', CURRENT_TIMESTAMP), 'YYYY-MM-DD HH24:MI:SS')"))
+  related_submissions_challenge_id submissions[] @relation("submissions_challenge_id")
+  @@unique([slug])
+}
+
+model courses {
+  id String @id
+  title String
+  description String
+  category String
+  provider String
+  level String? @default("Beginner")
+  external_url String
+  duration_hours Int? @default(10)
+  rating Float? @default(4.8)
+  is_featured Int? @default(0)
+  created_at String? @default(dbgenerated("to_char(timezone('UTC', CURRENT_TIMESTAMP), 'YYYY-MM-DD HH24:MI:SS')"))
+  related_lessons_course_id lessons[] @relation("lessons_course_id")
+}
+
+model event_participants {
+  id String @id
+  event_slug String
+  team_id String?
+  team_name String?
+  candidate_role String?
+  candidate_name String
+  candidate_email String
+  candidate_mobile String?
+  candidate_location String?
+  candidate_organisation String?
+  is_eligible Int? @default(1)
+  created_at String? @default(dbgenerated("to_char(timezone('UTC', CURRENT_TIMESTAMP), 'YYYY-MM-DD HH24:MI:SS')"))
+  related_issued_certificates_participant_id issued_certificates[] @relation("issued_certificates_participant_id")
+  @@index([candidate_name], map: "idx_participants_name")
+  @@index([candidate_email, event_slug], map: "idx_participants_email")
+  @@index([candidate_email, event_slug], map: "idx_ep_email")
+}
+
+model issued_certificates {
+  credential_id String @id
+  event_slug String
+  participant_id String?
+  recipient_name String
+  recipient_email String
+  recipient_organisation String?
+  certificate_type String @default("Participation")
+  issue_date String
+  status String @default("Valid")
+  created_at String? @default(dbgenerated("to_char(timezone('UTC', CURRENT_TIMESTAMP), 'YYYY-MM-DD HH24:MI:SS')"))
+  relation_participant_id event_participants? @relation("issued_certificates_participant_id", fields: [participant_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@index([recipient_email, event_slug], map: "idx_certs_email")
+  @@index([credential_id], map: "idx_certs_cred")
+  @@index([credential_id], map: "idx_ic_cred")
+  @@unique([event_slug, recipient_email])
+}
+
+model lesson_progress {
+  id String @id
+  user_id String
+  lesson_id String
+  status String? @default("in_progress")
+  reading_seconds Int? @default(0)
+  completed_at String?
+  relation_lesson_id lessons @relation("lesson_progress_lesson_id", fields: [lesson_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  relation_user_id users @relation("lesson_progress_user_id", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@unique([user_id, lesson_id])
+}
+
+model lessons {
+  id String @id
+  course_id String
+  title String
+  slug String
+  reading_time_mins Int? @default(10)
+  order_index Int? @default(1)
+  content String
+  created_at String? @default(dbgenerated("to_char(timezone('UTC', CURRENT_TIMESTAMP), 'YYYY-MM-DD HH24:MI:SS')"))
+  relation_course_id courses @relation("lessons_course_id", fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  related_lesson_progress_lesson_id lesson_progress[] @relation("lesson_progress_lesson_id")
+  @@index([course_id, order_index], map: "idx_lessons_course")
+}
+
+model project_bookmarks {
+  id String @id
+  user_id String
+  project_id String
+  created_at String? @default(dbgenerated("to_char(timezone('UTC', CURRENT_TIMESTAMP), 'YYYY-MM-DD HH24:MI:SS')"))
+  relation_project_id projects @relation("project_bookmarks_project_id", fields: [project_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  relation_user_id users @relation("project_bookmarks_user_id", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@unique([user_id, project_id])
+}
+
+model project_votes {
+  id String @id
+  user_id String
+  project_id String
+  created_at String? @default(dbgenerated("to_char(timezone('UTC', CURRENT_TIMESTAMP), 'YYYY-MM-DD HH24:MI:SS')"))
+  relation_project_id projects @relation("project_votes_project_id", fields: [project_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  relation_user_id users @relation("project_votes_user_id", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@unique([user_id, project_id])
+}
+
+model projects {
+  id String @id
+  user_id String
+  title String
+  description String
+  category String
+  tech_stack_json String @default("[]")
+  repo_url String
+  demo_url String? @default("")
+  votes_count Int? @default(0)
+  bookmarks_count Int? @default(0)
+  status String? @default("approved")
+  created_at String? @default(dbgenerated("to_char(timezone('UTC', CURRENT_TIMESTAMP), 'YYYY-MM-DD HH24:MI:SS')"))
+  updated_at String? @default(dbgenerated("to_char(timezone('UTC', CURRENT_TIMESTAMP), 'YYYY-MM-DD HH24:MI:SS')"))
+  relation_user_id users @relation("projects_user_id", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  related_project_bookmarks_project_id project_bookmarks[] @relation("project_bookmarks_project_id")
+  related_project_votes_project_id project_votes[] @relation("project_votes_project_id")
+  @@index([status], map: "idx_projects_status")
+  @@index([category], map: "idx_projects_category")
+}
+
+model sessions {
+  id String @id
+  user_id String
+  token String
+  expires_at String
+  created_at String? @default(dbgenerated("to_char(timezone('UTC', CURRENT_TIMESTAMP), 'YYYY-MM-DD HH24:MI:SS')"))
+  relation_user_id users @relation("sessions_user_id", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@index([token], map: "idx_sessions_token")
+  @@unique([token])
+}
+
+model submissions {
+  id String @id
+  user_id String
+  challenge_id String
+  code String
+  language String? @default("javascript")
+  status String
+  execution_time_ms Int? @default(0)
+  passed_tests Int? @default(0)
+  total_tests Int? @default(0)
+  error_message String? @default("")
+  created_at String? @default(dbgenerated("to_char(timezone('UTC', CURRENT_TIMESTAMP), 'YYYY-MM-DD HH24:MI:SS')"))
+  relation_challenge_id challenges @relation("submissions_challenge_id", fields: [challenge_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  relation_user_id users @relation("submissions_user_id", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@index([user_id, challenge_id], map: "idx_submissions_user_challenge")
+}
+
+model user_achievements {
+  id String @id
+  user_id String
+  achievement_id String
+  unlocked_at String? @default(dbgenerated("to_char(timezone('UTC', CURRENT_TIMESTAMP), 'YYYY-MM-DD HH24:MI:SS')"))
+  relation_achievement_id achievements @relation("user_achievements_achievement_id", fields: [achievement_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  relation_user_id users @relation("user_achievements_user_id", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@unique([user_id, achievement_id])
+}
+
+model user_settings {
+  user_id String @id
+  theme String? @default("light")
+  email_notifications Int? @default(1)
+  profile_public Int? @default(1)
+  updated_at String? @default(dbgenerated("to_char(timezone('UTC', CURRENT_TIMESTAMP), 'YYYY-MM-DD HH24:MI:SS')"))
+  relation_user_id users? @relation("user_settings_user_id", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model users {
+  id String @id
+  email String
+  username String
+  full_name String
+  password_hash String
+  salt String
+  role String @default("student")
+  avatar_url String? @default("")
+  bio String? @default("")
+  github_url String? @default("")
+  portfolio_url String? @default("")
+  streak_days Int? @default(0)
+  last_active_date String?
+  created_at String? @default(dbgenerated("to_char(timezone('UTC', CURRENT_TIMESTAMP), 'YYYY-MM-DD HH24:MI:SS')"))
+  updated_at String? @default(dbgenerated("to_char(timezone('UTC', CURRENT_TIMESTAMP), 'YYYY-MM-DD HH24:MI:SS')"))
+  location String? @default("")
+  related_lesson_progress_user_id lesson_progress[] @relation("lesson_progress_user_id")
+  related_project_bookmarks_user_id project_bookmarks[] @relation("project_bookmarks_user_id")
+  related_project_votes_user_id project_votes[] @relation("project_votes_user_id")
+  related_projects_user_id projects[] @relation("projects_user_id")
+  related_sessions_user_id sessions[] @relation("sessions_user_id")
+  related_submissions_user_id submissions[] @relation("submissions_user_id")
+  related_user_achievements_user_id user_achievements[] @relation("user_achievements_user_id")
+  related_user_settings_user_id user_settings? @relation("user_settings_user_id")
+  related_workspace_assignments_user_id workspace_assignments[] @relation("workspace_assignments_user_id")
+  related_workspace_bookmarks_user_id workspace_bookmarks[] @relation("workspace_bookmarks_user_id")
+  related_workspace_notes_user_id workspace_notes[] @relation("workspace_notes_user_id")
+  related_workspace_snippets_user_id workspace_snippets[] @relation("workspace_snippets_user_id")
+  related_workspace_tasks_user_id workspace_tasks[] @relation("workspace_tasks_user_id")
+  related_xp_ledger_user_id xp_ledger[] @relation("xp_ledger_user_id")
+  email_verification email_verifications?
+  @@index([email], map: "idx_users_email")
+  @@index([username], map: "idx_users_username")
+  @@unique([username])
+  @@unique([email])
+}
+
+model workspace_assignments {
+  id String @id
+  user_id String
+  title String
+  description String? @default("")
+  due_date String?
+  priority String? @default("medium")
+  status String? @default("pending")
+  link String? @default("")
+  created_at String? @default(dbgenerated("to_char(timezone('UTC', CURRENT_TIMESTAMP), 'YYYY-MM-DD HH24:MI:SS')"))
+  updated_at String? @default(dbgenerated("to_char(timezone('UTC', CURRENT_TIMESTAMP), 'YYYY-MM-DD HH24:MI:SS')"))
+  relation_user_id users @relation("workspace_assignments_user_id", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@index([user_id, status], map: "idx_ws_assignments_user")
+}
+
+model workspace_bookmarks {
+  id String @id
+  user_id String
+  item_id String?
+  item_type String? @default("resource")
+  title String
+  url String
+  category String? @default("general")
+  created_at String? @default(dbgenerated("to_char(timezone('UTC', CURRENT_TIMESTAMP), 'YYYY-MM-DD HH24:MI:SS')"))
+  relation_user_id users @relation("workspace_bookmarks_user_id", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@index([user_id], map: "idx_ws_bookmarks_user")
+  @@unique([user_id, url])
+}
+
+model workspace_notes {
+  id String @id
+  user_id String
+  title String
+  content String? @default("")
+  subject String? @default("General")
+  tags String? @default("")
+  link String? @default("")
+  is_pinned Int? @default(0)
+  created_at String? @default(dbgenerated("to_char(timezone('UTC', CURRENT_TIMESTAMP), 'YYYY-MM-DD HH24:MI:SS')"))
+  updated_at String? @default(dbgenerated("to_char(timezone('UTC', CURRENT_TIMESTAMP), 'YYYY-MM-DD HH24:MI:SS')"))
+  relation_user_id users @relation("workspace_notes_user_id", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@index([user_id, is_pinned], map: "idx_ws_notes_user")
+}
+
+model workspace_snippets {
+  id String @id
+  user_id String
+  name String
+  language String? @default("javascript")
+  code String
+  input String? @default("")
+  created_at String? @default(dbgenerated("to_char(timezone('UTC', CURRENT_TIMESTAMP), 'YYYY-MM-DD HH24:MI:SS')"))
+  updated_at String? @default(dbgenerated("to_char(timezone('UTC', CURRENT_TIMESTAMP), 'YYYY-MM-DD HH24:MI:SS')"))
+  relation_user_id users @relation("workspace_snippets_user_id", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@index([user_id], map: "idx_ws_snippets_user")
+}
+
+model workspace_tasks {
+  id String @id
+  user_id String
+  title String
+  subject String? @default("General")
+  priority String? @default("medium")
+  due_date String?
+  status String? @default("pending")
+  created_at String? @default(dbgenerated("to_char(timezone('UTC', CURRENT_TIMESTAMP), 'YYYY-MM-DD HH24:MI:SS')"))
+  updated_at String? @default(dbgenerated("to_char(timezone('UTC', CURRENT_TIMESTAMP), 'YYYY-MM-DD HH24:MI:SS')"))
+  relation_user_id users @relation("workspace_tasks_user_id", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@index([user_id, status], map: "idx_ws_tasks_user")
+}
+
+model xp_ledger {
+  id String @id
+  user_id String
+  amount Int
+  source_type String
+  reference_id String
+  note String? @default("")
+  created_at String? @default(dbgenerated("to_char(timezone('UTC', CURRENT_TIMESTAMP), 'YYYY-MM-DD HH24:MI:SS')"))
+  relation_user_id users @relation("xp_ledger_user_id", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@index([created_at], map: "idx_xp_ledger_created")
+  @@index([user_id], map: "idx_xp_ledger_user")
+  @@unique([user_id, source_type, reference_id])
+}

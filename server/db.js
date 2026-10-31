@@ -8,7 +8,8 @@ const path = require('node:path');
 const fs = require('node:fs');
 const crypto = require('node:crypto');
 
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'devharbour.sqlite');
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', '.local', 'development.sqlite');
+fs.mkdirSync(path.dirname(path.resolve(DB_PATH)), { recursive: true });
 
 const db = new DatabaseSync(DB_PATH);
 
@@ -42,6 +43,20 @@ function initSchema() {
 
     CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+
+    CREATE TABLE IF NOT EXISTS email_verifications (
+      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      email TEXT NOT NULL,
+      challenge_id TEXT NOT NULL UNIQUE,
+      code_hash TEXT,
+      expires_at TEXT,
+      sent_at TEXT NOT NULL,
+      attempts INTEGER NOT NULL DEFAULT 0 CHECK (attempts BETWEEN 0 AND 5),
+      state TEXT NOT NULL CHECK (state IN ('pending','sent','failed','locked','verified')),
+      verified_at TEXT,
+      hour_started_at TEXT NOT NULL,
+      send_count INTEGER NOT NULL CHECK (send_count BETWEEN 1 AND 5)
+    );
 
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY,
@@ -380,11 +395,11 @@ function seedDatabase() {
     }
   }
 
-  // 5. Seed Initial Admin & Sample Profiles if none exist
+  // 5. Seed sample identities only in isolated test databases, never normal development/production.
   const usersCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
-  if (usersCount === 0) {
+  if (usersCount === 0 && process.env.NODE_ENV === 'test') {
     const demoSalt = crypto.randomBytes(16).toString('hex');
-    const demoHash = crypto.scryptSync('Password123!', demoSalt, 64).toString('hex');
+    const demoHash = crypto.scryptSync(crypto.randomBytes(48).toString('hex'), demoSalt, 64).toString('hex');
 
     // Admin user: Parth
     const adminId = 'usr-admin-parth';
@@ -516,7 +531,7 @@ function seedDatabase() {
   const partCount = db.prepare("SELECT COUNT(*) as count FROM event_participants WHERE event_slug = ?").get('orca-coders-orcathon-2026').count;
   if (partCount === 0) {
     const partFile = path.join(__dirname, 'data', 'orcathon_participants.json');
-    if (fs.existsSync(partFile)) {
+    if (process.env.NODE_ENV !== 'test' && fs.existsSync(partFile)) {
       const participants = JSON.parse(fs.readFileSync(partFile, 'utf8'));
       const stmt = db.prepare("INSERT INTO event_participants (id, event_slug, candidate_name, candidate_email, candidate_organisation, team_name, candidate_role, is_eligible) VALUES (?, 'orca-coders-orcathon-2026', ?, ?, ?, ?, ?, 1)");
       for (const p of participants) {
@@ -1247,108 +1262,16 @@ function findParticipantByEmail(email, eventSlug = 'orca-coders-orcathon-2026') 
 }
 
 function findParticipantByEmailAndName(email, name, eventSlug = 'orca-coders-orcathon-2026') {
-  return findParticipantByEmailOrName(email, name, eventSlug);
-}
-
-function findParticipantByEmailOrName(email, name, eventSlug = 'orca-coders-orcathon-2026') {
-  const eClean = (email || '').trim().toLowerCase();
-  const nClean = (name || '').trim().toLowerCase();
-
-  // 1. Direct Email Match
-  if (eClean) {
-    const p = db.prepare('SELECT * FROM event_participants WHERE LOWER(candidate_email) = ? AND event_slug = ? LIMIT 1').get(eClean, eventSlug);
-    if (p) return p;
-  }
-
-  // 2. Direct Name Match
-  if (nClean) {
-    const p = db.prepare('SELECT * FROM event_participants WHERE LOWER(candidate_name) = ? AND event_slug = ? LIMIT 1').get(nClean, eventSlug);
-    if (p) return p;
-  }
-
-  // 3. Inverted Match (if user entered name in email field or email in name field)
-  if (eClean && !eClean.includes('@')) {
-    const p = db.prepare('SELECT * FROM event_participants WHERE LOWER(candidate_name) = ? AND event_slug = ? LIMIT 1').get(eClean, eventSlug);
-    if (p) return p;
-  }
-  if (nClean && nClean.includes('@')) {
-    const p = db.prepare('SELECT * FROM event_participants WHERE LOWER(candidate_email) = ? AND event_slug = ? LIMIT 1').get(nClean, eventSlug);
-    if (p) return p;
-  }
-
-  // 4. Substring / Token matching
-  const testStr = (nClean || (eClean && !eClean.includes('@') ? eClean : '')).trim();
-  if (testStr && testStr.length >= 3) {
-    const p = db.prepare('SELECT * FROM event_participants WHERE LOWER(candidate_name) LIKE ? AND event_slug = ? LIMIT 1').get('%' + testStr + '%', eventSlug);
-    if (p) return p;
-
-    const words = testStr.split(/\s+/).filter(w => w.length >= 3);
-    if (words.length > 1) {
-      let query = 'SELECT * FROM event_participants WHERE event_slug = ?';
-      const params = [eventSlug];
-      for (const w of words) {
-        query += ' AND LOWER(candidate_name) LIKE ?';
-        params.push('%' + w + '%');
-      }
-      query += ' LIMIT 1';
-      const matched = db.prepare(query).get(...params);
-      if (matched) return matched;
+  const p = findParticipantByEmail(email, eventSlug);
+  if (!p) return null;
+  if (name && name.trim()) {
+    const cleanInputName = name.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    const cleanCandName = p.candidate_name.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (cleanCandName === cleanInputName || cleanCandName.includes(cleanInputName) || cleanInputName.includes(cleanCandName)) {
+      return p;
     }
   }
-
-  return null;
-}
-
-function getIssuedCertificateByEmailOrName(email, name, eventSlug = 'orca-coders-orcathon-2026') {
-  const eClean = (email || '').trim().toLowerCase();
-  const nClean = (name || '').trim().toLowerCase();
-
-  if (eClean) {
-    const c = db.prepare(`
-      SELECT c.*, p.candidate_mobile, p.candidate_location, p.team_name, p.team_id
-      FROM issued_certificates c
-      LEFT JOIN event_participants p ON c.participant_id = p.id
-      WHERE LOWER(c.recipient_email) = ? AND c.event_slug = ?
-      LIMIT 1
-    `).get(eClean, eventSlug);
-    if (c) return c;
-  }
-
-  if (nClean) {
-    const c = db.prepare(`
-      SELECT c.*, p.candidate_mobile, p.candidate_location, p.team_name, p.team_id
-      FROM issued_certificates c
-      LEFT JOIN event_participants p ON c.participant_id = p.id
-      WHERE LOWER(c.recipient_name) = ? AND c.event_slug = ?
-      LIMIT 1
-    `).get(nClean, eventSlug);
-    if (c) return c;
-  }
-
-  if (eClean && !eClean.includes('@')) {
-    const c = db.prepare(`
-      SELECT c.*, p.candidate_mobile, p.candidate_location, p.team_name, p.team_id
-      FROM issued_certificates c
-      LEFT JOIN event_participants p ON c.participant_id = p.id
-      WHERE LOWER(c.recipient_name) = ? AND c.event_slug = ?
-      LIMIT 1
-    `).get(eClean, eventSlug);
-    if (c) return c;
-  }
-
-  const testStr = (nClean || (eClean && !eClean.includes('@') ? eClean : '')).trim();
-  if (testStr && testStr.length >= 3) {
-    const c = db.prepare(`
-      SELECT c.*, p.candidate_mobile, p.candidate_location, p.team_name, p.team_id
-      FROM issued_certificates c
-      LEFT JOIN event_participants p ON c.participant_id = p.id
-      WHERE LOWER(c.recipient_name) LIKE ? AND c.event_slug = ?
-      LIMIT 1
-    `).get('%' + testStr + '%', eventSlug);
-    if (c) return c;
-  }
-
-  return null;
+  return p;
 }
 
 function getIssuedCertificateById(credentialId) {
@@ -1361,20 +1284,6 @@ function getIssuedCertificateById(credentialId) {
     WHERE c.credential_id = ?
     LIMIT 1
   `).get(clean);
-
-  if (!cert) {
-    const rawNum = clean.replace(/[^0-9]/g, '');
-    if (rawNum) {
-      const num = rawNum.length <= 4 ? rawNum.padStart(4, '0') : (rawNum.startsWith('26') ? rawNum.slice(2).padStart(4, '0') : rawNum.slice(-4));
-      cert = db.prepare(`
-        SELECT c.*, p.candidate_mobile, p.candidate_location, p.team_name, p.team_id
-        FROM issued_certificates c
-        LEFT JOIN event_participants p ON c.participant_id = p.id
-        WHERE c.credential_id LIKE ? OR c.credential_id LIKE ? OR c.participant_id = ?
-        LIMIT 1
-      `).get('%-' + num + '-%', '%-' + num, String(parseInt(num, 10)));
-    }
-  }
 
   return cert || null;
 }
@@ -1504,10 +1413,8 @@ module.exports = {
   deleteWorkspaceBookmark,
   findParticipantByEmail,
   findParticipantByEmailAndName,
-  findParticipantByEmailOrName,
   getIssuedCertificateById,
   getIssuedCertificateByEmail,
-  getIssuedCertificateByEmailOrName,
   issueCertificate,
   insertParticipant,
   countParticipants,
