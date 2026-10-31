@@ -1,10 +1,11 @@
 import { createRoot } from "react-dom/client";
-import Home from "./Home";
+import Dh2Home from "./Dh2Home";
 import design from "./design.css";
 import enhancements from "./enhancements.css";
-import editorial from "./editorial.css";
-import orb from "./orb.css";
-import heroReference from "./hero-reference.css";
+import dh2 from "./dh2.css";
+import dh2Dark from "./dh2-dark.css";
+import dh2Black from "./dh2-black-overrides.css";
+import teamEffects from "./team-effects.css";
 import { platformPath, platformRoutes } from "./platform";
 import { installPlatformShell } from "./shell";
 
@@ -21,12 +22,12 @@ if (intro) {
   host.id = "dh-homepage";
   const shadow = host.attachShadow({ mode: "open" });
   const style = document.createElement("style");
-  style.textContent = design + enhancements + editorial + orb + heroReference;
+  style.textContent = dh2 + dh2Dark + dh2Black + teamEffects;
   shadow.appendChild(style);
   const mount = document.createElement("div");
   shadow.appendChild(mount);
   intro.prepend(host);
-  createRoot(mount).render(<Home />);
+  createRoot(mount).render(<Dh2Home />);
   const isolation = document.createElement("style");
   isolation.textContent =
     "#intro.dh-redesigned{display:block;overflow-y:auto;overflow-x:clip;background:#0d0c17}#intro.dh-redesigned>:not(#dh-homepage):not(#dh-homepage-boot){display:none!important}#dh-homepage{display:block;min-height:100%;color:#fff}";
