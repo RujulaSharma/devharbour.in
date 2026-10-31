@@ -16,14 +16,17 @@
 <meta name="theme-color" content="#faf8ff">
 <!-- Critical first-paint styles: the legacy landing DOM must never flash. -->
 <style id="dh-homepage-first-paint">
-html #intro{background:#000!important;transition:none!important}
+html #intro{background:#efe9fd!important;transition:none!important}
+html[data-theme="dark"] #intro{background:#000!important}
+html[data-theme="light"] #intro{background:#efe9fd!important}
 html #intro>:not(#dh-homepage):not(#dh-homepage-boot){display:none!important}
-#dh-homepage-boot{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#000;color:#eee;font:500 15px system-ui,sans-serif;text-align:center;padding:24px}
+#dh-homepage-boot{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#efe9fd;color:#211c32;font:500 15px system-ui,sans-serif;text-align:center;padding:24px}
+html[data-theme="dark"] #dh-homepage-boot{background:#000;color:#eee}
 #dh-homepage-boot strong{font-size:25px;letter-spacing:-.5px}
 #dh-homepage-boot[hidden],#dh-homepage-boot button[hidden]{display:none!important}
 #dh-homepage-boot button{padding:10px 18px;border:1px solid #a980d5;border-radius:10px;background:#352046;color:#fff;cursor:pointer;font:inherit}
 </style>
-<link id="dh-homepage-preload" rel="preload" as="script" href="/homepage/homepage.js?v=eea0026bded6">
+<link id="dh-homepage-preload" rel="preload" as="script" href="/homepage/homepage.js?v=4af6ec7dc6a4">
 <script>
 window.showHomepageLoadError=function(){
   var boot=document.getElementById('dh-homepage-boot');
@@ -8600,7 +8603,7 @@ async function loadCertificateVerification(credentialId){
 
 </script>
 <script>window.DHHomepage={hackathon:typeof H!=="undefined"?H:null,paths:typeof P!=="undefined"?P:[],catalogProjects:typeof J!=="undefined"?J.slice(0,3).map(p=>({name:p[0],description:p[1],category:p[2],repoUrl:(p[6]&&p[6].github)||p[3],demoUrl:p[4]})):[]};</script>
-<script defer src="/homepage/homepage.js?v=eea0026bded6" onerror="window.showHomepageLoadError()"></script>
+<script defer src="/homepage/homepage.js?v=4af6ec7dc6a4" onerror="window.showHomepageLoadError()"></script>
 <link rel="stylesheet" href="/account-certificates.css">
 <link rel="stylesheet" href="/platform-shell.css">
 <script defer src="/account-certificates.js"></script>
