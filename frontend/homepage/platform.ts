@@ -10,6 +10,7 @@ export type Project = {
   label: string;
   symbol: string;
   url?: string;
+  repoUrl?: string;
 };
 type Course = {
   icon: string;
@@ -45,6 +46,7 @@ declare global {
     openMyCertificates?: () => Promise<void>;
     openSavedCourses?: () => Promise<void>;
     DHHomepage?: {
+      catalogProjects?: {name:string;description:string;category:string;repoUrl:string;demoUrl:string}[];
       hackathon: { name: string; desc: string; info: string[][] };
       paths: { title: string; modules?: { title: string }[] }[];
     };
@@ -222,6 +224,7 @@ export function useHomepageData() {
         theme: ["snap", "harbour", "task"][index],
         label: project.title,
         symbol: "⌘",
+        repoUrl: safeExternalUrl(project.repoUrl),
         url:
           safeExternalUrl(project.demoUrl) || safeExternalUrl(project.repoUrl),
       }));

@@ -1,0 +1,7 @@
+Homepage visual reference supplied by the project owner:
+https://github.com/RujulaSharma/devharbour2
+https://devharbour2.vercel.app/
+
+Logo and sculpture assets extracted from the supplied local reference.
+Original reference copyright (c) 2026 Parth Vijay Gidde. All Rights Reserved.
+The reference's original licence is not replaced by this integration.
