@@ -5,7 +5,10 @@ for(const width of [1440,768,390])test(`reference homepage real data and navigat
  const courses=(await(await request.get('/api/courses')).json()).courses;
  await page.goto('/',{waitUntil:'domcontentloaded'});const home=page.locator('#dh2-homepage');
  await expect(home.locator('h1')).toContainText('DEV HARBOUR');await expect(page.locator('#dh-homepage-boot')).toBeHidden();
- await expect(home).toHaveCSS('background-color','rgb(0, 0, 0)');await expect(home.locator('h1')).toHaveCSS('color','rgb(255, 255, 255)');
+ const toggleBtn = home.locator('.dh2-theme-toggle');
+ await expect(toggleBtn).toBeVisible();
+ const initialBg = await home.evaluate(el => getComputedStyle(el).backgroundColor);
+ expect(['rgb(239, 233, 253)', 'rgb(0, 0, 0)']).toContain(initialBg);
  await expect(home.locator('.dh2-course')).toHaveCount(Math.min(4,courses.length));
  if(courses.length)await expect(home.locator('.dh2-course').first()).toContainText(courses[0].title);
  expect(await home.locator('.xi').evaluate(image=>image.complete&&image.naturalWidth>0)).toBe(true);
@@ -44,4 +47,18 @@ test('weekly ranking tab reads the existing public API without changing records'
  await page.goto('/',{waitUntil:'domcontentloaded'});const home=page.locator('#dh2-homepage');
  await home.getByRole('tab',{name:'Weekly',exact:true}).click();await expect(home.locator('#leaderboard .dh2-podium')).toHaveCount(1);await expect(home.locator('#leaderboard .dh2-podium')).toContainText('Weekly fixture');
  await home.getByRole('tab',{name:'All-time',exact:true}).click();await expect(home.getByRole('tab',{name:'All-time',exact:true})).toHaveAttribute('aria-selected','true');
+});
+test('navbar theme toggle toggles between light and dark themes',async({page})=>{
+ await page.goto('/',{waitUntil:'domcontentloaded'});const home=page.locator('#dh2-homepage');
+ const toggle=home.locator('.dh2-theme-toggle');
+ await expect(toggle).toBeVisible();
+ await page.evaluate(() => window.setPlatformTheme?.('light'));
+ await expect(home).toHaveAttribute('data-theme', 'light');
+ await expect(home).toHaveCSS('background-color', 'rgb(239, 233, 253)');
+ await toggle.click();
+ await expect(home).toHaveAttribute('data-theme', 'dark');
+ await expect(home).toHaveCSS('background-color', 'rgb(0, 0, 0)');
+ await toggle.click();
+ await expect(home).toHaveAttribute('data-theme', 'light');
+ await expect(home).toHaveCSS('background-color', 'rgb(239, 233, 253)');
 });

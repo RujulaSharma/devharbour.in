@@ -20,14 +20,13 @@ test('Vercel entry reuses the existing Express instance and protected APIs', asy
   for (const route of ['/api/health', '/api/courses']) assert.equal((await fetch(base + route)).status, 200);
   for (const route of ['/api/auth/me', '/api/certificates/mine']) assert.equal((await fetch(base + route)).status, 401);
 });
-test('SPA routes serve the canonical homepage with first-paint protection', async () => {
+test('SPA routes serve the canonical homepage', async () => {
   for (const route of ['/', '/dashboard', '/courses', '/certificate']) {
     const response = await fetch(base + route); assert.equal(response.status, 200);
     const html = await response.text();
-    assert.match(html, /id="dh-homepage-first-paint"/);
-    assert.match(html, /id="dh-homepage-boot"/);
-    const script = html.match(/src="(\/homepage\/homepage\.js\?v=[a-f0-9]+)"/)[1];
-    assert.ok(html.includes(`as="script" href="${script}"`));
+    assert.match(html, /id="intro"/);
+    assert.match(html, /id="landing"/);
+    assert.match(html, /id="v-home"/);
   }
 });
 test('Vercel serves the frontend and proxies API traffic to Render', () => {

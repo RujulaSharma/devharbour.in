@@ -2,28 +2,96 @@ import TeamSection from './TeamSection';
 import {useScrollReveals} from './useScrollReveals';
 import {useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {useReducedMotion} from 'framer-motion';
-import {Instagram,Linkedin,MessageCircle} from 'lucide-react';
+import {Instagram,Linkedin,MessageCircle,Sun,Moon} from 'lucide-react';
 import {handleNavigation,useHomepageData,type Project} from './platform';
 
 const asset='/homepage/dh2/';
 const social={community:'https://chat.whatsapp.com/Dt87L7lU5SOBSfKDKuNS8s',instagram:'https://www.instagram.com/devharbour.official',linkedin:'https://www.linkedin.com/company/devharbour/'};
+
+export function useTheme(){
+ const [theme,setTheme]=useState<'light'|'dark'>(()=>{
+  if(typeof document!=='undefined'){
+   const doc=document.documentElement.getAttribute('data-theme');
+   if(doc==='dark'||doc==='light')return doc;
+   try{
+    const saved=localStorage.getItem('dh-theme');
+    if(saved==='dark'||saved==='light')return saved;
+   }catch{}
+  }
+  return 'light';
+ });
+ useEffect(()=>{
+  const sync=()=>{
+   const current=document.documentElement.getAttribute('data-theme');
+   if(current==='dark'||current==='light')setTheme(current);
+  };
+  const observer=new MutationObserver(sync);
+  observer.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+  window.addEventListener('dh:theme-changed',sync);
+  window.addEventListener('storage',sync);
+  sync();
+  return ()=>{
+   observer.disconnect();
+   window.removeEventListener('dh:theme-changed',sync);
+   window.removeEventListener('storage',sync);
+  };
+ },[]);
+ const toggle=()=>{
+  const next=theme==='dark'?'light':'dark';
+  setTheme(next);
+  if(typeof window.setPlatformTheme==='function'){
+   window.setPlatformTheme(next);
+  }else{
+   document.documentElement.setAttribute('data-theme',next);
+   try{
+    localStorage.setItem('dh-theme',next);
+    localStorage.setItem('dh-theme-manual',next);
+    localStorage.setItem('dh-theme-manual-time',String(Date.now()));
+   }catch{}
+   window.dispatchEvent(new CustomEvent('dh:theme-changed',{detail:{theme:next}}));
+  }
+ };
+ return {theme,toggle};
+}
+
 function Brand(){return <span className="xlg"><img className="xli" src={asset+'logo.webp'} alt="" width="38" height="38"/>DEV HARBOUR</span>;}
-function Header(){
+
+function Header({theme,onToggleTheme}:{theme:'light'|'dark';onToggleTheme:()=>void}){
  const[user,setUser]=useState(window.currentUser);
  const header=useRef<HTMLElement>(null);
  useEffect(()=>{const sync=()=>setUser(window.currentUser);window.addEventListener('dh:auth-changed',sync);sync();return()=>window.removeEventListener('dh:auth-changed',sync);},[]);
- useEffect(()=>{const close=()=>header.current?.querySelectorAll('details[open]').forEach(detail=>detail.removeAttribute('open'));const key=(event:KeyboardEvent)=>{if(event.key==='Escape'){const summary=header.current?.querySelector('details[open]>summary') as HTMLElement|null;close();summary?.focus();}};const outside=(event:PointerEvent)=>header.current?.querySelectorAll('details[open]').forEach(detail=>{if(!event.composedPath().includes(detail))detail.removeAttribute('open');});window.addEventListener('dh:route-changed',close);window.addEventListener('keydown',key);document.addEventListener('pointerdown',outside);return()=>{window.removeEventListener('dh:route-changed',close);window.removeEventListener('keydown',key);document.removeEventListener('pointerdown',outside);};},[]);
+ useEffect(()=>{
+  const close=()=>header.current?.querySelectorAll('details[open]').forEach(detail=>detail.removeAttribute('open'));
+  const key=(event:KeyboardEvent)=>{if(event.key==='Escape'){const summary=header.current?.querySelector('details[open]>summary') as HTMLElement|null;close();summary?.focus();}};
+  const outside=(event:PointerEvent)=>header.current?.querySelectorAll('details[open]').forEach(detail=>{if(!event.composedPath().includes(detail))detail.removeAttribute('open');});
+  window.addEventListener('dh:route-changed',close);
+  window.addEventListener('keydown',key);
+  document.addEventListener('pointerdown',outside);
+  return()=>{
+   window.removeEventListener('dh:route-changed',close);
+   window.removeEventListener('keydown',key);
+   document.removeEventListener('pointerdown',outside);
+  };
+ },[]);
  const links=[['Ecosystem','/projects'],['Learn','/courses'],['Build','/workspace'],['Orca X Code','/hackathons']];
- return <header className="xn" ref={header}><a href="/" aria-label="DevHarbour home"><Brand/></a><nav className="xm" aria-label="Main navigation">{links.map(([name,path])=><a key={path} href={path}>{name}</a>)}</nav><div className="xa">
-  {user?<details className="dh2-account"><summary aria-label="Account options">{(user.fullName||user.username||'D').slice(0,1).toUpperCase()}</summary><nav aria-label="Account navigation"><strong>{user.fullName||user.username}</strong><button onClick={()=>window.openProfileModal?.()}>Profile</button><a href="/dashboard">Dashboard</a><a href="/settings">Settings</a><button onClick={()=>void window.openSavedCourses?.()}>Saved courses</button><a href="/certificate">My certificates</a><button onClick={()=>window.handleLogout?.()}>Sign out</button></nav></details>:<button type="button" className="xa-btn xa-login" onClick={()=>window.openAuthModal?.('login')}>Log in</button>}
-  <details className="dh2-mobile-nav"><summary>Menu</summary><nav aria-label="Mobile navigation">{links.map(([name,path])=><a key={path} href={path}>{name}</a>)}<a href="/resources">Learning guides</a><a href="/about">About</a><a href="/contact">Contact</a></nav></details>
- </div></header>;
+ return <header className="xn" ref={header}>
+  <a href="/" aria-label="DevHarbour home"><Brand/></a>
+  <nav className="xm" aria-label="Main navigation">{links.map(([name,path])=><a key={path} href={path}>{name}</a>)}</nav>
+  <div className="xa">
+   <button type="button" className="dh2-theme-toggle" aria-label={theme==='dark'?'Switch to light theme':'Switch to dark theme'} title={theme==='dark'?'Switch to light theme':'Switch to dark theme'} aria-pressed={theme==='dark'} onClick={onToggleTheme}>
+    {theme==='dark'?<Sun size={17} aria-hidden="true"/>:<Moon size={17} aria-hidden="true"/>}
+   </button>
+   {user?<details className="dh2-account"><summary aria-label="Account options">{(user.fullName||user.username||'D').slice(0,1).toUpperCase()}</summary><nav aria-label="Account navigation"><strong>{user.fullName||user.username}</strong><button type="button" onClick={()=>window.openProfileModal?.()}>Profile</button><a href="/dashboard">Dashboard</a><a href="/settings">Settings</a><button type="button" onClick={()=>void window.openSavedCourses?.()}>Saved courses</button><a href="/certificate">My certificates</a><button type="button" onClick={onToggleTheme} className="dh2-menu-theme">{theme==='dark'?'☀ Switch to Light theme':'☾ Switch to Dark theme'}</button><button type="button" onClick={()=>window.handleLogout?.()}>Sign out</button></nav></details>:<button type="button" className="xa-btn xa-login" onClick={()=>window.openAuthModal?.('login')}>Log in</button>}
+   <details className="dh2-mobile-nav"><summary>Menu</summary><nav aria-label="Mobile navigation">{links.map(([name,path])=><a key={path} href={path}>{name}</a>)}<button type="button" onClick={onToggleTheme} className="dh2-mobile-theme">{theme==='dark'?'☀ Switch to Light theme':'☾ Switch to Dark theme'}</button><a href="/resources">Learning guides</a><a href="/about">About</a><a href="/contact">Contact</a></nav></details>
+  </div>
+ </header>;
 }
-function Hero(){
+
+function Hero({theme,onToggleTheme}:{theme:'light'|'dark';onToggleTheme:()=>void}){
  const root=useRef<HTMLElement>(null),reduce=useReducedMotion(),[paused,setPaused]=useState(false);
  const still=!!reduce||paused;
  return <section ref={root} className={'hz'+(still?' dh2-still':'')} aria-label="Dev Harbour introduction" onPointerMove={event=>{if(still||event.pointerType!=='mouse')return;const bounds=event.currentTarget.getBoundingClientRect();root.current?.style.setProperty('--tilt-y',((event.clientX-bounds.left)/bounds.width-.5)*22+'deg');root.current?.style.setProperty('--tilt-x',-((event.clientY-bounds.top)/bounds.height-.5)*12+'deg');}} onPointerLeave={()=>{root.current?.style.setProperty('--tilt-y','0deg');root.current?.style.setProperty('--tilt-x','0deg');}}>
-  <div className="xf"><Header/>
+  <div className="xf"><Header theme={theme} onToggleTheme={onToggleTheme}/>
    <svg className="xc" viewBox="0 0 150 90" aria-hidden="true"><path d="M0 0Q6 40 50 45Q6 50 0 90Z" opacity=".55"/><path d="M50 0Q56 40 100 45Q56 50 50 90Z" opacity=".75"/><path d="M100 0Q106 40 150 45Q106 50 100 90Z"/></svg>
    <div className="xst"><div className="xt"><div className="xg"><div className="xfog"/><div className="xrg"/><div className="xrg b"/><img className="xk" src={asset+'sculpture.webp'} alt="" aria-hidden="true" width="640" height="640"/><img className="xi" src={asset+'sculpture.webp'} alt="Floating silver glass sculpture" width="640" height="640" fetchPriority="high"/></div><div className="xsh"/></div></div>
    <h1 className="xw">DEV HARBOUR<sup aria-hidden="true">®</sup></h1>
@@ -32,11 +100,14 @@ function Hero(){
   <a className="sc" href="#featured">Scroll to explore</a><button className="dh2-motion" onClick={()=>setPaused(!paused)} disabled={!!reduce} aria-label={paused?'Resume hero motion':'Pause hero motion'} aria-pressed={paused}>{reduce?'Reduced motion':paused?'Resume motion':'Pause motion'}</button>
  </section>;
 }
+
 const headings=(first:string,last:string)=><h2 className="zh">{first} <strong>{last}</strong></h2>;
 const publicUrl=(value:string)=>{try{const url=new URL(value);return ['https:','http:'].includes(url.protocol)?url.href:undefined;}catch{return undefined;}};
+
 export default function Dh2Home(){
  useLayoutEffect(()=>{const boot=document.getElementById('dh-homepage-boot');if(boot)boot.hidden=true;},[]);
  useScrollReveals();
+ const {theme,toggle}=useTheme();
  const data=useHomepageData(),[challenge,setChallenge]=useState(0),[challengeOpen,setChallengeOpen]=useState(false),page=useRef<HTMLElement>(null);
  const[period,setPeriod]=useState('All-time'),[weekly,setWeekly]=useState<typeof data.rankings>([]),[rankingMessage,setRankingMessage]=useState('');
  useEffect(()=>{if(period!=='Weekly'){setRankingMessage('');return;}const controller=new AbortController();setRankingMessage('Loading weekly rankings…');void fetch('/api/leaderboard?timeframe=Weekly&limit=50',{signal:controller.signal}).then(async response=>{if(!response.ok)throw Error();const result=await response.json();setWeekly(result.rankings);setRankingMessage('');}).catch(()=>{if(!controller.signal.aborted)setRankingMessage('Weekly rankings are temporarily unavailable.');});return()=>controller.abort();},[period]);
@@ -47,8 +118,8 @@ export default function Dh2Home(){
  const submittedProjects=data.projects.filter((project,index,all)=>project.id&&all.findIndex(p=>p.id===project.id)===index);
  const catalog:Project[]=(window.DHHomepage?.catalogProjects||[]).map((project,index)=>({id:'catalog-'+index,name:project.name,kind:project.description,stack:[project.category],heart:'',theme:'',label:project.name,symbol:'',url:publicUrl(project.demoUrl),repoUrl:publicUrl(project.repoUrl)}));
  const projects=submittedProjects.length?submittedProjects:data.errors.includes('projects')?[]:catalog;
- return <main id="dh2-homepage" ref={page} onClick={handleNavigation}>
-  <div className="dh2-reading" aria-hidden="true"/><Hero/>
+ return <main id="dh2-homepage" data-theme={theme} className={'theme-'+theme} ref={page} onClick={handleNavigation}>
+  <div className="dh2-reading" aria-hidden="true"/><Hero theme={theme} onToggleTheme={toggle}/>
   {data.errors.length>0&&<p className="dh2-notice" role="status">Some live {data.errors.join(', ')} information could not be loaded. You can still use the platform links. <button onClick={()=>location.reload()}>Retry</button></p>}
   <div id="landing">
    <section className="zs" id="featured">{headings('Ideas worth','exploring.')}<div className="fxg">{projects.map((project,index)=><article className={'fx'+(!index?' big':'')} key={project.id}>
