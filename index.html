@@ -6976,7 +6976,14 @@ let serverVotes = {};
 let currentUser = null;
 try {
   const _stUser = localStorage.getItem('dh_current_user') || localStorage.getItem('dh-current-user');
-  if (_stUser) currentUser = JSON.parse(_stUser);
+  if (_stUser) {
+    currentUser = JSON.parse(_stUser);
+    if (currentUser && Object.hasOwn(currentUser, 'password')) {
+      delete currentUser.password;
+      localStorage.setItem('dh_current_user', JSON.stringify(currentUser));
+      localStorage.setItem('dh-current-user', JSON.stringify(currentUser));
+    }
+  }
 } catch(e) {}
 // Built-in Local Database Engine (Unified offline & static fallback)
 const LocalDB = {
@@ -6985,59 +6992,6 @@ const LocalDB = {
   },
   saveUsers(users) {
     try { localStorage.setItem('dh_users_db', JSON.stringify(users)); } catch(e) {}
-  },
-  signup({ fullName, username, email, password, location, bio }) {
-    const users = this.getUsers();
-    const cleanUser = (username || '').replace(/^@+/, '').trim();
-    const lowerUser = cleanUser.toLowerCase();
-    const cleanEmail = (email || '').trim().toLowerCase();
-
-    const existingIdx = users.findIndex(u => 
-      (u.username && u.username.toLowerCase() === lowerUser) || 
-      (u.email && u.email.toLowerCase() === cleanEmail)
-    );
-
-    if (existingIdx !== -1) {
-      // Update existing record so sign-in will match new password
-      users[existingIdx].password = password;
-      users[existingIdx].fullName = fullName.trim() || users[existingIdx].fullName;
-      users[existingIdx].location = (location || users[existingIdx].location || '').trim();
-      users[existingIdx].bio = (bio || users[existingIdx].bio || '').trim();
-      this.saveUsers(users);
-      return users[existingIdx];
-    }
-
-    const newUser = {
-      id: 'usr-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      fullName: fullName.trim(),
-      username: cleanUser,
-      email: cleanEmail,
-      password: password,
-      location: (location || '').trim(),
-      bio: (bio || '').trim(),
-      role: 'student',
-      totalXp: 50,
-      level: 1,
-      streakDays: 1,
-      createdAt: new Date().toISOString()
-    };
-    users.push(newUser);
-    this.saveUsers(users);
-    return newUser;
-  },
-  login(loginVal, password) {
-    const users = this.getUsers();
-    const raw = (loginVal || '').trim().toLowerCase();
-    const target = raw.startsWith('@') ? raw.slice(1).trim() : raw;
-
-    const user = users.find(u => {
-      const uName = (u.username || '').toLowerCase();
-      const uEmail = (u.email || '').toLowerCase();
-      return (uName === target || uEmail === target || uName === raw) && u.password === password;
-    });
-
-    if (!user) throw new Error('Invalid username/email or password.');
-    return user;
   },
   updateProfile(userId, updates) {
     const users = this.getUsers();
@@ -7050,6 +7004,14 @@ const LocalDB = {
     return null;
   }
 };
+
+const cachedProfiles = LocalDB.getUsers();
+if (Array.isArray(cachedProfiles) && cachedProfiles.some(profile => profile && Object.hasOwn(profile, 'password'))) {
+  for (const profile of cachedProfiles) {
+    if (profile) delete profile.password;
+  }
+  LocalDB.saveUsers(cachedProfiles);
+}
 
 // Cross-tab real-time broadcast channel
 let syncChannel = null;
@@ -7125,6 +7087,8 @@ window.closeAuthModal = closeAuthModal;
 function switchAuthTab(tab) {
   const suForm = document.getElementById('form-signup');
   const liForm = document.getElementById('form-login');
+  const resetForm = document.getElementById('form-password-reset');
+  if (resetForm) resetForm.hidden = true;
   const suBtn = document.getElementById('tab-btn-signup');
   const liBtn = document.getElementById('tab-btn-login');
   if (tab === 'signup') {
@@ -7167,33 +7131,22 @@ function handleSignup(e) {
   msg.className = 'dh-status-msg';
   msg.textContent = 'Creating your account…';
 
-  // Always dual-save to LocalDB so credentials persist across refreshes, offline & static hosting
-  let localUser = null;
-  try {
-    localUser = LocalDB.signup({ fullName: name, username: user, email, password: pass, location: loc, bio });
-    localStorage.setItem('dh_last_username', user);
-  } catch(err) {}
-
   fetch('/api/auth/signup', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ fullName: name, username: user, email, password: pass, location: loc, bio })
   })
     .then(async (r) => {
-      if (r.status === 404 || r.status === 405) throw new Error('STATIC_HOST_FALLBACK');
       const data = await r.json().catch(() => ({}));
       return { ok: r.ok, status: r.status, data };
     })
     .then(({ ok, data }) => {
-      if (!ok) {
-        if (data.error && !localUser) {
-          msg.className = 'dh-status-msg error';
-          msg.textContent = data.error || 'Failed to create account.';
-          return;
-        }
+      if (!ok || !data.token || !data.user) {
+        msg.className = 'dh-status-msg error';
+        msg.textContent = data.error || 'Failed to create account.';
+        return;
       }
-      const token = data.token || (localUser ? 'local-token-' + localUser.id : 'local-token-dev');
-      const userObj = data.user || localUser;
+      const { token, user: userObj } = data;
       localStorage.setItem('dh_token', token); localStorage.setItem('dh-auth-token', token);
       currentUser = userObj;
       localStorage.setItem('dh_current_user', JSON.stringify(currentUser)); localStorage.setItem('dh-current-user', JSON.stringify(currentUser));
@@ -7207,26 +7160,8 @@ function handleSignup(e) {
       }
     })
     .catch(() => {
-      // Local Database Fallback (GitHub Pages or backend offline)
-      if (localUser) {
-        currentUser = localUser;
-        localStorage.setItem('dh_token', 'local-token-' + localUser.id);
-        localStorage.setItem('dh_current_user', JSON.stringify(localUser));
-        localStorage.setItem('dh_last_username', localUser.username || user);
-        updateAuthUI();
-        closeAuthModal();
-        if (syncChannel) {
-          syncChannel.postMessage({ type: 'user_joined', message: `${localUser.username} joined Dev Harbour!` });
-        }
-        toast(`✦ Welcome to Dev Harbour, @${currentUser.username}!`);
-        const introEl = document.getElementById('intro');
-        if (introEl && !introEl.classList.contains('out') && typeof window.go === 'function') {
-          window.go(window.innerWidth / 2, window.innerHeight / 2, 'workspace', false);
-        }
-      } else {
-        msg.className = 'dh-status-msg error';
-        msg.textContent = 'Error creating account. Please try again.';
-      }
+      msg.className = 'dh-status-msg error';
+      msg.textContent = 'Error creating account. Please try again.';
     });
 }
 window.handleSignup = handleSignup;
@@ -7241,62 +7176,92 @@ function handleLogin(e) {
   msg.className = 'dh-status-msg';
   msg.textContent = 'Signing in…';
 
-  const loginWithLocal = () => {
-    try {
-      const user = LocalDB.login(loginVal, pass);
-      currentUser = user;
-      localStorage.setItem('dh_token', 'local-token-' + user.id);
-      localStorage.setItem('dh_current_user', JSON.stringify(user));
-      localStorage.setItem('dh_last_username', user.username || loginVal);
-      updateAuthUI();
-      closeAuthModal();
-      toast(`✦ Welcome back, @${currentUser.username}!`);
-      const introEl = document.getElementById('intro');
-      if (introEl && !introEl.classList.contains('out') && typeof window.go === 'function') {
-        window.go(window.innerWidth / 2, window.innerHeight / 2, 'workspace', false);
-      }
-      return true;
-    } catch(err) {
-      return false;
-    }
-  };
-
   fetch('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ login: loginVal, password: pass })
   })
     .then(async (r) => {
-      if (r.status === 404 || r.status === 405) throw new Error('STATIC_HOST_FALLBACK');
       const data = await r.json().catch(() => ({}));
       return { ok: r.ok, status: r.status, data };
     })
     .then(({ ok, data }) => {
-      if (ok && data.user) {
+      if (ok && data.user && data.token) {
         localStorage.setItem('dh_token', data.token);
+        localStorage.setItem('dh-auth-token', data.token);
         currentUser = data.user;
         localStorage.setItem('dh_current_user', JSON.stringify(currentUser)); localStorage.setItem('dh-current-user', JSON.stringify(currentUser));
         localStorage.setItem('dh_last_username', currentUser.username || loginVal);
-        try {
-          LocalDB.signup({ fullName: currentUser.fullName, username: currentUser.username, email: currentUser.email, password: pass });
-        } catch(e) {}
         updateAuthUI();
         closeAuthModal();
         toast(`✦ Welcome back, @${currentUser.username}!`);
       } else {
-        // Fallback to local DB if backend user check failed
-        if (loginWithLocal()) return;
         msg.className = 'dh-status-msg error';
         msg.textContent = (data && data.error) ? data.error : 'Invalid username or password.';
       }
     })
     .catch(() => {
-      if (loginWithLocal()) return;
       msg.className = 'dh-status-msg error';
       msg.textContent = 'Invalid username or password.';
     });
 }
 window.handleLogin = handleLogin;
+
+function openPasswordReset() {
+  document.getElementById('form-login').style.display = 'none';
+  const form = document.getElementById('form-password-reset');
+  form.reset();
+  form.hidden = false;
+  const email = document.getElementById('reset-email');
+  const login = document.getElementById('li-user').value.trim();
+  if (login.includes('@')) email.value = login;
+  document.getElementById('reset-msg').textContent = '';
+  email.focus();
+}
+
+async function handlePasswordReset(event, requestCode = false) {
+  event.preventDefault();
+  const form = document.getElementById('form-password-reset');
+  const email = document.getElementById('reset-email');
+  if (requestCode && !email.reportValidity()) return;
+  const status = document.getElementById('reset-msg');
+  const controls = form.querySelectorAll('button');
+  for (const button of controls) button.disabled = true;
+  status.textContent = requestCode ? 'Requesting a code…' : 'Resetting your password…';
+
+  const body = { email: email.value.trim() };
+  if (!requestCode) {
+    body.otp = document.getElementById('reset-code').value.trim();
+    body.newPassword = document.getElementById('reset-password').value;
+  }
+
+  try {
+    const endpoint = requestCode ? 'request' : 'confirm';
+    const response = await fetch('/api/auth/password-reset/' + endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      status.textContent = data.error || 'Password recovery is temporarily unavailable.';
+      return;
+    }
+    if (requestCode) {
+      status.textContent = data.message;
+      document.getElementById('reset-code').focus();
+    } else {
+      clearCachedAuthSession();
+      form.reset();
+      switchAuthTab('login');
+      document.getElementById('li-msg').textContent = 'Password updated. Sign in with your new password.';
+    }
+  } catch {
+    status.textContent = 'Password recovery is temporarily unavailable. Please try again.';
+  } finally {
+    for (const button of controls) button.disabled = false;
+  }
+}
 
 function openProfileModal() {
   if (!currentUser) {
@@ -7400,6 +7365,14 @@ function handleLogout() {
 }
 window.handleLogout = handleLogout;
 
+function clearCachedAuthSession() {
+  for (const key of ['dh_token', 'dh-auth-token', 'dh_current_user', 'dh-current-user']) {
+    localStorage.removeItem(key);
+  }
+  currentUser = null;
+  updateAuthUI();
+}
+
 function checkAuthSession() {
   const token = localStorage.getItem('dh_token') || localStorage.getItem('dh-auth-token');
   const storedUser = localStorage.getItem('dh_current_user') || localStorage.getItem('dh-current-user');
@@ -7412,11 +7385,11 @@ function checkAuthSession() {
   }
 
   if (!token) {
-    updateAuthUI();
+    clearCachedAuthSession();
     return;
   }
   if (token.startsWith('local-token-')) {
-    updateAuthUI();
+    clearCachedAuthSession();
     return;
   }
 
@@ -7427,7 +7400,11 @@ function checkAuthSession() {
     }
   })
     .then(r => {
-      if (!r.ok) throw new Error('Session invalid');
+      if (r.status === 401) {
+        clearCachedAuthSession();
+        return null;
+      }
+      if (!r.ok) throw new Error('Session check failed');
       return r.json();
     })
     .then(data => {
@@ -9589,7 +9566,27 @@ new MutationObserver(()=>{P.querySelectorAll('span').forEach(up);R.querySelector
         <input type="password" id="li-pass" required placeholder="••••••••" autocomplete="current-password">
       </div>
       <button type="submit" class="dh-submit-btn" id="li-submit">Sign In →</button>
-      <div class="dh-status-msg" id="li-msg"></div>
+      <button type="button" class="dh-tab-btn" onclick="openPasswordReset()">Forgot password?</button>
+      <div class="dh-status-msg" id="li-msg" role="status"></div>
+    </form>
+
+    <form id="form-password-reset" onsubmit="handlePasswordReset(event)" hidden>
+      <div class="dh-field">
+        <label for="reset-email">Account email</label>
+        <input type="email" id="reset-email" required autocomplete="email">
+      </div>
+      <button type="button" class="dh-tab-btn" onclick="handlePasswordReset(event, true)">Email a reset code</button>
+      <div class="dh-field">
+        <label for="reset-code">Six-digit code</label>
+        <input type="text" id="reset-code" required pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" maxlength="6">
+      </div>
+      <div class="dh-field">
+        <label for="reset-password">New password (at least 8 characters)</label>
+        <input type="password" id="reset-password" required minlength="8" autocomplete="new-password">
+      </div>
+      <button type="submit" class="dh-submit-btn">Reset password</button>
+      <button type="button" class="dh-tab-btn" onclick="switchAuthTab('login')">Back to sign in</button>
+      <div class="dh-status-msg" id="reset-msg" role="status"></div>
     </form>
 
     <!-- SIGN UP FORM -->
