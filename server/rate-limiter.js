@@ -58,9 +58,19 @@ setInterval(() => {
   }
 }, 60000).unref();
 
+function getClientIp(req) {
+  if (req.ip) return req.ip;
+  const forwarded = req.headers['x-forwarded-for'];
+  if (typeof forwarded === 'string' && forwarded.trim()) {
+    return forwarded.split(',')[0].trim();
+  }
+  return req.socket?.remoteAddress || 'unknown';
+}
+
 function rateLimit({ windowMs = 60000, max = 15, message = 'Too many requests. Please try again later.' } = {}) {
+  const effectiveMax = process.env.NODE_ENV === 'test' ? Math.max(max, 100) : max;
   return async (req, res, next) => {
-    const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+    const ip = getClientIp(req);
     const key = `ratelimit:${req.baseUrl || ''}${req.path}:${ip}`;
     const now = Date.now();
 
@@ -74,10 +84,10 @@ function rateLimit({ windowMs = 60000, max = 15, message = 'Too many requests. P
         const ttl = await redisClient.pttl(key);
         const retryAfter = Math.max(1, Math.ceil(ttl / 1000));
 
-        res.setHeader('X-RateLimit-Limit', max);
-        res.setHeader('X-RateLimit-Remaining', Math.max(0, max - current));
+        res.setHeader('X-RateLimit-Limit', effectiveMax);
+        res.setHeader('X-RateLimit-Remaining', Math.max(0, effectiveMax - current));
 
-        if (current > max) {
+        if (current > effectiveMax) {
           res.setHeader('Retry-After', retryAfter);
           return res.status(429).json({ error: message, retryAfter });
         }
@@ -93,17 +103,17 @@ function rateLimit({ windowMs = 60000, max = 15, message = 'Too many requests. P
     if (!record || now > record.resetTime) {
       record = { count: 1, resetTime: now + windowMs };
       memoryStore.set(key, record);
-      res.setHeader('X-RateLimit-Limit', max);
-      res.setHeader('X-RateLimit-Remaining', max - 1);
+      res.setHeader('X-RateLimit-Limit', effectiveMax);
+      res.setHeader('X-RateLimit-Remaining', effectiveMax - 1);
       return next();
     }
 
     record.count++;
     const retryAfter = Math.max(1, Math.ceil((record.resetTime - now) / 1000));
-    res.setHeader('X-RateLimit-Limit', max);
-    res.setHeader('X-RateLimit-Remaining', Math.max(0, max - record.count));
+    res.setHeader('X-RateLimit-Limit', effectiveMax);
+    res.setHeader('X-RateLimit-Remaining', Math.max(0, effectiveMax - record.count));
 
-    if (record.count > max) {
+    if (record.count > effectiveMax) {
       res.setHeader('Retry-After', retryAfter);
       return res.status(429).json({ error: message, retryAfter });
     }

@@ -3,6 +3,16 @@ const router = express.Router();
 const db = require('../db');
 const { requireAuth } = require('../auth');
 
+function isValidHttpUrl(string) {
+  if (!string || typeof string !== 'string') return false;
+  try {
+    const url = new URL(string);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 // GET /api/workspace — Retrieve all workspace items for user
 router.get('/', async (req, res) => {
   try {
@@ -148,10 +158,13 @@ router.post('/snippets', requireAuth, async (req, res) => {
     const language = req.body.language;
     const code = req.body.code;
     const input = req.body.input !== undefined ? req.body.input : req.body.input_data;
-    if (!name || !code) {
-      return res.status(400).json({ error: 'Snippet name and code are required.' });
+    if (!name || typeof name !== 'string' || !name.trim() || name.trim().length > 100) {
+      return res.status(400).json({ error: 'Valid snippet name is required (maximum 100 characters).' });
     }
-    const snippet = await db.saveWorkspaceSnippet(req.user.id, { name, language, code, input });
+    if (!code || typeof code !== 'string' || code.length > 100000) {
+      return res.status(400).json({ error: 'Code content is required (maximum 100KB).' });
+    }
+    const snippet = await db.saveWorkspaceSnippet(req.user.id, { name: name.trim(), language: String(language || 'javascript').slice(0, 30), code, input });
     res.status(201).json({ ...snippet, snippet });
   } catch (err) {
     res.status(500).json({ error: 'Failed to save code snippet.' });
@@ -175,10 +188,19 @@ router.post('/bookmarks', requireAuth, async (req, res) => {
   try {
     const { itemId, itemType, title, category } = req.body;
     const url = req.body.url || req.body.target_url;
-    if (!title || !url) {
-      return res.status(400).json({ error: 'Title and URL are required.' });
+    if (!title || typeof title !== 'string' || !title.trim() || title.trim().length > 150) {
+      return res.status(400).json({ error: 'Title is required (maximum 150 characters).' });
     }
-    const bookmark = await db.addWorkspaceBookmark(req.user.id, { itemId, itemType, title, url, category });
+    if (!url || !isValidHttpUrl(url)) {
+      return res.status(400).json({ error: 'A valid HTTP/HTTPS URL is required.' });
+    }
+    const bookmark = await db.addWorkspaceBookmark(req.user.id, {
+      itemId: itemId ? String(itemId).slice(0, 50) : undefined,
+      itemType: itemType ? String(itemType).slice(0, 30) : undefined,
+      title: title.trim(),
+      url: url.trim(),
+      category: category ? String(category).slice(0, 50) : undefined
+    });
     res.status(201).json({ ...bookmark, bookmark });
   } catch (err) {
     res.status(500).json({ error: 'Failed to save bookmark.' });

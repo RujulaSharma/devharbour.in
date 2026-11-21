@@ -17,7 +17,16 @@ router.get('/settings', requireAuth, async (req, res) => {
 router.post('/settings', requireAuth, async (req, res) => {
   try {
     const { theme, emailNotifications, profilePublic } = req.body;
-    const updated = await db.saveUserSettings(req.user.id, { theme, emailNotifications, profilePublic });
+    const allowedThemes = ['light', 'dark', 'mercury'];
+    const safeTheme = (theme && allowedThemes.includes(theme)) ? theme : 'light';
+    const safeEmailNotif = emailNotifications === false || emailNotifications === 0 || emailNotifications === '0' ? 0 : 1;
+    const safeProfilePub = profilePublic === false || profilePublic === 0 || profilePublic === '0' ? 0 : 1;
+
+    const updated = await db.saveUserSettings(req.user.id, {
+      theme: safeTheme,
+      emailNotifications: safeEmailNotif,
+      profilePublic: safeProfilePub
+    });
     res.json({ settings: updated, message: 'Settings saved.' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to update user settings.' });

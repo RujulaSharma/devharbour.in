@@ -22,6 +22,11 @@ const eventBus = require('./events');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust the first reverse proxy (Render, Vercel, Cloudflare) for accurate client IP resolution & rate limiting
+if (process.env.NODE_ENV === 'production' || process.env.TRUST_PROXY === '1' || process.env.TRUST_PROXY === 'true') {
+  app.set('trust proxy', 1);
+}
+
 // Hardened Security Headers Middleware
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -101,12 +106,18 @@ app.use((req, res, next) => {
   res.sendFile(path.join(publicDir, 'index.html'));
 });
 
-// Central Error Handler — Sanitizes error responses in production to prevent leaking sensitive internals
+// Central Error Handler — Sanitizes error responses to prevent leaking sensitive internals or credentials
 app.use((err, req, res, next) => {
   console.error('[SERVER ERROR]:', err.message || err);
-  const isProd = process.env.NODE_ENV === 'production';
-  res.status(err.status || 500).json({
-    error: isProd ? 'An internal error occurred. Please try again later.' : (err.message || 'An unexpected server error occurred.')
+  const status = err.status || 500;
+  // Always sanitize 500 internal errors so connection strings, database errors, or stack traces never leak
+  if (status >= 500 || process.env.NODE_ENV === 'production') {
+    return res.status(status).json({
+      error: 'An internal error occurred. Please try again later.'
+    });
+  }
+  res.status(status).json({
+    error: err.message || 'An unexpected server error occurred.'
   });
 });
 

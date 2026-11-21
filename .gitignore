@@ -38,6 +38,12 @@ coverage/
 # Deliverables & generated archives
 output/*.zip
 output/*.pdf
+output/*.tar.gz
+output/*.docx
+output/pdf/
+tmp/
+rujula-chronicle/
+rujula-portfolio/
 
 # Sensitive participant PII files & event registries
 data/orcathon_participants.*

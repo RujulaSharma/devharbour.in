@@ -117,12 +117,30 @@ router.post('/', requireAuth, async (req, res) => {
 router.put('/:id', requireAuth, async (req, res) => {
   const { title, description, category, techStack, repoUrl, demoUrl } = req.body;
 
+  if (title !== undefined && (typeof title !== 'string' || title.trim().length < 3 || title.trim().length > 100)) {
+    return res.status(400).json({ error: 'Title must be between 3 and 100 characters.' });
+  }
+  if (description !== undefined && (typeof description !== 'string' || description.trim().length < 10 || description.trim().length > 2000)) {
+    return res.status(400).json({ error: 'Description must be between 10 and 2000 characters.' });
+  }
+  if (category !== undefined && (typeof category !== 'string' || category.trim().length > 50)) {
+    return res.status(400).json({ error: 'Valid category is required.' });
+  }
+  if (repoUrl !== undefined && !isValidHttpUrl(repoUrl)) {
+    return res.status(400).json({ error: 'A valid repository URL is required.' });
+  }
+  if (demoUrl && !isValidHttpUrl(demoUrl)) {
+    return res.status(400).json({ error: 'Live demo must be a valid URL.' });
+  }
+
   try {
-    const stack = Array.isArray(techStack) ? techStack : (techStack ? techStack.split(',').map(s => s.trim()) : undefined);
+    const stack = Array.isArray(techStack)
+      ? techStack.map(s => String(s).trim()).filter(Boolean).slice(0, 8)
+      : (typeof techStack === 'string' ? techStack.split(',').map(s => s.trim()).filter(Boolean).slice(0, 8) : undefined);
     const updated = await db.updateProject(req.params.id, req.user.id, {
-      title,
-      description,
-      category,
+      title: title !== undefined ? title.trim() : undefined,
+      description: description !== undefined ? description.trim() : undefined,
+      category: category !== undefined ? category.trim() : undefined,
       techStack: stack,
       repoUrl,
       demoUrl

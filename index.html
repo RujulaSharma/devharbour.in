@@ -7876,7 +7876,7 @@ function openProfileModal() {
   if (!m) return;
   document.getElementById('pm-name').textContent = currentUser.fullName || currentUser.username;
   document.getElementById('pm-user').textContent = '@' + currentUser.username;
-  document.getElementById('pm-loc').innerHTML = '<span class="dh-ast-star">✦</span> ' + (currentUser.location || '');
+  document.getElementById('pm-loc').innerHTML = '<span class="dh-ast-star">✦</span> ' + esc(currentUser.location || '');
   document.getElementById('pm-avatar-letter').textContent = (currentUser.username || 'U')[0].toUpperCase();
   document.getElementById('pm-xp').innerHTML = '<span class="dh-ast-star dh-star-purple">✦</span> ' + (currentUser.totalXp || 50);
   document.getElementById('pm-level').innerHTML = '<span class="dh-ast-star dh-star-blue">✧</span> Lvl ' + (currentUser.level || 1);
@@ -7929,7 +7929,7 @@ function handleSaveProfile(e) {
       localStorage.setItem('dh_current_user', JSON.stringify(currentUser)); localStorage.setItem('dh-current-user', JSON.stringify(currentUser));
       updateAuthUI();
       document.getElementById('pm-name').textContent = currentUser.fullName || currentUser.username;
-      document.getElementById('pm-loc').innerHTML = '<span class="dh-ast-star">✦</span> ' + (currentUser.location || '');
+      document.getElementById('pm-loc').innerHTML = '<span class="dh-ast-star">✦</span> ' + esc(currentUser.location || '');
       msg.className = 'dh-status-msg success';
       msg.textContent = '✓ Profile saved successfully!';
       setTimeout(closeProfileModal, 1200);
@@ -7943,7 +7943,7 @@ function handleSaveProfile(e) {
         localStorage.setItem('dh_current_user', JSON.stringify(currentUser)); localStorage.setItem('dh-current-user', JSON.stringify(currentUser));
         updateAuthUI();
         document.getElementById('pm-name').textContent = currentUser.fullName || currentUser.username;
-        document.getElementById('pm-loc').innerHTML = '<span class="dh-ast-star">✦</span> ' + (currentUser.location || '');
+        document.getElementById('pm-loc').innerHTML = '<span class="dh-ast-star">✦</span> ' + esc(currentUser.location || '');
         msg.className = 'dh-status-msg success';
         msg.textContent = '✓ Profile saved locally!';
         setTimeout(closeProfileModal, 1200);
@@ -8237,29 +8237,31 @@ function rp(){
     const liked = isProjectLiked(j[0]);
     const hasImg = Boolean(j[5]);
     const meta = j[6] || null;
-    const tags = j[2].split(',').map(t => `<span class="tag">${t.trim()}</span>`).join('');
-    return `<article class="c pc s4" data-title="${j[0]}">
+    const tags = j[2].split(',').map(t => `<span class="tag">${esc(t.trim())}</span>`).join('');
+    const viewUrl = safeHttpLink(j[3]) || '#';
+    const safeTitle = j[0].replace(/'/g, "\\'");
+    return `<article class="c pc s4" data-title="${esc(j[0])}">
       <div class="cv${hasImg ? ' has-img' : ''}">
-        ${hasImg ? `<img src="${j[5]}" alt="${j[0]}" class="pci" loading="lazy">` : ''}
-        <button type="button" class="px-like-btn${liked ? ' active' : ''}" onclick="toggleProjectLike('${j[0].replace(/'/g, "\\'")}', event)" title="${liked ? 'Unlike' : 'Like this project'}" aria-label="Like ${j[0]}">
+        ${hasImg ? `<img src="${safeHttpLink(j[5]) || esc(j[5])}" alt="${esc(j[0])}" class="pci" loading="lazy">` : ''}
+        <button type="button" class="px-like-btn${liked ? ' active' : ''}" onclick="toggleProjectLike('${safeTitle}', event)" title="${liked ? 'Unlike' : 'Like this project'}" aria-label="Like ${esc(j[0])}">
           <svg class="px-heart-icon" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
           <span class="like-count">${likes}</span>
         </button>
       </div>
       <div class="b">
-        <h3>${j[0]}</h3>
-        <p>${j[1]}</p>
+        <h3>${esc(j[0])}</h3>
+        <p>${esc(j[1])}</p>
         <div class="f">
           ${tags}
           <span class="tag">Verified</span>
-          <a href="${j[3]}" target="_blank" rel="noopener noreferrer">View Project ↗</a>
+          ${viewUrl !== '#' ? `<a href="${esc(viewUrl)}" target="_blank" rel="noopener noreferrer">View Project ↗</a>` : ''}
         </div>
         ${meta ? `
         <div class="px-links">
-          ${meta.playStore ? `<a href="${meta.playStore}" target="_blank" rel="noopener noreferrer" class="px-link-btn" title="Google Play">Google Play ↗</a>` : ''}
-          ${meta.screenshots ? `<a href="${meta.screenshots}" target="_blank" rel="noopener noreferrer" class="px-link-btn" title="Screenshots">Screenshots ↗</a>` : ''}
-          ${meta.linkedin ? `<a href="${meta.linkedin}" target="_blank" rel="noopener noreferrer" class="px-link-btn" title="LinkedIn Post">LinkedIn ↗</a>` : ''}
-          ${meta.detail ? `<button type="button" class="px-info-btn" onclick="openProjectModal('${j[0].replace(/'/g, "\\'")}')">Overview ✦</button>` : ''}
+          ${meta.playStore ? `<a href="${esc(safeHttpLink(meta.playStore))}" target="_blank" rel="noopener noreferrer" class="px-link-btn" title="Google Play">Google Play ↗</a>` : ''}
+          ${meta.screenshots ? `<a href="${esc(safeHttpLink(meta.screenshots))}" target="_blank" rel="noopener noreferrer" class="px-link-btn" title="Screenshots">Screenshots ↗</a>` : ''}
+          ${meta.linkedin ? `<a href="${esc(safeHttpLink(meta.linkedin))}" target="_blank" rel="noopener noreferrer" class="px-link-btn" title="LinkedIn Post">LinkedIn ↗</a>` : ''}
+          ${meta.detail ? `<button type="button" class="px-info-btn" onclick="openProjectModal('${safeTitle}')">Overview ✦</button>` : ''}
         </div>` : ''}
       </div>
     </article>`;
@@ -8302,7 +8304,15 @@ function openProjectModal(title){
   const meta = prj[6] || {};
   const likes = getProjectLikes(prj[0]);
   const liked = isProjectLiked(prj[0]);
-  const tags = (prj[2] || '').split(',').map(t => `<span class="tag">${t.trim()}</span>`).join('');
+  const tags = (prj[2] || '').split(',').map(t => `<span class="tag">${esc(t.trim())}</span>`).join('');
+  const safeTitle = prj[0].replace(/'/g, "\\'");
+  const primaryUrl = safeHttpLink(prj[3]);
+  const playUrl = meta.playStore ? safeHttpLink(meta.playStore) : '';
+  const shotUrl = meta.screenshots ? safeHttpLink(meta.screenshots) : '';
+  const inUrl = meta.linkedin ? safeHttpLink(meta.linkedin) : '';
+  const gitUrl = meta.github ? safeHttpLink(meta.github) : '';
+  const imgUrl = prj[5] ? (safeHttpLink(prj[5]) || esc(prj[5])) : '';
+
   let m = document.getElementById('project-modal');
   if (!m) {
     m = document.createElement('div');
@@ -8314,27 +8324,27 @@ function openProjectModal(title){
     <div class="px-modal-backdrop" onclick="closeProjectModal()"></div>
     <div class="px-modal-dialog">
       <button type="button" class="px-modal-close" onclick="closeProjectModal()" aria-label="Close">✕</button>
-      ${prj[5] ? `<img src="${prj[5]}" alt="${prj[0]}" class="pm-img">` : ''}
+      ${imgUrl ? `<img src="${imgUrl}" alt="${esc(prj[0])}" class="pm-img">` : ''}
       <div class="pm-content">
         <div class="pm-tags" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
             ${tags}
             <span class="tag" style="background:#4a4263;color:#fff;">Verified</span>
           </div>
-          <button type="button" class="px-like-btn${liked ? ' active' : ''}" style="position:static;" onclick="toggleProjectLike('${prj[0].replace(/'/g, "\\'")}', event); openProjectModal('${prj[0].replace(/'/g, "\\'")}')">
+          <button type="button" class="px-like-btn${liked ? ' active' : ''}" style="position:static;" onclick="toggleProjectLike('${safeTitle}', event); openProjectModal('${safeTitle}')">
             <svg class="px-heart-icon" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
             <span class="like-count">${likes}</span>
           </button>
         </div>
-        <h2 style="margin:0 0 8px;font-size:22px;color:var(--ink);font-weight:800;">${prj[0]}</h2>
-        <p style="font-weight:600;color:var(--ink);opacity:0.85;margin-bottom:12px;font-size:13.5px;">${prj[1]}</p>
-        <div class="pm-desc" style="white-space:pre-line;">${meta.detail || prj[1]}</div>
+        <h2 style="margin:0 0 8px;font-size:22px;color:var(--ink);font-weight:800;">${esc(prj[0])}</h2>
+        <p style="font-weight:600;color:var(--ink);opacity:0.85;margin-bottom:12px;font-size:13.5px;">${esc(prj[1])}</p>
+        <div class="pm-desc" style="white-space:pre-line;">${esc(meta.detail || prj[1])}</div>
         <div class="pm-actions">
-          ${prj[3] && prj[3] !== '#' ? `<a href="${prj[3]}" target="_blank" rel="noopener noreferrer" class="pm-btn primary">${meta.liveUrl ? 'Live Demo ↗' : 'View Project ↗'}</a>` : ''}
-          ${meta.playStore ? `<a href="${meta.playStore}" target="_blank" rel="noopener noreferrer" class="pm-btn secondary">Google Play ↗</a>` : ''}
-          ${meta.screenshots ? `<a href="${meta.screenshots}" target="_blank" rel="noopener noreferrer" class="pm-btn secondary">Screenshots ↗</a>` : ''}
-          ${meta.linkedin ? `<a href="${meta.linkedin}" target="_blank" rel="noopener noreferrer" class="pm-btn secondary">LinkedIn Post ↗</a>` : ''}
-          ${meta.github ? `<a href="${meta.github}" target="_blank" rel="noopener noreferrer" class="pm-btn secondary">GitHub ↗</a>` : ''}
+          ${primaryUrl ? `<a href="${esc(primaryUrl)}" target="_blank" rel="noopener noreferrer" class="pm-btn primary">${meta.liveUrl ? 'Live Demo ↗' : 'View Project ↗'}</a>` : ''}
+          ${playUrl ? `<a href="${esc(playUrl)}" target="_blank" rel="noopener noreferrer" class="pm-btn secondary">Google Play ↗</a>` : ''}
+          ${shotUrl ? `<a href="${esc(shotUrl)}" target="_blank" rel="noopener noreferrer" class="pm-btn secondary">Screenshots ↗</a>` : ''}
+          ${inUrl ? `<a href="${esc(inUrl)}" target="_blank" rel="noopener noreferrer" class="pm-btn secondary">LinkedIn Post ↗</a>` : ''}
+          ${gitUrl ? `<a href="${esc(gitUrl)}" target="_blank" rel="noopener noreferrer" class="pm-btn secondary">GitHub ↗</a>` : ''}
         </div>
       </div>
     </div>
@@ -10009,8 +10019,8 @@ if (typeof renderAllLeaderboardViews === 'function') {
   renderAllLeaderboardViews();
 } else {
   const LB=[['Mei',212,18400],['Ayesha',198,17120],['Kabir',187,15900],['Nora',160,13300],['Lucas',151,12100]];
-  if ($('zav')) $('zav').innerHTML=LB.map(u=>`<span class="zav" style="cursor:pointer;" onclick="openDeveloperModal('${u[0].toLowerCase()}')" title="${u[0]}">${u[0][0].toUpperCase()}</span>`).join('');
-  if ($('zlb')) $('zlb').innerHTML=LB.map((u,i)=>`<div class="zlb" style="cursor:pointer;" onclick="openDeveloperModal('${u[0].toLowerCase()}')"><b>${i+1}</b><span>${u[0]}</span><span>${u[1]}</span><span>${u[2].toLocaleString()} XP</span></div>`).join('');
+  if ($('zav')) $('zav').innerHTML=LB.map(u=>`<span class="zav" style="cursor:pointer;" onclick="openDeveloperModal('${esc(u[0]).toLowerCase()}')" title="${esc(u[0])}">${esc(u[0])[0].toUpperCase()}</span>`).join('');
+  if ($('zlb')) $('zlb').innerHTML=LB.map((u,i)=>`<div class="zlb" style="cursor:pointer;" onclick="openDeveloperModal('${esc(u[0]).toLowerCase()}')"><b>${i+1}</b><span>${esc(u[0])}</span><span>${esc(u[1])}</span><span>${esc(u[2].toLocaleString())} XP</span></div>`).join('');
 }
 /* footer */
 $('zfl').src=document.querySelector('.xlg .xli').src;
@@ -11578,6 +11588,7 @@ function runPracticeCode() {
 window.runPracticeCode = runPracticeCode;
 
 addEventListener('message', m => {
+  if (!psFrame || m.source !== psFrame.contentWindow) return;
   if (!m.data || !m.data.isPractice) return;
   clearTimeout(psTimeout);
   const d = m.data;

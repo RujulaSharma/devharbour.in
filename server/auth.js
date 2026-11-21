@@ -30,6 +30,16 @@ function validatePassword(password) {
   return typeof password === 'string' && password.length >= 8;
 }
 
+// Strip credentials and sensitive internal fields before returning user data
+function sanitizeUser(user, extras = {}) {
+  if (!user) return null;
+  const { password_hash, salt, code_hash, ...safe } = user;
+  return {
+    ...safe,
+    ...extras
+  };
+}
+
 // Authentication Middleware: populates req.user if valid token provided
 async function authMiddleware(req, res, next) {
   let token = null;
@@ -48,12 +58,11 @@ async function authMiddleware(req, res, next) {
         if (user) {
           const totalXp = await db.getUserTotalXp(user.id);
           const isVerified = await db.isEmailVerified(user.id);
-          req.user = {
-            ...user,
+          req.user = sanitizeUser(user, {
             emailVerified: isVerified,
             totalXp: totalXp || 0,
             level: db.calculateLevel(totalXp || 0)
-          };
+          });
           req.token = token;
         }
       }
@@ -99,6 +108,7 @@ module.exports = {
   validateEmail,
   validateUsername,
   validatePassword,
+  sanitizeUser,
   authMiddleware,
   requireAuth,
   requireRole

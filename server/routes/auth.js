@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('node:crypto');
 const db = require('../db');
-const { hashPassword, verifyPassword, validateEmail, validateUsername, validatePassword, requireAuth } = require('../auth');
+const { hashPassword, verifyPassword, validateEmail, validateUsername, validatePassword, sanitizeUser, requireAuth } = require('../auth');
 const { generateOtp, hashOtp, verifyOtpHash, sendVerificationOtpEmail } = require('../email');
 const { rateLimit } = require('../rate-limiter');
 const eventBus = require('../events');
@@ -87,12 +87,11 @@ router.post('/signup', rateLimit({ windowMs: 60000, max: 10 }), async (req, res)
       requiresVerification: true,
       token,
       expiresAt: sessionExpiresAt,
-      user: {
-        ...user,
+      user: sanitizeUser(user, {
         emailVerified: false,
         totalXp: 0,
         level: 1
-      }
+      })
     });
   } catch (err) {
     res.status(500).json({ error: 'Registration failed.' });
@@ -492,7 +491,7 @@ router.post('/password-reset/confirm', rateLimit({ windowMs: 60000, max: 10 }), 
     }
 
     const record = await db.getEmailVerification(user.id);
-    if (!record || !record.code_hash || !record.challenge_id.startsWith('reset:')) {
+    if (!record || !record.code_hash || !record.challenge_id.includes('reset')) {
       return res.status(400).json({ error: 'No pending reset code found. Please request a new code.' });
     }
 
@@ -574,22 +573,32 @@ router.get('/me', requireAuth, async (req, res) => {
 router.put('/profile', requireAuth, async (req, res) => {
   try {
     const { fullName, bio, githubUrl, portfolioUrl, location, avatarUrl } = req.body;
+
+    if (fullName !== undefined && (typeof fullName !== 'string' || fullName.trim().length < 2 || fullName.trim().length > 70)) {
+      return res.status(400).json({ error: 'Full name must be between 2 and 70 characters.' });
+    }
+    if (bio !== undefined && typeof bio === 'string' && bio.length > 500) {
+      return res.status(400).json({ error: 'Bio must be under 500 characters.' });
+    }
+    if (location !== undefined && typeof location === 'string' && location.length > 70) {
+      return res.status(400).json({ error: 'Location must be under 70 characters.' });
+    }
+
     const updated = await db.updateUserProfile(req.user.id, {
-      fullName,
-      bio,
-      githubUrl,
-      portfolioUrl,
-      location,
-      avatarUrl
+      fullName: fullName !== undefined ? String(fullName).trim() : undefined,
+      bio: bio !== undefined ? String(bio).trim() : undefined,
+      githubUrl: githubUrl !== undefined ? String(githubUrl).trim() : undefined,
+      portfolioUrl: portfolioUrl !== undefined ? String(portfolioUrl).trim() : undefined,
+      location: location !== undefined ? String(location).trim() : undefined,
+      avatarUrl: avatarUrl !== undefined ? String(avatarUrl).trim() : undefined
     });
 
     res.json({
       message: 'Profile updated successfully.',
-      user: {
-        ...updated,
+      user: sanitizeUser(updated, {
         totalXp: req.user.totalXp,
         level: req.user.level
-      }
+      })
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to update user profile.' });
