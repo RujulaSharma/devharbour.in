@@ -1012,12 +1012,37 @@ html[data-theme="dark"] .fc-chip i {
 .ltb{display:flex;gap:6px;padding:4px;border-radius:99px;box-shadow:inset 0 0 0 1px var(--line)}
 .ltb button{padding:8px 16px;border-radius:99px;font-weight:700;font-size:13px;color:var(--mut);transition:background .35s var(--e),color .35s var(--e)}.ltb [aria-selected="true"]{background:var(--ink);color:var(--bg)}
 .pod{display:grid;grid-template-columns:1fr 1.1fr 1fr;gap:12px;align-items:end;margin:26px 0 18px}
-.pd{display:flex;flex-direction:column;gap:4px;padding:16px 12px 18px;border-radius:22px;text-align:center;background:var(--soft);box-shadow:inset 0 0 0 1px var(--line);min-width:0}
-.pd.p1{padding-top:30px;padding-bottom:28px;background:var(--ink);color:var(--bg)}
-.pd small{font-family:'Michroma',var(--font);font-size:clamp(20px,4vw,32px);opacity:.9}.pd b{font-size:clamp(14px,2.4vw,20px);font-weight:800;text-transform:uppercase;letter-spacing:.03em;overflow:hidden;text-overflow:ellipsis}
-.pd span{font-weight:800;font-size:clamp(13px,2vw,16px)}.pd em{font-style:normal;font-size:12px;font-weight:600;opacity:.7}
-.lrw{display:grid;grid-template-columns:44px 1fr auto auto;gap:6px 20px;align-items:center;padding:14px 4px;border-bottom:1px solid var(--line);font-size:15px;font-weight:600}.lrw.h{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut);padding-top:2px}.lrw b{font-weight:800}.lrw span:nth-child(3),.lrw span:nth-child(4){text-align:right;font-variant-numeric:tabular-nums}.lrw span:nth-child(2){text-transform:capitalize}
-.lbf{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-top:22px}
+.pd{display:flex;flex-direction:column;gap:4px;padding:16px 12px 18px;border-radius:22px;text-align:center;background:var(--soft);box-shadow:inset 0 0 0 1px var(--line);min-width:0;cursor:pointer;position:relative;transition:transform .2s ease,box-shadow .2s ease}
+.pd:hover{transform:translateY(-4px);box-shadow:0 14px 28px -10px rgba(0,0,0,.25)}
+.pd.p1{padding-top:26px;padding-bottom:24px;background:var(--ink);color:var(--bg)}
+.pd-crown{font-size:18px;line-height:1;margin-bottom:2px}
+.pd-avatar{width:36px;height:36px;border-radius:50%;background:var(--ink);color:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;margin:2px auto 4px;border:2px solid var(--card)}
+.pd.p1 .pd-avatar{background:var(--bg);color:var(--ink)}
+.pd .pd-handle{font-size:11px;opacity:.7;font-weight:500;margin-top:-2px}
+.pd small{font-family:'Michroma',var(--font);font-size:clamp(16px,3vw,24px);opacity:.9}
+.pd b{font-size:clamp(13px,2vw,17px);font-weight:800;text-transform:uppercase;letter-spacing:.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pd span{font-weight:800;font-size:clamp(13px,2vw,16px)}
+.pd em{font-style:normal;font-size:12px;font-weight:600;opacity:.75}
+.lrw{display:grid;grid-template-columns:36px 1fr auto auto;gap:6px 16px;align-items:center;padding:12px 8px;border-bottom:1px solid var(--line);font-size:14.5px;font-weight:600;cursor:pointer;border-radius:12px;transition:background .15s ease,transform .15s ease}
+.lrw.h{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut);padding:4px 8px;cursor:default}
+.lrw:not(.h):hover{background:var(--soft);transform:translateX(3px)}
+.lrw.is-me{background:rgba(99,102,241,.12);border-left:3px solid #6366f1}
+.lrw b{font-weight:800}
+.lrw span:nth-child(3),.lrw span:nth-child(4){text-align:right;font-variant-numeric:tabular-nums}
+.dev-cell{display:flex;align-items:center;gap:10px;min-width:0}
+.dev-av{width:28px;height:28px;border-radius:50%;background:var(--soft);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11.5px;flex-shrink:0}
+.dev-name-wrap{min-width:0;display:flex;flex-direction:column;text-align:left}
+.dev-name{font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dev-handle{font-size:11px;color:var(--mut);font-weight:500;margin-top:1px}
+.lb-streak{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:#f59e0b;padding:2px 7px;border-radius:99px;background:rgba(245,158,11,.12)}
+.lb-search-wrap{position:relative;margin:12px 0 8px;width:100%}
+.lb-search-input{width:100%;box-sizing:border-box;padding:9px 14px 9px 36px;border-radius:12px;border:1px solid var(--line);background:var(--soft);color:var(--ink);font-size:13px;font-family:inherit;outline:none;transition:border-color .2s,box-shadow .2s}
+.lb-search-input:focus{border-color:var(--ink);box-shadow:0 0 0 2px rgba(120,110,170,.2)}
+.lb-search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:.5;pointer-events:none;display:flex;align-items:center}
+.lb-user-banner{margin:10px 0 14px;padding:10px 14px;border-radius:14px;background:var(--soft);border:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;font-weight:600}
+.lb-user-banner b{color:var(--ink)}
+.lb-empty{text-align:center;padding:28px 16px;color:var(--mut);font-size:13px}
+.lbf{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-top:18px}
 
 /* ===== EFFECTS: spotlight cards, scroll bar, ticker ===== */
 #landing{--spot:rgba(120,110,170,.16)}html[data-theme="dark"] #landing{--spot:rgba(255,255,255,.12)}
@@ -1220,6 +1245,36 @@ html[data-theme="dark"] .px-modal-close:hover{background:rgba(255,255,255,.24)}
 .pm-btn.primary{background:var(--blk);color:#fff}
 .pm-btn.secondary{background:rgba(0,0,0,.05);color:var(--ink);border:1px solid var(--line)}
 html[data-theme="dark"] .pm-btn.secondary{background:rgba(255,255,255,.06);color:#eee}
+
+/* ===== INTERACTIVE DEVELOPER PROFILE MODAL ===== */
+.dh-dev-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);z-index:99999;display:none;align-items:center;justify-content:center;padding:16px;opacity:0;transition:opacity .25s ease}
+.dh-dev-modal-overlay.open{display:flex;opacity:1}
+.dh-dev-modal-card{position:relative;background:var(--card);border:1px solid var(--line);border-radius:24px;max-width:440px;width:100%;box-shadow:0 30px 70px -15px rgba(0,0,0,.5);overflow:hidden;animation:dhDevPop .3s cubic-bezier(.16,1,.3,1)}
+@keyframes dhDevPop{from{transform:scale(.94) translateY(12px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+.dh-dev-modal-header{position:relative;padding:28px 24px 18px;text-align:center;background:linear-gradient(180deg,var(--soft) 0%,var(--card) 100%);border-bottom:1px solid var(--line)}
+.dh-dev-modal-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.06);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:16px;font-weight:700;transition:all .2s;z-index:5}
+html[data-theme="dark"] .dh-dev-modal-close{background:rgba(255,255,255,.1)}
+.dh-dev-modal-close:hover{background:var(--ink);color:var(--bg)}
+.dh-dev-badge-rank{position:absolute;top:14px;left:14px;font-size:11px;font-weight:800;padding:4px 10px;border-radius:99px;background:var(--ink);color:var(--bg);text-transform:uppercase;letter-spacing:.06em}
+.dh-dev-avatar-lg{width:76px;height:76px;border-radius:50%;margin:0 auto 12px;background:linear-gradient(135deg,var(--ink),#6366f1);color:#fff;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800;box-shadow:0 10px 25px -6px rgba(0,0,0,.3);border:3px solid var(--card)}
+.dh-dev-name-lg{font-size:20px;font-weight:800;letter-spacing:-.02em;margin:0 0 2px;color:var(--ink)}
+.dh-dev-handle-lg{font-size:13px;color:var(--mut);font-weight:600;margin-bottom:8px}
+.dh-dev-bio{font-size:12.5px;color:var(--ink);opacity:.85;line-height:1.5;max-width:340px;margin:0 auto}
+.dh-dev-modal-body{padding:20px 24px}
+.dh-dev-stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.dh-dev-stat-box{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:10px 8px;text-align:center}
+.dh-dev-stat-val{font-size:15px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+.dh-dev-stat-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin-top:2px}
+.dh-dev-badges-wrap{margin-bottom:14px}
+.dh-dev-badges-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:8px}
+.dh-dev-tags{display:flex;gap:6px;flex-wrap:wrap}
+.dh-dev-tag{font-size:11px;font-weight:700;padding:4px 9px;border-radius:8px;background:var(--soft);border:1px solid var(--line);color:var(--ink)}
+.dh-dev-modal-footer{display:flex;gap:10px;align-items:center;border-top:1px solid var(--line);padding:14px 24px;background:var(--soft)}
+.dh-cheer-btn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 18px;border-radius:99px;background:var(--ink);color:var(--bg);font-weight:800;font-size:13px;border:none;cursor:pointer;transition:transform .15s ease,background .2s}
+.dh-cheer-btn:hover{transform:scale(1.02)}
+.dh-cheer-btn:active{transform:scale(.97)}
+.dh-cheer-count{background:rgba(255,255,255,.2);padding:2px 8px;border-radius:99px;font-size:11.5px}
+html[data-theme="dark"] .dh-cheer-count{background:rgba(0,0,0,.3)}
 
 /* ===== DEV HARBOUR: WORKSPACE — MERCURY ROLLER & AESTHETIC WORKBENCH ===== */
 .ws-container {
@@ -4298,6 +4353,11 @@ requestAnimationFrame(loop);
 <!-- LEADERBOARD -->
 <section class="zs" id="leaderboard"><h2 class="zh">Climb the leaderboard.</h2>
 <div class="lbx zv"><div class="lbh"><span class="xlg"><img class="xli" data-logo alt="">DEV HARBOUR</span><div class="ltb" id="ltb" role="tablist"></div></div>
+<div class="lb-search-wrap">
+  <span class="lb-search-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
+  <input class="lb-search-input" id="lb-search" type="search" placeholder="Search developer or handle…" aria-label="Search leaderboard">
+</div>
+<div id="lb-user-standing"></div>
 <div class="pod" id="lpod"></div><div id="lrows"></div>
 <div class="lbf"><p class="zn">Top student developers ranked by verified challenge and project XP.</p><button class="zb" type="button" data-go="practice">Join the leaderboard</button></div></div></section>
 <section class="zs" id="learning"><h2 class="zh">Curiosity, with direction.</h2><div class="zq" id="zpath" data-st></div><p class="zn" style="margin-top:34px">Every path is free, start to finish.</p></section>
@@ -4648,6 +4708,11 @@ requestAnimationFrame(loop);
       <div class="c k s4">
         <div class="h" id="practice-leaderboard"><h3>Leaderboard</h3><span class="tag">Live</span></div>
         <div class="fl" id="lt"></div>
+        <div class="lb-search-wrap" style="margin:8px 0 10px;">
+          <span class="lb-search-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
+          <input class="lb-search-input" id="lb-practice-search" type="search" placeholder="Search rankings…" aria-label="Search rankings">
+        </div>
+        <div id="lb-practice-user-bar"></div>
         <div id="lb"></div>
       </div>
     </div>
@@ -6863,6 +6928,10 @@ try {
       const data = JSON.parse(e.data);
       if (data.type === 'challenge_solved' && data.data) {
         toast(`Live: ${data.data.username || 'A developer'} solved ${data.data.title}!`);
+        if (typeof rl === 'function') rl(currentLeaderboardTimeframe);
+      } else if (data.type === 'user_joined' && data.message) {
+        toast(`✦ ${data.message}`);
+        if (typeof rl === 'function') rl(currentLeaderboardTimeframe);
       }
     } catch(err) {}
   };
@@ -6892,78 +6961,612 @@ function safeHttpLink(value) {
   }
 }
 
-/* ===== REAL DYNAMIC LEADERBOARD ===== */
+/* ===== REAL DYNAMIC LEADERBOARD CONTROLLER ===== */
+const LB_TIMEFRAMES = ['Weekly', 'Monthly', 'All-time'];
 let currentLeaderboardTimeframe = 'Weekly';
+let currentLeaderboardList = [];
+let lbLandingFilter = '';
+let lbPracticeFilter = '';
+let activeModalDev = null;
+
+function getCurrentUser() {
+  if (typeof currentUser !== 'undefined' && currentUser) return currentUser;
+  try {
+    const raw = localStorage.getItem('dh_current_user') || localStorage.getItem('dh-current-user');
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) {
+    return null;
+  }
+}
+
 const SEED_LB_DEVELOPERS = [
-  { rank: 1, userId: 'usr-mei', username: 'mei', fullName: 'Mei Chen', xp: 18400, challengesSolved: 14, streakDays: 7, level: 14 },
-  { rank: 2, userId: 'usr-ayesha', username: 'ayesha', fullName: 'Ayesha Khan', xp: 17320, challengesSolved: 12, streakDays: 9, level: 14 },
-  { rank: 3, userId: 'usr-kabir', username: 'kabir', fullName: 'Kabir Verma', xp: 15900, challengesSolved: 10, streakDays: 5, level: 13 },
-  { rank: 4, userId: 'usr-nora', username: 'nora', fullName: 'Nora Davis', xp: 13300, challengesSolved: 8, streakDays: 4, level: 12 },
-  { rank: 5, userId: 'usr-lucas', username: 'lucas', fullName: 'Lucas Vance', xp: 9450, challengesSolved: 7, streakDays: 4, level: 10 },
-  { rank: 6, userId: 'usr-admin-parth', username: 'parth', fullName: 'Parth Gidde', xp: 8200, challengesSolved: 6, streakDays: 3, level: 9 },
-  { rank: 7, userId: 'usr-rujula', username: 'rujula', fullName: 'Rujula Sharma', xp: 7600, challengesSolved: 5, streakDays: 4, level: 9 },
-  { rank: 8, userId: 'usr-e131d05b', username: 'build_778619', fullName: 'Project Builder', xp: 320, challengesSolved: 2, streakDays: 2, level: 2 }
+  {
+    userId: 'usr-mei',
+    username: 'mei',
+    fullName: 'Mei Chen',
+    allTimeXp: 18400,
+    monthlyXp: 4200,
+    weeklyXp: 980,
+    challengesSolved: 212,
+    weeklySolved: 14,
+    monthlySolved: 48,
+    streakDays: 7,
+    level: 14,
+    bio: 'Security & Systems · Linux, Rust, CTFs. Building safe, high-performance distributed systems.',
+    tags: ['🛡️ CTF Ace', '⚡ Fast Solver', '🦀 Rustacean', '👑 Top 1'],
+    baseCheers: 142
+  },
+  {
+    userId: 'usr-ayesha',
+    username: 'ayesha',
+    fullName: 'Ayesha Khan',
+    allTimeXp: 17320,
+    monthlyXp: 3950,
+    weeklyXp: 890,
+    challengesSolved: 198,
+    weeklySolved: 12,
+    monthlySolved: 44,
+    streakDays: 9,
+    level: 14,
+    bio: 'AI & Machine Learning · PyTorch, Python, SQL. Exploring generative models and multi-agent systems.',
+    tags: ['🤖 AI Explorer', '🔥 High Streak', '🥈 Podium Finisher'],
+    baseCheers: 128
+  },
+  {
+    userId: 'usr-kabir',
+    username: 'kabir',
+    fullName: 'Kabir Verma',
+    allTimeXp: 15900,
+    monthlyXp: 3600,
+    weeklyXp: 840,
+    challengesSolved: 187,
+    weeklySolved: 10,
+    monthlySolved: 40,
+    streakDays: 5,
+    level: 13,
+    bio: 'Full-Stack & Systems · React, Node, TypeScript. Crafting open-source tooling and web interfaces.',
+    tags: ['💻 Full-Stack', '🥉 Podium Finisher', '🚀 Builder'],
+    baseCheers: 119
+  },
+  {
+    userId: 'usr-nora',
+    username: 'nora',
+    fullName: 'Nora Davis',
+    allTimeXp: 13300,
+    monthlyXp: 3100,
+    weeklyXp: 720,
+    challengesSolved: 160,
+    weeklySolved: 8,
+    monthlySolved: 35,
+    streakDays: 4,
+    level: 12,
+    bio: 'Algorithms & Competitive Programming · Python, C++. Solving algorithm challenges daily.',
+    tags: ['⚡ Problem Solver', '🎯 100+ Solved', '💡 Innovator'],
+    baseCheers: 84
+  },
+  {
+    userId: 'usr-lucas',
+    username: 'lucas',
+    fullName: 'Lucas Vance',
+    allTimeXp: 12100,
+    monthlyXp: 2750,
+    weeklyXp: 640,
+    challengesSolved: 151,
+    weeklySolved: 7,
+    monthlySolved: 31,
+    streakDays: 4,
+    level: 11,
+    bio: 'Cloud & DevOps Architect · Go, Docker, Kubernetes. Deploying resilient student cloud architectures.',
+    tags: ['☁️ Cloud Native', '🐳 Docker Pro', '🔧 DevOps'],
+    baseCheers: 73
+  },
+  {
+    userId: 'usr-admin-parth',
+    username: 'parth',
+    fullName: 'Parth Gidde',
+    allTimeXp: 10800,
+    monthlyXp: 2400,
+    weeklyXp: 580,
+    challengesSolved: 139,
+    weeklySolved: 6,
+    monthlySolved: 27,
+    streakDays: 3,
+    level: 10,
+    bio: 'Full-Stack Architect · TypeScript, Supabase, Next.js. Core Dev Harbour Architect.',
+    tags: ['⚙️ Core Architect', '⚡ TypeScript Ace', '🌟 Top 10'],
+    baseCheers: 65
+  },
+  {
+    userId: 'usr-rujula',
+    username: 'rujula',
+    fullName: 'Rujula Sharma',
+    allTimeXp: 9600,
+    monthlyXp: 2150,
+    weeklyXp: 520,
+    challengesSolved: 124,
+    weeklySolved: 5,
+    monthlySolved: 24,
+    streakDays: 4,
+    level: 9,
+    bio: 'Founder & CEO @devharbour · Systems, Cloud & Product Architecture. Building for learners worldwide.',
+    tags: ['👑 Dev Harbour Founder', '🌟 Product Lead', '🚀 Visionary'],
+    baseCheers: 186
+  },
+  {
+    userId: 'usr-riya',
+    username: 'riya',
+    fullName: 'Riya Sen',
+    allTimeXp: 8400,
+    monthlyXp: 1900,
+    weeklyXp: 450,
+    challengesSolved: 110,
+    weeklySolved: 5,
+    monthlySolved: 21,
+    streakDays: 3,
+    level: 8,
+    bio: 'UI/UX & Frontend Engineer · Vue, Tailwind, CSS Animation specialist.',
+    tags: ['🎨 UI Craftsman', '✨ CSS Magician'],
+    baseCheers: 49
+  },
+  {
+    userId: 'usr-zane',
+    username: 'zane',
+    fullName: 'Zane Miller',
+    allTimeXp: 7200,
+    monthlyXp: 1650,
+    weeklyXp: 390,
+    challengesSolved: 95,
+    weeklySolved: 4,
+    monthlySolved: 18,
+    streakDays: 2,
+    level: 7,
+    bio: 'Mobile & Cross-Platform Developer · Flutter, Dart, Firebase.',
+    tags: ['📱 Mobile Pro', '🎯 Swift Builder'],
+    baseCheers: 38
+  },
+  {
+    userId: 'usr-tara',
+    username: 'tara',
+    fullName: 'Tara Patel',
+    allTimeXp: 6100,
+    monthlyXp: 1400,
+    weeklyXp: 330,
+    challengesSolved: 82,
+    weeklySolved: 3,
+    monthlySolved: 15,
+    streakDays: 2,
+    level: 6,
+    bio: 'Data Science & Visualizations · Python, Pandas, D3.js. Making numbers tell stories.',
+    tags: ['📊 Data Wizard', '📈 Chart Master'],
+    baseCheers: 32
+  }
 ];
 
-async function rl(k) {
-  currentLeaderboardTimeframe = k || currentLeaderboardTimeframe;
-  const lbContainer = $('lb');
-  if (!lbContainer) return;
+function getDevXp(dev, tf) {
+  if (tf === 'Weekly') return dev.weeklyXp || (dev.xp != null && dev.allTimeXp ? Math.round(dev.xp * 0.06) : (dev.xp || 320));
+  if (tf === 'Monthly') return dev.monthlyXp || (dev.xp != null && dev.allTimeXp ? Math.round(dev.xp * 0.24) : (dev.xp || 750));
+  return dev.allTimeXp || dev.xp || dev.totalXp || 1200;
+}
 
-  function renderList(list) {
-    lbContainer.innerHTML = list.map((u, i) => {
-      const isMe = currentUser && (u.userId === currentUser.id || u.username === currentUser.username || (u.id && u.id === currentUser.id));
-      const name = u.fullName || u.username || 'Developer';
-      const uName = u.username ? `@${u.username}` : '';
-      const initial = (name || 'D')[0].toUpperCase();
-      const solvedCount = u.challengesSolved != null ? u.challengesSolved : (u.solved || 0);
-      const solvedText = `${solvedCount} solved`;
-      return `<div class="lr${isMe ? ' is-me' : ''}">
-        <b>${u.rank || (i + 1)}</b>
-        <span class="a" title="${esc(name)}">${esc(initial)}</span>
-        <span><b>${esc(name)}</b> ${uName ? `<small class="mut">${esc(uName)}</small>` : ''}<br><em>${solvedText}</em></span>
-        <span>${(u.xp || u.totalXp || 0).toLocaleString()} XP</span>
+function getDevSolved(dev, tf) {
+  if (tf === 'Weekly') return dev.weeklySolved || dev.challengesSolvedWeekly || Math.max(1, Math.round((dev.challengesSolved || 10) * 0.08));
+  if (tf === 'Monthly') return dev.monthlySolved || dev.challengesSolvedMonthly || Math.max(2, Math.round((dev.challengesSolved || 10) * 0.25));
+  return dev.challengesSolved || dev.solved || 12;
+}
+
+function getDevCheers(key, base) {
+  try {
+    const store = JSON.parse(localStorage.getItem('dh-dev-cheers') || '{}');
+    if (store[key] != null) return store[key];
+  } catch {}
+  return base || 25;
+}
+
+function cheerDeveloper(key) {
+  try {
+    const store = JSON.parse(localStorage.getItem('dh-dev-cheers') || '{}');
+    const cur = store[key] != null ? store[key] : (activeModalDev?.baseCheers || 25);
+    store[key] = cur + 1;
+    localStorage.setItem('dh-dev-cheers', JSON.stringify(store));
+    return store[key];
+  } catch {
+    return (activeModalDev?.baseCheers || 25) + 1;
+  }
+}
+
+window.openDeveloperModal = function(devOrKey) {
+  let dev = null;
+  if (typeof devOrKey === 'object' && devOrKey !== null) {
+    dev = devOrKey;
+  } else if (typeof devOrKey === 'string') {
+    dev = currentLeaderboardList.find(d => d.username === devOrKey || d.userId === devOrKey || d.fullName === devOrKey);
+    if (!dev) {
+      dev = SEED_LB_DEVELOPERS.find(d => d.username === devOrKey || d.userId === devOrKey || d.fullName === devOrKey);
+    }
+  }
+  if (!dev) return;
+  activeModalDev = dev;
+
+  const modal = document.getElementById('dh-dev-modal');
+  if (!modal) return;
+
+  const name = dev.fullName || dev.username || 'Developer';
+  const uname = dev.username ? `@${dev.username}` : '';
+  const initial = (name || 'D')[0].toUpperCase();
+  const xp = (dev.xp || dev.allTimeXp || dev.totalXp || 0).toLocaleString();
+  const solved = dev.challengesSolved != null ? dev.challengesSolved : (dev.solved || 0);
+  const streak = dev.streakDays || dev.streak || 1;
+  const rank = dev.rank ? `Rank #${dev.rank}` : 'Top Dev';
+  const bio = dev.bio || `${name} is an active student developer building, testing, and shipping software on Dev Harbour.`;
+  const cheersKey = dev.userId || dev.username || name;
+  const cheersCount = getDevCheers(cheersKey, dev.baseCheers || 30);
+
+  const tags = Array.isArray(dev.tags) && dev.tags.length > 0 
+    ? dev.tags 
+    : [
+        dev.rank && dev.rank <= 3 ? '👑 Podium Finisher' : '🚀 Top Builder',
+        solved >= 10 ? '💻 10+ Solved' : '⚡ Problem Solver',
+        `Level ${dev.level || 5}`
+      ];
+
+  const mRank = document.getElementById('dh-dev-modal-rank');
+  const mAvatar = document.getElementById('dh-dev-modal-avatar');
+  const mName = document.getElementById('dh-dev-modal-name');
+  const mHandle = document.getElementById('dh-dev-modal-handle');
+  const mBio = document.getElementById('dh-dev-modal-bio');
+  const mXp = document.getElementById('dh-dev-modal-xp');
+  const mSolved = document.getElementById('dh-dev-modal-solved');
+  const mStreak = document.getElementById('dh-dev-modal-streak');
+  const mTags = document.getElementById('dh-dev-modal-tags');
+  const cheerBtn = document.getElementById('dh-dev-cheer-btn');
+
+  if (mRank) mRank.textContent = rank;
+  if (mAvatar) mAvatar.textContent = initial;
+  if (mName) mName.textContent = name;
+  if (mHandle) mHandle.textContent = uname;
+  if (mBio) mBio.textContent = bio;
+  if (mXp) mXp.textContent = xp;
+  if (mSolved) mSolved.textContent = String(solved);
+  if (mStreak) mStreak.textContent = `🔥 ${streak}d`;
+  if (cheerBtn) cheerBtn.innerHTML = `<span>👏 Cheer Developer</span><span class="dh-cheer-count" id="dh-dev-modal-cheers">${cheersCount}</span>`;
+
+  if (mTags) {
+    mTags.innerHTML = tags.map(t => `<span class="dh-dev-tag">${esc(t)}</span>`).join('');
+  }
+
+  modal.classList.add('open');
+};
+
+window.closeDeveloperModal = function(e) {
+  if (e && e.target && e.target !== e.currentTarget && !e.target.classList.contains('dh-dev-modal-close')) return;
+  const modal = document.getElementById('dh-dev-modal');
+  if (modal) modal.classList.remove('open');
+};
+
+window.cheerCurrentDeveloper = function() {
+  if (!activeModalDev) return;
+  const key = activeModalDev.userId || activeModalDev.username || activeModalDev.fullName;
+  const newCount = cheerDeveloper(key);
+  const cheerBtn = document.getElementById('dh-dev-cheer-btn');
+  if (cheerBtn) {
+    cheerBtn.innerHTML = `<span>👏 Cheered!</span><span class="dh-cheer-count">${newCount}</span>`;
+  }
+  toast(`👏 Sent cheers to ${activeModalDev.fullName || activeModalDev.username}!`);
+};
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeDeveloperModal();
+});
+
+function renderAllLeaderboardViews() {
+  // 1. Timeframe Tabs (#ltb on Landing Page, #lt in Practice)
+  const ltb = $('ltb');
+  if (ltb) {
+    ltb.innerHTML = LB_TIMEFRAMES.map(tf => 
+      `<button type="button" role="tab" aria-selected="${tf === currentLeaderboardTimeframe}" data-k="${tf}">${tf}</button>`
+    ).join('');
+  }
+
+  const lt = $('lt');
+  if (lt) {
+    pills(lt, LB_TIMEFRAMES, currentLeaderboardTimeframe, tf => rl(tf));
+  }
+
+  // 2. Filter list for Landing Page
+  const filteredLanding = currentLeaderboardList.filter(u => {
+    if (!lbLandingFilter) return true;
+    const n = (u.fullName || '').toLowerCase();
+    const un = (u.username || '').toLowerCase();
+    return n.includes(lbLandingFilter) || un.includes(lbLandingFilter);
+  });
+
+  // 3. Render Landing Page Podium (#lpod) & Rows (#lrows)
+  const lpod = $('lpod');
+  const lrows = $('lrows');
+  const top3 = filteredLanding.slice(0, 3);
+
+  if (lpod) {
+    if (filteredLanding.length === 0) {
+      lpod.innerHTML = `<div class="lb-empty" style="grid-column:1/-1;">No developers found matching "${esc(lbLandingFilter)}".</div>`;
+    } else {
+      // Silver #2 (left), Gold #1 (center), Bronze #3 (right)
+      const P = [top3[1] || null, top3[0] || null, top3[2] || null];
+      const rk = [2, 1, 3];
+      lpod.innerHTML = P.map((u, i) => {
+        if (!u) return '<div class="pd" style="visibility:hidden"></div>';
+        const r = rk[i];
+        const name = u.fullName || u.username || 'Developer';
+        const initial = (name || 'D')[0].toUpperCase();
+        const xp = (u.xp || u.allTimeXp || u.totalXp || 0).toLocaleString();
+        const solved = u.challengesSolved != null ? u.challengesSolved : (u.solved || 0);
+        const crown = r === 1 ? '👑' : (r === 2 ? '🥈' : '🥉');
+        const devKey = u.userId || u.username || name;
+        return `<div class="pd p${r}" onclick="openDeveloperModal('${esc(devKey)}')">
+          <span class="pd-crown">${crown}</span>
+          <span class="pd-avatar">${esc(initial)}</span>
+          <small>0${r}</small>
+          <b>${esc(name)}</b>
+          <span class="pd-handle">${u.username ? '@' + esc(u.username) : ''}</span>
+          <span>${xp} XP</span>
+          <em>${solved} challenges</em>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  if (lrows) {
+    const rest = filteredLanding.slice(3);
+    if (filteredLanding.length === 0 || (rest.length === 0 && top3.length > 0)) {
+      lrows.innerHTML = '';
+    } else {
+      const myUser = getCurrentUser();
+      lrows.innerHTML = '<div class="lrw h"><span>Rank</span><span>Developer</span><span>Challenges</span><span>XP</span></div>' +
+        rest.map((u, i) => {
+          const r = u.rank || (i + 4);
+          const rankStr = r < 10 ? `0${r}` : `${r}`;
+          const name = u.fullName || u.username || 'Developer';
+          const initial = (name || 'D')[0].toUpperCase();
+          const xp = (u.xp || u.allTimeXp || u.totalXp || 0).toLocaleString();
+          const solved = u.challengesSolved != null ? u.challengesSolved : (u.solved || 0);
+          const devKey = u.userId || u.username || name;
+          const streak = u.streakDays || u.streak || 1;
+          const isMe = myUser && (u.userId === myUser.id || u.username === myUser.username || u.id === myUser.id);
+          return `<div class="lrw${isMe ? ' is-me' : ''}" onclick="openDeveloperModal('${esc(devKey)}')">
+            <b>${rankStr}</b>
+            <div class="dev-cell">
+              <span class="dev-av">${esc(initial)}</span>
+              <div class="dev-name-wrap">
+                <span class="dev-name">${esc(name)}</span>
+                <span class="dev-handle">${u.username ? '@' + esc(u.username) : ''}</span>
+              </div>
+            </div>
+            <span>${solved} <small class="lb-streak">🔥${streak}d</small></span>
+            <span>${xp}</span>
+          </div>`;
+        }).join('');
+    }
+  }
+
+  // 4. User Standing Banner (#lb-user-standing & #lb-practice-user-bar)
+  const myUser = getCurrentUser();
+  const stEl = $('lb-user-standing');
+  const pStEl = $('lb-practice-user-bar');
+  let bannerHtml = '';
+
+  if (myUser) {
+    const myIdx = currentLeaderboardList.findIndex(u => 
+      (u.userId && u.userId === myUser.id) ||
+      (u.username && u.username === myUser.username) ||
+      (u.id && u.id === myUser.id)
+    );
+    if (myIdx >= 0) {
+      const myRank = currentLeaderboardList[myIdx].rank || (myIdx + 1);
+      const myXp = currentLeaderboardList[myIdx].xp || myUser.totalXp || 0;
+      let aheadText = '';
+      if (myIdx > 0) {
+        const aheadDev = currentLeaderboardList[myIdx - 1];
+        const diff = ((aheadDev.xp || 0) - myXp) + 1;
+        aheadText = `<span><b>+${diff > 0 ? diff.toLocaleString() : 50} XP</b> to overtake #${myRank - 1} (${esc(aheadDev.fullName || aheadDev.username)})</span>`;
+      } else {
+        aheadText = `<span style="color:var(--sv);font-weight:700;">🌟 You are holding the #1 position!</span>`;
+      }
+      bannerHtml = `<div class="lb-user-banner">
+        <span>🏆 <b>Your Rank:</b> #${myRank} · ${(myXp || 0).toLocaleString()} XP</span>
+        ${aheadText}
+      </div>`;
+    } else {
+      const userXp = myUser.totalXp || myUser.xp || 0;
+      bannerHtml = `<div class="lb-user-banner">
+        <span>👋 <b>${esc(myUser.fullName || myUser.username)}</b>: You have ${(userXp).toLocaleString()} XP</span>
+        <span>Solve challenges to climb the top ranking!</span>
+      </div>`;
+    }
+  } else {
+    bannerHtml = `<div class="lb-user-banner">
+      <span>💡 Join Dev Harbour to solve coding challenges, earn XP &amp; climb the live leaderboard.</span>
+      <button class="bt" type="button" onclick="openAuthModal()" style="padding:4px 12px;font-size:11.5px;border-radius:99px;background:var(--ink);color:var(--bg);cursor:pointer;">Sign In</button>
+    </div>`;
+  }
+  if (stEl) stEl.innerHTML = bannerHtml;
+  if (pStEl) pStEl.innerHTML = bannerHtml;
+
+  // 5. Practice View Leaderboard (#lb)
+  const lbContainer = $('lb');
+  if (lbContainer) {
+    const filteredPractice = currentLeaderboardList.filter(u => {
+      if (!lbPracticeFilter) return true;
+      const n = (u.fullName || '').toLowerCase();
+      const un = (u.username || '').toLowerCase();
+      return n.includes(lbPracticeFilter) || un.includes(lbPracticeFilter);
+    });
+    if (filteredPractice.length === 0) {
+      lbContainer.innerHTML = `<p class="mut" style="padding:20px 0;text-align:center;">No rankings matching "${esc(lbPracticeFilter)}".</p>`;
+    } else {
+      lbContainer.innerHTML = filteredPractice.map((u, i) => {
+        const isMe = myUser && (u.userId === myUser.id || u.username === myUser.username || (u.id && u.id === myUser.id));
+        const name = u.fullName || u.username || 'Developer';
+        const uName = u.username ? `@${u.username}` : '';
+        const initial = (name || 'D')[0].toUpperCase();
+        const solvedCount = u.challengesSolved != null ? u.challengesSolved : (u.solved || 0);
+        const solvedText = `${solvedCount} solved`;
+        const devKey = u.userId || u.username || name;
+        const xp = (u.xp || u.allTimeXp || u.totalXp || 0).toLocaleString();
+        return `<div class="lr${isMe ? ' is-me' : ''}" style="cursor:pointer;" onclick="openDeveloperModal('${esc(devKey)}')">
+          <b>${u.rank || (i + 1)}</b>
+          <span class="a" title="${esc(name)}">${esc(initial)}</span>
+          <span><b>${esc(name)}</b> ${uName ? `<small class="mut">${esc(uName)}</small>` : ''}<br><em>${solvedText}</em></span>
+          <span>${xp} XP</span>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // 6. Community Section (#zlb & #zav)
+  const zav = $('zav');
+  const zlb = $('zlb');
+  const topCommunity = currentLeaderboardList.slice(0, 5);
+  if (zav && topCommunity.length > 0) {
+    zav.innerHTML = topCommunity.map(u => {
+      const name = u.fullName || u.username || 'Dev';
+      const devKey = u.userId || u.username || name;
+      return `<span class="zav" style="cursor:pointer;" title="${esc(name)}" onclick="openDeveloperModal('${esc(devKey)}')">${esc(name[0].toUpperCase())}</span>`;
+    }).join('');
+  }
+  if (zlb && topCommunity.length > 0) {
+    zlb.innerHTML = topCommunity.map((u, i) => {
+      const name = u.fullName || u.username || 'Dev';
+      const solved = u.challengesSolved != null ? u.challengesSolved : (u.solved || 0);
+      const xp = (u.xp || u.allTimeXp || u.totalXp || 0).toLocaleString();
+      const devKey = u.userId || u.username || name;
+      return `<div class="zlb" style="cursor:pointer;" onclick="openDeveloperModal('${esc(devKey)}')">
+        <b>${i + 1}</b>
+        <span>${esc(name)}</span>
+        <span>${solved}</span>
+        <span>${xp} XP</span>
       </div>`;
     }).join('');
   }
+}
+
+async function rl(k) {
+  currentLeaderboardTimeframe = k || currentLeaderboardTimeframe || 'Weekly';
 
   try {
-    const res = await fetch(`/api/leaderboard?timeframe=${encodeURIComponent(currentLeaderboardTimeframe)}&limit=20`);
+    const res = await fetch(`/api/leaderboard?timeframe=${encodeURIComponent(currentLeaderboardTimeframe)}&limit=30`);
     if (res.ok) {
       const data = await res.json();
       if (data.rankings && data.rankings.length > 0) {
-        renderList(data.rankings);
+        currentLeaderboardList = data.rankings.map(r => {
+          const matchSeed = SEED_LB_DEVELOPERS.find(s => s.username === r.username || s.userId === r.userId);
+          return {
+            ...matchSeed,
+            ...r,
+            bio: r.bio || matchSeed?.bio || `${r.fullName || r.username} is a student developer on Dev Harbour.`,
+            tags: r.tags || matchSeed?.tags || ['💻 Developer', `Level ${r.level || 5}`],
+            baseCheers: matchSeed?.baseCheers || 30
+          };
+        });
+        renderAllLeaderboardViews();
         return;
       }
     }
   } catch(err) {
-    console.warn('Backend leaderboard fetch, using local fallback:', err);
+    console.warn('Backend leaderboard fetch fallback:', err);
   }
 
-  // Local fallback: combine any local registered users with seed developers
+  // Local fallback: map SEED_LB_DEVELOPERS to timeframe
+  let list = SEED_LB_DEVELOPERS.map(d => ({
+    ...d,
+    xp: getDevXp(d, currentLeaderboardTimeframe),
+    challengesSolved: getDevSolved(d, currentLeaderboardTimeframe)
+  }));
+
+  // Merge any local registered users from LocalDB
   const localUsers = typeof LocalDB !== 'undefined' ? LocalDB.getUsers() : [];
-  let combined = [...SEED_LB_DEVELOPERS];
   if (localUsers.length > 0) {
     for (const lu of localUsers) {
-      if (!combined.some(c => c.username === lu.username || c.userId === lu.id)) {
-        combined.push({
+      if (!list.some(c => c.username === lu.username || c.userId === lu.id)) {
+        const uXp = lu.totalXp || 150;
+        const fakeDev = {
           userId: lu.id,
           username: lu.username,
           fullName: lu.fullName || lu.username,
-          xp: lu.totalXp || 150,
+          allTimeXp: uXp,
+          weeklyXp: Math.round(uXp * 0.1) || 50,
+          monthlyXp: Math.round(uXp * 0.3) || 100,
           challengesSolved: (lu.solvedChallenges || []).length || 1,
           streakDays: lu.streak || 1,
-          level: lu.level || 1
+          level: lu.level || 1,
+          bio: lu.bio || 'Student developer building on Dev Harbour.'
+        };
+        list.push({
+          ...fakeDev,
+          xp: getDevXp(fakeDev, currentLeaderboardTimeframe),
+          challengesSolved: getDevSolved(fakeDev, currentLeaderboardTimeframe)
         });
       }
     }
-    combined.sort((a, b) => (b.xp || 0) - (a.xp || 0));
-    combined = combined.map((u, i) => ({ ...u, rank: i + 1 }));
   }
-  renderList(combined.slice(0, 15));
+
+  // Merge current logged-in user if not in list
+  const myUser = getCurrentUser();
+  if (myUser && !list.some(c => c.username === myUser.username || c.userId === myUser.id)) {
+    const myXp = myUser.totalXp || myUser.xp || 150;
+    const fakeMe = {
+      userId: myUser.id,
+      username: myUser.username,
+      fullName: myUser.fullName || myUser.username,
+      allTimeXp: myXp,
+      weeklyXp: Math.round(myXp * 0.1) || 50,
+      monthlyXp: Math.round(myXp * 0.3) || 100,
+      challengesSolved: (myUser.solvedChallenges || []).length || 1,
+      streakDays: myUser.streak || 1,
+      level: myUser.level || 1,
+      bio: myUser.bio || 'Student developer building on Dev Harbour.'
+    };
+    list.push({
+      ...fakeMe,
+      xp: getDevXp(fakeMe, currentLeaderboardTimeframe),
+      challengesSolved: getDevSolved(fakeMe, currentLeaderboardTimeframe)
+    });
+  }
+
+  list.sort((a, b) => (b.xp || 0) - (a.xp || 0));
+  list = list.map((u, i) => ({ ...u, rank: i + 1 }));
+  currentLeaderboardList = list;
+  renderAllLeaderboardViews();
 }
+
 window.rl = rl;
-pills($('lt'), ['Weekly', 'All-time'], 'Weekly', rl);
+window.renderAllLeaderboardViews = renderAllLeaderboardViews;
+
+setTimeout(() => {
+  const sInput = $('lb-search');
+  if (sInput) {
+    sInput.addEventListener('input', e => {
+      lbLandingFilter = e.target.value.trim().toLowerCase();
+      renderAllLeaderboardViews();
+    });
+  }
+  const psInput = $('lb-practice-search');
+  if (psInput) {
+    psInput.addEventListener('input', e => {
+      lbPracticeFilter = e.target.value.trim().toLowerCase();
+      renderAllLeaderboardViews();
+    });
+  }
+  const tb = $('ltb');
+  if (tb) {
+    tb.addEventListener('click', e => {
+      const b = e.target.closest('[data-k]');
+      if (b) {
+        e.stopPropagation();
+        rl(b.dataset.k);
+      }
+    });
+  }
+}, 50);
+
 rl('Weekly');
 // Project Likes State & Real-Time Sync (Strictly real likes, NO fake counts)
 let likesStore = {};
@@ -7523,8 +8126,10 @@ try {
         }
       } else if (data.type === 'challenge_solved' && data.data) {
         toast(`Live: ${data.data.username || 'A developer'} solved ${data.data.title}!`);
+        if (typeof rl === 'function') rl(currentLeaderboardTimeframe);
       } else if (data.type === 'user_joined' && data.message) {
         toast(`✦ ${data.message}`);
+        if (typeof rl === 'function') rl(currentLeaderboardTimeframe);
       }
     } catch(err) {}
   };
@@ -9399,10 +10004,14 @@ $('zpath').innerHTML=PA.map(p=>`<article><h3>${p[0]}</h3><p>${p[1]}</p><ul class
 /* profiles (demo, handles match the leaderboard) */
 const PR=[['Ayesha','AI · Data','Python,PyTorch,SQL',198,5,3],['Kabir','Web · Open source','React,Node,TypeScript',187,7,2],['Mei','Security · Systems','Linux,Rust,CTFs',212,4,4]];
 $('zprof').innerHTML=PR.map(p=>`<article><div class="zav">${p[0][0]}</div><h3>${p[0]}</h3><p class="zn">${p[1]}</p><div class="zt">${T(p[2].split(','))}</div><p class="zst2">${p[3]} challenges · ${p[4]} projects · ${p[5]} hackathons</p><div class="zk"><a class="zl" href="https://github.com/RujulaSharma/devharbour.in" target="_blank" rel="noopener noreferrer">GitHub ↗</a><a class="zl" href="https://devharbour.in" target="_blank" rel="noopener noreferrer">Portfolio ↗</a></div></article>`).join('');
-/* community + leaderboard (existing L data, demo) */
-const LB=[['Mei',212,18400],['Ayesha',198,17120],['Kabir',187,15900],['Nora',160,13300],['Lucas',151,12100]];
-$('zav').innerHTML=LB.map(u=>`<span class="zav" title="${u[0]}">${u[0][0].toUpperCase()}</span>`).join('');
-$('zlb').innerHTML=LB.map((u,i)=>`<div class="zlb"><b>${i+1}</b><span>${u[0]}</span><span>${u[1]}</span><span>${u[2].toLocaleString()} XP</span></div>`).join('');
+/* community + leaderboard */
+if (typeof renderAllLeaderboardViews === 'function') {
+  renderAllLeaderboardViews();
+} else {
+  const LB=[['Mei',212,18400],['Ayesha',198,17120],['Kabir',187,15900],['Nora',160,13300],['Lucas',151,12100]];
+  if ($('zav')) $('zav').innerHTML=LB.map(u=>`<span class="zav" style="cursor:pointer;" onclick="openDeveloperModal('${u[0].toLowerCase()}')" title="${u[0]}">${u[0][0].toUpperCase()}</span>`).join('');
+  if ($('zlb')) $('zlb').innerHTML=LB.map((u,i)=>`<div class="zlb" style="cursor:pointer;" onclick="openDeveloperModal('${u[0].toLowerCase()}')"><b>${i+1}</b><span>${u[0]}</span><span>${u[1]}</span><span>${u[2].toLocaleString()} XP</span></div>`).join('');
+}
 /* footer */
 $('zfl').src=document.querySelector('.xlg .xli').src;
 const syncLogos=()=>{const src=$('zfl').src;document.querySelectorAll('[data-logo]').forEach(i=>{if(!i.src)i.src=src;});};
@@ -9486,13 +10095,9 @@ if(!RM){const st=$('zpst');let q=0;intro.addEventListener('scroll',()=>{if(q)ret
 })();
 </script>
 <script>
-(function(){const D={Weekly:[['ayesha',12,980],['kabir',10,860],['mei',9,790],['lucas',7,640],['nora',6,510],['riya',5,430],['zane',4,360],['tara',3,290]],'All-time':[['mei',212,18400],['ayesha',198,17120],['kabir',187,15900],['nora',160,13300],['lucas',151,12100],['riya',139,10800],['zane',124,9600],['tara',110,8400]]};
-const g=id=>document.getElementById(id),tb=g('ltb');if(!tb)return;let cur='All-time';
-function paint(){tb.innerHTML=Object.keys(D).map(k=>`<button type="button" role="tab" aria-selected="${k==cur}" data-k="${k}">${k}</button>`).join('');
-const r=D[cur],P=[r[1],r[0],r[2]],rk=[2,1,3];
-g('lpod').innerHTML=P.map((u,i)=>`<div class="pd p${rk[i]}"><small>0${rk[i]}</small><b>${u[0]}</b><span>${u[2].toLocaleString()} XP</span><em>${u[1]} challenges</em></div>`).join('');
-g('lrows').innerHTML='<div class="lrw h"><span>Rank</span><span>Developer</span><span>Challenges</span><span>XP</span></div>'+r.slice(3).map((u,i)=>`<div class="lrw"><b>0${i+4}</b><span>${u[0]}</span><span>${u[1]}</span><span>${u[2].toLocaleString()}</span></div>`).join('')}
-tb.addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(b){e.stopPropagation();cur=b.dataset.k;paint()}});paint()})();
+if (typeof rl === 'function') {
+  rl(currentLeaderboardTimeframe || 'Weekly');
+}
 </script>
 <script>
 (function(){const I=document.getElementById('intro'),B=document.getElementById('spb'),L=document.getElementById('landing');
@@ -9544,6 +10149,50 @@ L.addEventListener('pointerout',e=>{const c=e.target.closest('.fx');if(c&&!c.con
 function up(el){const t=parseInt(el.textContent.replace(/[^0-9]/g,''),10);if(!t)return;const suf=el.textContent.replace(/[0-9,.\s]/g,'');const d=900,t0=performance.now();(function f(n){const k=Math.min(1,(n-t0)/d),e=1-Math.pow(1-k,3);el.textContent=Math.round(t*e).toLocaleString()+(suf?' '+suf:'');if(k<1)requestAnimationFrame(f)})(t0)}
 new MutationObserver(()=>{P.querySelectorAll('span').forEach(up);R.querySelectorAll('.lrw:not(.h) span:last-child').forEach(up)}).observe(P,{childList:true});})();
 </script>
+
+<!-- DEVELOPER PROFILE PREVIEW MODAL -->
+<div class="dh-dev-modal-overlay" id="dh-dev-modal" onclick="closeDeveloperModal(event)" role="dialog" aria-modal="true" aria-labelledby="dh-dev-modal-name">
+  <div class="dh-dev-modal-card" onclick="event.stopPropagation()">
+    <div class="dh-dev-modal-header">
+      <span class="dh-dev-badge-rank" id="dh-dev-modal-rank">Rank #1</span>
+      <button type="button" class="dh-dev-modal-close" onclick="closeDeveloperModal()" aria-label="Close profile">✕</button>
+      <div class="dh-dev-avatar-lg" id="dh-dev-modal-avatar">M</div>
+      <h3 class="dh-dev-name-lg" id="dh-dev-modal-name">Mei Chen</h3>
+      <div class="dh-dev-handle-lg" id="dh-dev-modal-handle">@mei</div>
+      <p class="dh-dev-bio" id="dh-dev-modal-bio">Security &amp; Systems · Linux, Rust, CTFs. Building safe, high-performance distributed systems.</p>
+    </div>
+    <div class="dh-dev-modal-body">
+      <div class="dh-dev-stats-grid">
+        <div class="dh-dev-stat-box">
+          <div class="dh-dev-stat-val" id="dh-dev-modal-xp">18,400</div>
+          <div class="dh-dev-stat-lbl">Total XP</div>
+        </div>
+        <div class="dh-dev-stat-box">
+          <div class="dh-dev-stat-val" id="dh-dev-modal-solved">14</div>
+          <div class="dh-dev-stat-lbl">Solved</div>
+        </div>
+        <div class="dh-dev-stat-box">
+          <div class="dh-dev-stat-val" id="dh-dev-modal-streak">🔥 7d</div>
+          <div class="dh-dev-stat-lbl">Streak</div>
+        </div>
+      </div>
+      <div class="dh-dev-badges-wrap">
+        <div class="dh-dev-badges-title">Skills &amp; Badges</div>
+        <div class="dh-dev-tags" id="dh-dev-modal-tags">
+          <span class="dh-dev-tag">🛡️ CTF Ace</span>
+          <span class="dh-dev-tag">⚡ Fast Solver</span>
+          <span class="dh-dev-tag">🌟 Top 1</span>
+        </div>
+      </div>
+    </div>
+    <div class="dh-dev-modal-footer">
+      <button type="button" class="dh-cheer-btn" id="dh-dev-cheer-btn" onclick="cheerCurrentDeveloper()">
+        <span>👏 Cheer Developer</span>
+        <span class="dh-cheer-count" id="dh-dev-modal-cheers">142</span>
+      </button>
+    </div>
+  </div>
+</div>
 
 <!-- AUTH MODAL: SIGN UP & SIGN IN -->
 
