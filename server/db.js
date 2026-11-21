@@ -29,6 +29,7 @@ if (DatabaseSync) {
     db.exec(`
       PRAGMA journal_mode = WAL;
       PRAGMA foreign_keys = ON;
+      PRAGMA busy_timeout = 5000;
     `);
   } catch (err) {
     console.warn('SQLite file open failed, falling back to memory database:', err.message);
