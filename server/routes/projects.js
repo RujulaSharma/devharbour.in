@@ -168,6 +168,29 @@ router.post('/:id/vote', requireAuth, async (req, res) => {
       project = (all || []).find(p => p.id === req.params.id || p.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') === cleanParam);
     }
     if (!project) {
+      const cleanParam = req.params.id.toLowerCase().replace(/^prj-/, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      try {
+        const orcList = await db.getOrcathonProjects();
+        const found = (orcList || []).find(p =>
+          (p.id && p.id === req.params.id) ||
+          (p.name && p.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') === cleanParam)
+        );
+        if (found) {
+          project = await db.createProject({
+            userId: req.user.id,
+            title: found.name,
+            description: found.summary || found.name,
+            category: found.category || 'Other',
+            techStack: ['ORCATHON 2026', found.category || 'Build'],
+            repoUrl: found.repository || 'https://devharbour.in',
+            demoUrl: found.demo || ''
+          });
+        }
+      } catch (err) {
+        // Fallback for offline or non-DB environments
+      }
+    }
+    if (!project) {
       return res.status(404).json({ error: 'Project not found.' });
     }
 

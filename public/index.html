@@ -203,10 +203,11 @@ body:has(#intro:not(.out)) .sidebar-greeting{visibility:hidden}
   background:linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px);
   background-size:22px 22px;mask-image:linear-gradient(90deg,transparent,#000);
 }
-.orcathon-thumb-copy{min-width:0;flex:1}
+.orcathon-thumb-copy{min-width:0;flex:1;padding-right:72px}
 .orcathon-thumb-copy small{display:block;margin-bottom:5px;color:var(--thumb-accent);font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
 .orcathon-thumb-copy b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;font-size:clamp(15px,2vw,21px);line-height:1.2}
-.orcathon-thumb svg{flex:none;width:clamp(34px,5vw,66px);height:auto;color:var(--thumb-accent)}
+.orcathon-thumb svg{flex:none;width:clamp(34px,5vw,66px);height:auto;color:var(--thumb-accent);opacity:.75}
+.orcathon-thumb .px-like-btn{position:absolute;top:12px;right:12px;z-index:5}
 .orcathon-project-tags{display:flex;flex-wrap:wrap;gap:6px}
 .pc .b{padding:20px}.pc p{color:var(--mut);font-size:14px;margin:4px 0 14px}.pc .f{display:flex;gap:6px;align-items:center}.pc .f a{margin-left:auto;background:var(--blk);color:#fff;border-radius:12px;padding:8px 14px;font-size:13px;font-weight:700}
 .dl div{display:flex;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--line);font-size:14px}.dl dt{color:var(--mut)}.dl dd{font-weight:700;text-align:right}
@@ -7443,28 +7444,49 @@ async function toggleProjectLike(title, event) {
   event?.stopPropagation();
   event?.preventDefault();
   const headers = getAuthHeaders();
-  if (!headers.Authorization || headers.Authorization.startsWith('Bearer local-token-')) {
-    toast('Sign in to like a project.');
+  const isLoggedIn = Boolean(headers.Authorization && !headers.Authorization.startsWith('Bearer local-token-'));
+
+  const wasLiked = isProjectLiked(title);
+  const nextLiked = !wasLiked;
+
+  // Immediate optimistic UI response
+  if (nextLiked) {
+    likesStore[title] = true;
+    serverVotes[title] = (serverVotes[title] || 0) + 1;
+    toast(`❤️ Liked "${title}"!${!isLoggedIn ? ' Sign in to sync votes globally.' : ''}`);
+  } else {
+    delete likesStore[title];
+    if (serverVotes[title] && serverVotes[title] > 0) serverVotes[title]--;
+    toast(`Removed like from "${title}".`);
+  }
+  try { localStorage.setItem('dh-project-likes', JSON.stringify(likesStore)); } catch {}
+  rp();
+  if (document.getElementById('project-modal')?.classList.contains('open') || document.getElementById('project-modal')?.style.display === 'flex') {
+    openProjectModal(title);
+  }
+
+  if (!isLoggedIn) {
     return;
   }
+
   if (pendingProjectVotes.has(title)) return;
   pendingProjectVotes.add(title);
   try {
     const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     const response = await fetch(`/api/projects/prj-${slug}/vote`, { method: 'POST', headers });
     const result = await response.json();
-    if (!response.ok) {
-      toast(result.error || 'Could not save your vote.');
-      return;
+    if (response.ok && typeof result.votesCount === 'number') {
+      if (result.voted) likesStore[title] = true;
+      else delete likesStore[title];
+      serverVotes[title] = result.votesCount;
+      try { localStorage.setItem('dh-project-likes', JSON.stringify(likesStore)); } catch {}
+      rp();
+      if (document.getElementById('project-modal')?.classList.contains('open') || document.getElementById('project-modal')?.style.display === 'flex') {
+        openProjectModal(title);
+      }
     }
-    if (result.voted) likesStore[title] = true;
-    else delete likesStore[title];
-    serverVotes[title] = result.votesCount;
-    try { localStorage.setItem('dh-project-likes', JSON.stringify(likesStore)); } catch {}
-    rp();
-    if (document.getElementById('project-modal')?.classList.contains('open')) openProjectModal(title);
-  } catch {
-    toast('Could not save your vote.');
+  } catch (err) {
+    console.warn('Network sync for project vote:', err);
   } finally {
     pendingProjectVotes.delete(title);
   }
@@ -7567,10 +7589,17 @@ function renderOrcathonCard(project) {
   const demo = safeHttpLink(project.demo);
   const repository = safeHttpLink(project.repository);
   const offset = 38 + [...project.name].reduce((sum, char) => sum + char.codePointAt(0), 0) % 54;
-  return `<article class="c pc s4 orcathon-project">
-    <div class="orcathon-thumb" aria-hidden="true" style="--thumb-base:${base};--thumb-accent:${accent};--thumb-shift:${offset}%">
+  const likes = getProjectLikes(project.name);
+  const liked = isProjectLiked(project.name);
+  const safeTitle = project.name.replace(/'/g, "\\'");
+  return `<article class="c pc s4 orcathon-project" data-title="${esc(project.name)}">
+    <div class="orcathon-thumb" style="--thumb-base:${base};--thumb-accent:${accent};--thumb-shift:${offset}%">
       <div class="orcathon-thumb-copy"><small>${esc(project.category)}</small><b>${esc(project.name)}</b></div>
-      <svg viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="${icon}"/></svg>
+      <svg viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${icon}"/></svg>
+      <button type="button" class="px-like-btn${liked ? ' active' : ''}" onclick="toggleProjectLike('${safeTitle}', event)" title="${liked ? 'Unlike' : 'Like this project'}" aria-label="Like ${esc(project.name)}">
+        <svg class="px-heart-icon" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+        <span class="like-count">${likes}</span>
+      </button>
     </div>
     <div class="b">
       <div class="orcathon-project-tags"><span class="tag">ORCATHON 2026</span><span class="tag">${esc(project.category)}</span></div>
@@ -7579,6 +7608,7 @@ function renderOrcathonCard(project) {
       <div class="orcathon-project-links">
         ${demo ? `<a class="bt d" href="${esc(demo)}" target="_blank" rel="noopener noreferrer">Live demo ↗</a>` : ''}
         ${repository ? `<a class="bt" href="${esc(repository)}" target="_blank" rel="noopener noreferrer">GitHub ↗</a>` : ''}
+        <button type="button" class="px-info-btn" onclick="openProjectModal('${safeTitle}')">Overview ✦</button>
       </div>
     </div>
   </article>`;
@@ -7589,7 +7619,9 @@ function rp(){
   const matchesSearch = (...fields) => fields.some(field => field?.toLowerCase().includes(query));
   const category = $('orcathon-category').value;
   const submissions = pc === 'All' || pc === 'ORCATHON'
-    ? orcathonProjects.filter(project => (!category || project.category === category) && matchesSearch(project.name, project.summary, project.category))
+    ? orcathonProjects
+        .filter(project => (!category || project.category === category) && matchesSearch(project.name, project.summary, project.category))
+        .sort((a, b) => getProjectLikes(b.name) - getProjectLikes(a.name))
     : [];
   const filtered = J.filter(j => pc === 'All' || j[2] === pc || j[2].split(',').map(s=>s.trim()).includes(pc));
   // Sort descending by like count so the most liked project is on top!
@@ -7646,27 +7678,41 @@ function rp(){
 }
 
 function openProjectModal(title){
-  const prj=J.find(x=>x[0]===title);
-  if(!prj)return;
-  const meta=prj[6]||{};
-  const likes=getProjectLikes(prj[0]);
-  const liked=isProjectLiked(prj[0]);
-  const tags=prj[2].split(',').map(t=>`<span class="tag">${t.trim()}</span>`).join('');
-  let m=document.getElementById('project-modal');
-  if(!m){
-    m=document.createElement('div');
-    m.id='project-modal';
-    m.className='px-modal';
+  let prj = J.find(x => x[0] === title);
+  if (!prj) {
+    const orc = orcathonProjects.find(x => x.name === title);
+    if (orc) {
+      prj = [
+        orc.name,
+        orc.summary || 'ORCATHON 2026 Submission',
+        orc.category || 'ORCATHON',
+        orc.demo || orc.repository || '#',
+        orc.demo || orc.repository || '#',
+        '',
+        { detail: orc.summary || '', github: orc.repository, liveUrl: orc.demo }
+      ];
+    }
+  }
+  if (!prj) return;
+  const meta = prj[6] || {};
+  const likes = getProjectLikes(prj[0]);
+  const liked = isProjectLiked(prj[0]);
+  const tags = (prj[2] || '').split(',').map(t => `<span class="tag">${t.trim()}</span>`).join('');
+  let m = document.getElementById('project-modal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'project-modal';
+    m.className = 'px-modal';
     document.body.appendChild(m);
   }
-  m.innerHTML=`
+  m.innerHTML = `
     <div class="px-modal-backdrop" onclick="closeProjectModal()"></div>
     <div class="px-modal-dialog">
       <button type="button" class="px-modal-close" onclick="closeProjectModal()" aria-label="Close">✕</button>
-      ${prj[5]?`<img src="${prj[5]}" alt="${prj[0]}" class="pm-img">`:''}
+      ${prj[5] ? `<img src="${prj[5]}" alt="${prj[0]}" class="pm-img">` : ''}
       <div class="pm-content">
-        <div class="pm-tags" style="display:flex;align-items:center;justify-content:space-between;">
-          <div style="display:flex;gap:6px;">
+        <div class="pm-tags" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
             ${tags}
             <span class="tag" style="background:#4a4263;color:#fff;">Verified</span>
           </div>
@@ -7677,19 +7723,19 @@ function openProjectModal(title){
         </div>
         <h2 style="margin:0 0 8px;font-size:22px;color:var(--ink);font-weight:800;">${prj[0]}</h2>
         <p style="font-weight:600;color:var(--ink);opacity:0.85;margin-bottom:12px;font-size:13.5px;">${prj[1]}</p>
-        <div class="pm-desc" style="white-space:pre-line;">${meta.detail||prj[1]}</div>
+        <div class="pm-desc" style="white-space:pre-line;">${meta.detail || prj[1]}</div>
         <div class="pm-actions">
-          <a href="${prj[3]}" target="_blank" rel="noopener noreferrer" class="pm-btn primary">View Project ↗</a>
-          ${meta.playStore?`<a href="${meta.playStore}" target="_blank" rel="noopener noreferrer" class="pm-btn secondary">Google Play ↗</a>`:''}
-          ${meta.screenshots?`<a href="${meta.screenshots}" target="_blank" rel="noopener noreferrer" class="pm-btn secondary">Screenshots ↗</a>`:''}
-          ${meta.linkedin?`<a href="${meta.linkedin}" target="_blank" rel="noopener noreferrer" class="pm-btn secondary">LinkedIn Post ↗</a>`:''}
-          ${meta.github?`<a href="${meta.github}" target="_blank" rel="noopener noreferrer" class="pm-btn secondary">GitHub ↗</a>`:''}
+          ${prj[3] && prj[3] !== '#' ? `<a href="${prj[3]}" target="_blank" rel="noopener noreferrer" class="pm-btn primary">${meta.liveUrl ? 'Live Demo ↗' : 'View Project ↗'}</a>` : ''}
+          ${meta.playStore ? `<a href="${meta.playStore}" target="_blank" rel="noopener noreferrer" class="pm-btn secondary">Google Play ↗</a>` : ''}
+          ${meta.screenshots ? `<a href="${meta.screenshots}" target="_blank" rel="noopener noreferrer" class="pm-btn secondary">Screenshots ↗</a>` : ''}
+          ${meta.linkedin ? `<a href="${meta.linkedin}" target="_blank" rel="noopener noreferrer" class="pm-btn secondary">LinkedIn Post ↗</a>` : ''}
+          ${meta.github ? `<a href="${meta.github}" target="_blank" rel="noopener noreferrer" class="pm-btn secondary">GitHub ↗</a>` : ''}
         </div>
       </div>
     </div>
   `;
-  m.style.display='flex';
-  document.body.style.overflow='hidden';
+  m.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
 };
 
 window.closeProjectModal=function(){
