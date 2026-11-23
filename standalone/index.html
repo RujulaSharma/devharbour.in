@@ -7642,14 +7642,9 @@ setTimeout(() => {
 
 rl('Weekly');
 // Project Likes State & Real-Time Sync (Strictly real likes, NO fake counts)
-let likesStore = {};
-try {
-  likesStore = JSON.parse(localStorage.getItem('dh-project-likes') || '{}');
-} catch(e) {
-  likesStore = {};
-}
-
-let serverVotes = {};
+const likedProjects = new Set();
+const serverVotes = Object.create(null);
+const featuredProjectIds = new Map();
 let currentUser = null;
 try {
   const _stUser = localStorage.getItem('dh_current_user') || localStorage.getItem('dh-current-user');
@@ -7697,7 +7692,7 @@ try {
   syncChannel.onmessage = (e) => {
     const data = e.data;
     if (data && data.type === 'project_voted') {
-      serverVotes[data.projectTitle] = data.votesCount;
+      serverVotes[data.projectId?.startsWith('orcathon-') ? data.projectId : data.projectTitle] = data.votesCount;
       rp();
       if (data.message) toast(data.message);
     } else if (data && data.type === 'user_joined') {
@@ -7728,6 +7723,7 @@ function rememberPendingVerification(email) {
 
 function updateAuthUI() {
   const pendingEmail = readPendingVerificationEmail();
+  window.refreshProjectLikesForAccount?.();
   if (pendingEmail && currentUser?.email?.trim().toLowerCase() === pendingEmail && currentUser.emailVerified) {
     try { localStorage.removeItem(pendingVerificationKey); } catch {}
   }
@@ -8231,84 +8227,80 @@ async function checkAuthSession() {
 window.checkAuthSession = checkAuthSession;
 checkAuthSession();
 
-function getProjectLikes(title) {
-  const userBonus = likesStore[title] ? 1 : 0;
-  const srv = serverVotes[title] || 0;
-  return Math.max(srv, userBonus);
+function getProjectLikes(projectKey) {
+  return serverVotes[projectKey] || 0;
 }
 
-function isProjectLiked(title) {
-  return Boolean(likesStore[title]);
+function isProjectLiked(projectKey) {
+  return likedProjects.has(projectKey);
 }
 
 const pendingProjectVotes = new Set();
 
-async function toggleProjectLike(title, event) {
+async function toggleProjectLike(title, event, projectId = '') {
   event?.stopPropagation();
   event?.preventDefault();
-  const headers = getAuthHeaders();
-  const isLoggedIn = Boolean(headers.Authorization && !headers.Authorization.startsWith('Bearer local-token-'));
-
-  const wasLiked = isProjectLiked(title);
-  const nextLiked = !wasLiked;
-
-  // Immediate optimistic UI response
-  if (nextLiked) {
-    likesStore[title] = true;
-    serverVotes[title] = (serverVotes[title] || 0) + 1;
-    toast(`❤️ Liked "${title}"!${!isLoggedIn ? ' Sign in to sync votes globally.' : ''}`);
-  } else {
-    delete likesStore[title];
-    if (serverVotes[title] && serverVotes[title] > 0) serverVotes[title]--;
-    toast(`Removed like from "${title}".`);
-  }
-  try { localStorage.setItem('dh-project-likes', JSON.stringify(likesStore)); } catch {}
-  rp();
-  if (document.getElementById('project-modal')?.classList.contains('open') || document.getElementById('project-modal')?.style.display === 'flex') {
-    openProjectModal(title);
-  }
-
-  if (!isLoggedIn) {
-    return;
-  }
-
-  if (pendingProjectVotes.has(title)) return;
-  pendingProjectVotes.add(title);
+  const projectKey = projectId || title;
+  if (pendingProjectVotes.has(projectKey)) return;
+  const button = event?.currentTarget;
+  const userId = currentUser?.id;
+  pendingProjectVotes.add(projectKey);
+  if (button) button.disabled = true;
   try {
     const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    const response = await fetch(`/api/projects/prj-${slug}/vote`, { method: 'POST', headers });
-    const result = await response.json();
-    if (response.ok && typeof result.votesCount === 'number') {
-      if (result.voted) likesStore[title] = true;
-      else delete likesStore[title];
-      serverVotes[title] = result.votesCount;
-      try { localStorage.setItem('dh-project-likes', JSON.stringify(likesStore)); } catch {}
-      rp();
-      if (document.getElementById('project-modal')?.classList.contains('open') || document.getElementById('project-modal')?.style.display === 'flex') {
-        openProjectModal(title);
-      }
+    const voteTarget = projectId || featuredProjectIds.get(title) || 'prj-' + slug;
+    const response = await fetch('/api/projects/' + encodeURIComponent(voteTarget) + '/vote', {
+      method: 'POST', headers: getAuthHeaders()
+    });
+    if (response.status === 401) {
+      toast('Sign in to like a project.');
+      openAuthModal('login');
+      return;
     }
-  } catch (err) {
-    console.warn('Network sync for project vote:', err);
+    const result = await response.json();
+    if (!response.ok || !Number.isInteger(result.votesCount)) {
+      toast(result.error || 'Could not save your like. Try again.');
+      return;
+    }
+    serverVotes[projectKey] = result.votesCount;
+    if (currentUser?.id === userId) {
+      if (result.voted) likedProjects.add(projectKey);
+      else likedProjects.delete(projectKey);
+    }
+    rp();
+    const modal = document.getElementById('project-modal');
+    if (modal?.style.display === 'flex' && modal.dataset.projectKey === projectKey) openProjectModal(projectKey);
+    toast(result.voted ? 'Project liked.' : 'Like removed.');
+  } catch {
+    toast('Could not save your like. Try again.');
   } finally {
-    pendingProjectVotes.delete(title);
+    pendingProjectVotes.delete(projectKey);
+    if (button) button.disabled = false;
   }
 }
 
-// Sync live project votes from server on page load
-try {
-  fetch('/api/projects')
-    .then(r => r.json())
-    .then(data => {
-      if (data && data.projects) {
-        data.projects.forEach(p => {
-          serverVotes[p.title] = p.votesCount || p.votes_count || 0;
-        });
-        rp();
-      }
-    })
-    .catch(() => {});
-} catch(e) {}
+let projectLikesAccount;
+let projectLikesRefresh = 0;
+
+async function refreshFeaturedLikes(revision) {
+  try {
+    const response = await fetch('/api/projects', { headers: getAuthHeaders(), cache: 'no-store' });
+    if (!response.ok) return;
+    const data = await response.json();
+    if (revision !== projectLikesRefresh) return;
+    const voted = new Set(data.votedProjectIds || []);
+    for (const project of data.projects || []) {
+      featuredProjectIds.set(project.title, project.id);
+      if (pendingProjectVotes.has(project.title)) continue;
+      serverVotes[project.title] = project.votes_count ?? project.votesCount ?? 0;
+      if (voted.has(project.id)) likedProjects.add(project.title);
+      else likedProjects.delete(project.title);
+    }
+    rp();
+  } catch {
+    // A failed refresh leaves the last confirmed counts visible.
+  }
+}
 
 // Real-Time SSE Listener for project votes, live solves and signups
 try {
@@ -8318,7 +8310,7 @@ try {
       const data = JSON.parse(e.data);
       if (data.type === 'project_voted') {
         if (data.projectTitle && typeof data.votesCount === 'number') {
-          serverVotes[data.projectTitle] = data.votesCount;
+          serverVotes[data.projectId?.startsWith('orcathon-') ? data.projectId : data.projectTitle] = data.votesCount;
           rp();
           if (data.message) {
             toast(data.message);
@@ -8394,15 +8386,15 @@ function renderOrcathonCard(project) {
   const demo = safeHttpLink(project.demo);
   const repository = safeHttpLink(project.repository);
   const offset = 38 + [...project.name].reduce((sum, char) => sum + char.codePointAt(0), 0) % 54;
-  const likes = getProjectLikes(project.name);
-  const liked = isProjectLiked(project.name);
+  const likes = getProjectLikes(project.id);
+  const liked = isProjectLiked(project.id);
   const safeTitle = esc(project.name);
   const projectId = esc(project.id || project.name);
   return `<article class="c pc s4 orcathon-project" data-title="${esc(project.name)}">
     <div class="orcathon-thumb" style="--thumb-base:${base};--thumb-accent:${accent};--thumb-shift:${offset}%">
       <div class="orcathon-thumb-copy"><small>${esc(project.category)}</small><b>${esc(project.name)}</b></div>
       <span class="orcathon-thumb-symbol" aria-hidden="true"><svg viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${icon}"/></svg></span>
-      <button type="button" class="px-like-btn${liked ? ' active' : ''}" data-project="${safeTitle}" onclick="toggleProjectLike(this.dataset.project, event)" title="${liked ? 'Unlike' : 'Like this project'}" aria-label="Like ${esc(project.name)}">
+      <button type="button" class="px-like-btn${liked ? ' active' : ''}" data-project="${safeTitle}" data-project-id="${projectId}" aria-pressed="${liked}" onclick="toggleProjectLike(this.dataset.project, event, this.dataset.projectId)" title="${liked ? 'Unlike' : 'Like this project'}" aria-label="Like ${esc(project.name)}">
         <svg class="px-heart-icon" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
         <span class="like-count">${likes}</span>
       </button>
@@ -8427,7 +8419,7 @@ function rp(){
   const submissions = pc === 'All' || pc === 'ORCATHON'
     ? orcathonProjects
         .filter(project => (!category || project.category === category) && matchesSearch(project.name, project.summary, project.category))
-        .sort((a, b) => getProjectLikes(b.name) - getProjectLikes(a.name))
+        .sort((a, b) => getProjectLikes(b.id) - getProjectLikes(a.id))
     : [];
   const filtered = pc === 'ORCATHON' ? [] : J;
   // Sort descending by like count so the most liked project is on top!
@@ -8486,10 +8478,12 @@ function rp(){
 }
 
 function openProjectModal(title){
+  let galleryId = '';
   let prj = J.find(x => x[0] === title);
   if (!prj) {
     const orc = orcathonProjects.find(x => x.id === title) || orcathonProjects.find(x => x.name === title);
     if (orc) {
+      galleryId = orc.id;
       prj = [
         orc.name,
         orc.summary || 'ORCATHON 2026 Submission',
@@ -8503,8 +8497,8 @@ function openProjectModal(title){
   }
   if (!prj) return;
   const meta = prj[6] || {};
-  const likes = getProjectLikes(prj[0]);
-  const liked = isProjectLiked(prj[0]);
+  const likes = getProjectLikes(galleryId || prj[0]);
+  const liked = isProjectLiked(galleryId || prj[0]);
   const tags = (prj[2] || '').split(',').map(t => `<span class="tag">${esc(t.trim())}</span>`).join('');
   const safeTitle = esc(prj[0]);
   const primaryUrl = safeHttpLink(prj[3]);
@@ -8532,7 +8526,7 @@ function openProjectModal(title){
             ${tags}
             <span class="tag" style="background:#4a4263;color:#fff;">Verified</span>
           </div>
-          <button type="button" class="px-like-btn${liked ? ' active' : ''}" style="position:static;" data-project="${safeTitle}" onclick="toggleProjectLike(this.dataset.project, event); openProjectModal(this.dataset.project)">
+          <button type="button" class="px-like-btn${liked ? ' active' : ''}" style="position:static;" data-project="${safeTitle}" data-project-id="${esc(galleryId)}" aria-pressed="${liked}" onclick="toggleProjectLike(this.dataset.project, event, this.dataset.projectId)">
             <svg class="px-heart-icon" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
             <span class="like-count">${likes}</span>
           </button>
@@ -8550,6 +8544,7 @@ function openProjectModal(title){
       </div>
     </div>
   `;
+  m.dataset.projectKey = galleryId || prj[0];
   m.style.display = 'flex';
   document.body.style.overflow = 'hidden';
 };
@@ -8571,17 +8566,22 @@ document.addEventListener('keydown',function(e){
 const projectFilters = ['All', 'Featured', 'ORCATHON'];
 const categoryFilter = $('orcathon-category');
 async function loadOrcathonGallery() {
+  const revision = projectLikesRefresh;
   orcathonGalleryState = 'loading';
   categoryFilter.disabled = true;
   rp();
   try {
-    const response = await fetch('/api/projects/orcathon');
+    const response = await fetch('/api/projects/orcathon', { headers: getAuthHeaders(), cache: 'no-store' });
     if (!response.ok) throw new Error('Could not load projects');
     const data = await response.json();
     if (!Array.isArray(data.projects)) throw new Error('Invalid project list');
+    if (revision !== projectLikesRefresh) return;
     orcathonProjects = data.projects;
     for (const project of orcathonProjects) {
-      if (project.gallery_votes > 0) serverVotes[project.name] = project.gallery_votes;
+      if (pendingProjectVotes.has(project.id)) continue;
+      serverVotes[project.id] = project.gallery_votes || 0;
+      if (project.voted) likedProjects.add(project.id);
+      else likedProjects.delete(project.id);
     }
     const categories = [...new Set(orcathonProjects.map(project => project.category))].sort();
     categoryFilter.length = 1;
@@ -8590,6 +8590,7 @@ async function loadOrcathonGallery() {
     $('t2').textContent = J.length + orcathonProjects.length;
     orcathonGalleryState = 'ready';
   } catch {
+    if (revision !== projectLikesRefresh) return;
     orcathonGalleryState = 'error';
   }
   rp();
@@ -8606,7 +8607,15 @@ categoryFilter.addEventListener('change', () => {
   rp();
 });
 $('project-search').addEventListener('input', rp);
-loadOrcathonGallery();
+window.refreshProjectLikesForAccount = function() {
+  const account = currentUser?.id || null;
+  if (projectLikesAccount === account) return;
+  projectLikesAccount = account;
+  likedProjects.clear();
+  refreshFeaturedLikes(++projectLikesRefresh);
+  loadOrcathonGallery();
+};
+window.refreshProjectLikesForAccount();
 /* workspace */
 const code=$('code'),hl=$('hl');let cur=0;
 function paint(){hl.innerHTML=code.value.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/(\/\/.*)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|\b(function|const|let|var|return|for|if|else|class|new|while|of|null|true|false)\b|\b(\d+)\b/g,(m,c,s,k,n)=>c?`<span class="cm">${c}</span>`:s?`<span class="s2">${s}</span>`:k?`<span class="kw">${k}</span>`:`<span class="nm">${n}</span>`)+'\n';hl.scrollTop=code.scrollTop;hl.scrollLeft=code.scrollLeft}
@@ -11890,9 +11899,6 @@ window.handleAddProjectSubmit = async function(e) {
     { detail: detail || tagline, github: repoUrl, liveUrl: demoUrl }
   ];
   J.unshift(newPrj);
-
-  likesStore[title] = 1;
-  try { localStorage.setItem('dh-project-likes', JSON.stringify(likesStore)); } catch(e) {}
 
   toast(`Project "${title}" published! Highest liked projects rank on top.`);
   closeAddProjectModal();

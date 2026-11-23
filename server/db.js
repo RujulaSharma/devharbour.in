@@ -1766,14 +1766,16 @@ function updateUserAvatar(userId, avatarUrl) {
   } catch {}
 }
 
-function getOrcathonProjects() {
+function getOrcathonProjects(userId = null) {
   if (!db) return [];
   try {
     return db.prepare(`
-      SELECT id, title as name, description as summary, category, repo_url as repository, demo_url as demo
-      FROM projects
+      SELECT p.id, title as name, description as summary, category, repo_url as repository, demo_url as demo,
+        coalesce(p.votes_count, 0) AS gallery_votes,
+        EXISTS(SELECT 1 FROM project_votes v WHERE v.project_id = p.id AND v.user_id = ?) AS voted
+      FROM projects p
       WHERE status = 'approved' AND (category = 'ORCATHON' OR category = 'ORCATHON 2026' OR tech_stack_json LIKE '%ORCATHON%')
-    `).all();
+    `).all(userId);
   } catch {
     return [];
   }

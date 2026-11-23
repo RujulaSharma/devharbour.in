@@ -474,13 +474,14 @@ async function getUserSubmissions(userId, challengeId) {
 }
 
 // ================= PROJECTS =================
-async function getOrcathonProjects() {
+async function getOrcathonProjects(userId = null) {
   const { rows } = await query(`
     SELECT id, name, summary, category, demo_url AS demo, repository_url AS repository,
-      (SELECT count(*)::int FROM public.orcathon_gallery_votes v WHERE v.project_id = p.id) AS gallery_votes
+      (SELECT count(*)::int FROM public.orcathon_gallery_votes v WHERE v.project_id = p.id) AS gallery_votes,
+      EXISTS(SELECT 1 FROM public.orcathon_gallery_votes v WHERE v.project_id = p.id AND v.user_id = $1) AS voted
     FROM public.orcathon_projects p
     ORDER BY lower(name), id;
-  `);
+  `, [userId]);
   return rows;
 }
 

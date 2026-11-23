@@ -19,17 +19,18 @@ router.get('/', async (req, res) => {
   try {
     const { category, search } = req.query;
     const projects = await db.getProjects({ category, search, status: 'approved' });
-    res.json({ projects: projects || [] });
+    const interactions = req.user?.emailVerified ? await db.getUserInteractions(req.user.id) : null;
+    res.set('Cache-Control', 'private, no-store').json({ projects: projects || [], votedProjectIds: interactions?.votes || [] });
   } catch (err) {
     res.status(500).json({ error: 'Failed to retrieve projects.' });
   }
 });
 
 // GET /api/projects/orcathon
-router.get('/orcathon', async (_req, res) => {
+router.get('/orcathon', async (req, res) => {
   try {
-    const projects = await db.getOrcathonProjects();
-    res.json({ projects });
+    const projects = await db.getOrcathonProjects(req.user?.emailVerified ? req.user.id : null);
+    res.set('Cache-Control', 'private, no-store').json({ projects });
   } catch (err) {
     res.status(503).json({ error: 'ORCATHON projects are temporarily unavailable.' });
   }
@@ -180,23 +181,32 @@ router.delete('/:id', requireAuth, async (req, res) => {
 // POST /api/projects/:id/vote
 router.post('/:id/vote', requireAuth, async (req, res) => {
   try {
-    let project = await db.getProjectById(req.params.id);
-    if (!project) {
-      const all = await db.getProjects({ status: 'approved' });
-      const cleanParam = req.params.id.toLowerCase().replace(/^prj-/, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-      project = (all || []).find(p => p.id === req.params.id || p.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') === cleanParam);
-    }
+    const target = req.params.id;
+    const isGalleryId = /^orcathon-[a-f0-9]{24}$/.test(target);
+    let project;
     let vote;
-    if (project?.status === 'approved') {
-      vote = await db.toggleProjectVote(req.user.id, project.id);
-    } else if (!project) {
-      const slug = value => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-      const target = req.params.id.replace(/^prj-/, '');
-      const gallery = (await db.getOrcathonProjects()).find(row => row.id === target || slug(row.name) === target);
+    if (isGalleryId) {
+      const gallery = (await db.getOrcathonProjects()).find(row => row.id === target);
       if (gallery) {
         project = { id: gallery.id, title: gallery.name };
         vote = await db.toggleGalleryVote(req.user.id, gallery.id);
       }
+    } else {
+      project = await db.getProjectById(target);
+      if (!project) {
+        const all = await db.getProjects({ status: 'approved' });
+        const slug = value => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        const cleanParam = slug(target.replace(/^prj-/, ''));
+        project = all.find(row => slug(row.title) === cleanParam);
+        if (!project) {
+          const gallery = (await db.getOrcathonProjects()).find(row => slug(row.name) === cleanParam);
+          if (gallery) {
+            project = { id: gallery.id, title: gallery.name };
+            vote = await db.toggleGalleryVote(req.user.id, gallery.id);
+          }
+        }
+      }
+      if (project?.status === 'approved') vote = await db.toggleProjectVote(req.user.id, project.id);
     }
     if (!vote) return res.status(404).json({ error: 'Published project not found.' });
     const { voted, votesCount } = vote;
