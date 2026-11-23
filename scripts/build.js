@@ -49,7 +49,7 @@ console.log(`✅ Build successful!`);
 console.log(`   Canonical Source: public/index.html (${canonicalHtml.length} bytes)`);
 console.log(`   Root Deployment:  index.html (${rootHtml.length} bytes)`);
 console.log(`   Google Auth:      Enabled (FedCM + One Tap + Account Chooser)`);
-console.log(`   Certificate Gate: Registered Gmail via Google Sign-In`);
+console.log(`   Certificate Gate: Registered email ownership`);
 
 async function checkProductionDatabase() {
   if (process.env.VERCEL_ENV !== 'production') return;

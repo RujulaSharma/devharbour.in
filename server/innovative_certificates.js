@@ -98,11 +98,15 @@ function myCertificate(mode) {
       const user = session && await database.getUserById(session.user_id);
       if (!user) return res.status(401).json({ error: 'Sign in to access your certificate.' });
       const email = user.email.trim().toLowerCase();
-      if (session.google_verified_email !== email || !email.endsWith('@gmail.com')) {
+      if (email.endsWith('@gmail.com') && session.google_verified_email !== email) {
         return res.status(403).json({ requiresGoogle: true, error: 'Continue with Google using the Gmail address on your Innovative India registration.' });
       }
       if (!(await database.isEmailVerified(user.id))) {
         return res.status(403).json({ error: 'Verify your account email to access your certificate.', requiresVerification: true, email: user.email });
+      }
+      const claimEmail = req.headers['x-certificate-email'];
+      if (claimEmail !== undefined && claimEmail !== email) {
+        return res.status(403).json({ emailMismatch: true, error: 'Use the account that matches the registration email you entered.' });
       }
       if (!user.certificate_name?.trim()) {
         return res.status(409).json({ error: 'Your original signup name is not available. Contact Dev Harbour support to have your original registration checked.' });

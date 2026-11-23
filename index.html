@@ -5371,8 +5371,21 @@ requestAnimationFrame(loop);
       </figure>
       <div class="dh-ii-card" aria-labelledby="mycert-heading">
         <h3 id="mycert-heading">Unlock your certificate</h3>
-        <p id="mycert-message" role="status" aria-live="polite">Sign in or sign up with the Gmail address you registered for Innovative India.</p>
-        <button type="button" id="mycert-sign-in" class="dh-cert-submit-btn" onclick="openCertificateLogin()">Continue with Google</button>
+        <p id="mycert-message" role="status" aria-live="polite">Enter the email address you used to register for Innovative India.</p>
+        <form id="mycert-claim" onsubmit="submitCertificateEmail(event)">
+          <label class="dh-ii-field" for="mycert-email">Registration email
+            <input id="mycert-email" type="email" autocomplete="email" maxlength="254" placeholder="you@example.com" required>
+          </label>
+          <button type="submit" class="dh-cert-submit-btn">Get my certificate</button>
+        </form>
+        <form id="mycert-email-verification" hidden onsubmit="verifyCertificateEmail(event)">
+          <button type="button" class="dh-action-btn" onclick="sendCertificateEmailCode()">Send email code</button>
+          <label class="dh-ii-field" for="mycert-email-code">Verification code
+            <input id="mycert-email-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" required>
+          </label>
+          <button class="dh-cert-submit-btn" type="submit">Verify email</button>
+          <button class="dh-action-btn" type="button" onclick="openCertificateSignup()">Create a Dev Harbour account</button>
+        </form>
         <div id="mycert-details" hidden>
           <dl>
             <dt>Registered name</dt><dd id="mycert-recipient-name"></dd>
@@ -5386,7 +5399,7 @@ requestAnimationFrame(loop);
           </div>
         </div>
         <div class="dh-ii-actions">
-          <a href="/verify-certificate" id="mycert-verify-link">Verify a certificate</a>
+          <a id="mycert-verify-link" hidden>Verify this certificate</a>
           <a href="/contact" data-go="contact">Contact support</a>
         </div>
       </div>
@@ -5399,16 +5412,9 @@ requestAnimationFrame(loop);
     <header class="dh-ii-header">
       <p class="dh-ii-event">Innovative India</p>
       <h2>Verify a certificate</h2>
-      <p>Enter the credential ID printed on the certificate.</p>
     </header>
     <div class="dh-ii-card">
-      <form onsubmit="handleVerifySubmit(event)">
-        <label class="dh-ii-field" for="verify-input-id">Credential ID
-          <input id="verify-input-id" placeholder="IN-26-0000001" autocomplete="off" autocapitalize="characters" maxlength="13" required>
-        </label>
-        <button class="dh-cert-submit-btn" type="submit" id="btn-verify-submit">Verify certificate</button>
-        <p id="verify-status-msg" role="status" aria-live="polite"></p>
-      </form>
+      <p id="verify-status-msg" role="status" aria-live="polite"></p>
       <dl id="verify-result-box" hidden>
         <dt>Credential ID</dt><dd id="verify-card-id"></dd>
         <dt>Event</dt><dd id="verify-card-event"></dd>
@@ -6064,7 +6070,7 @@ function show(id, fromUserAction, updateHistory = fromUserAction){
   scrollToNavSection(id);
   if(typeof gtag==='function'){try{gtag('event','page_view',{page_title:id.charAt(0).toUpperCase()+id.slice(1)+' — DevHarbour',page_path:'/'+id})}catch(e){}}
   if (id === 'my-certificate' && typeof loadMyCertificateView === 'function') {
-    loadMyCertificateView(true);
+    loadMyCertificateView();
   }
   const viewEl = document.getElementById('v-'+id);
   if (viewEl) {
@@ -7786,7 +7792,7 @@ function handleSignup(e) {
       closeAuthModal();
       toast(`✦ Welcome to Dev Harbour, @${currentUser.username}!`);
       const introEl = document.getElementById('intro');
-      if (introEl && !introEl.classList.contains('out') && typeof window.go === 'function') {
+      if (introEl && !introEl.classList.contains('out') && !document.getElementById('v-my-certificate').classList.contains('on') && typeof window.go === 'function') {
         window.go(window.innerWidth / 2, window.innerHeight / 2, 'workspace', false);
       }
     })
@@ -10996,6 +11002,78 @@ new MutationObserver(()=>{P.querySelectorAll('span').forEach(up);R.querySelector
 
 // ==========================================
 let myCertificateRequest;
+let certificateClaimEmail = '';
+
+function submitCertificateEmail(event) {
+  event.preventDefault();
+  if (location.protocol === 'file:') {
+    location.href = 'https://devharbour.in/my-certificate';
+    return;
+  }
+  certificateClaimEmail = document.getElementById('mycert-email').value.trim().toLowerCase();
+  document.getElementById('mycert-email-code').value = '';
+  loadMyCertificateView(true);
+}
+function openCertificateSignup() {
+  openAuthModal('signup');
+  document.getElementById('su-email').value = certificateClaimEmail;
+}
+
+function requestCertificateOwnership(showGoogle) {
+  if (certificateClaimEmail.endsWith('@gmail.com')) {
+    if (showGoogle) openCertificateLogin();
+  } else {
+    document.getElementById('mycert-email-verification').hidden = false;
+    document.getElementById('mycert-message').textContent = 'Use an email code to confirm your registration address.';
+  }
+}
+
+async function sendCertificateEmailCode() {
+  const message = document.getElementById('mycert-message');
+  const email = certificateClaimEmail;
+  try {
+    const response = await fetch('/api/auth/otp/send', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email })
+    });
+    const result = await response.json();
+    if (certificateClaimEmail === email) message.textContent = response.ok
+      ? 'If you have a Dev Harbour account, check your inbox for a code. If you just signed up, use the code already sent.'
+      : result.error || 'Email could not be sent. Try again.';
+  } catch {
+    if (certificateClaimEmail === email) message.textContent = 'Email could not be sent. Try again.';
+  }
+}
+
+async function verifyCertificateEmail(event) {
+  event.preventDefault();
+  const email = certificateClaimEmail;
+  const otp = document.getElementById('mycert-email-code').value;
+  const message = document.getElementById('mycert-message');
+  const submit = event.submitter;
+  if (submit) submit.disabled = true;
+  try {
+    const response = await fetch('/api/auth/otp/verify', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, otp })
+    });
+    const result = await response.json();
+    if (certificateClaimEmail !== email) return;
+    if (!response.ok || !result.token || !result.user) {
+      message.textContent = result.error || 'Email verification failed.';
+      return;
+    }
+    currentUser = result.user;
+    localStorage.setItem('dh_token', result.token);
+    localStorage.setItem('dh-auth-token', result.token);
+    localStorage.setItem('dh_current_user', JSON.stringify(currentUser));
+    localStorage.setItem('dh-current-user', JSON.stringify(currentUser));
+    updateAuthUI();
+  } catch {
+    if (certificateClaimEmail === email) message.textContent = 'Email verification is temporarily unavailable.';
+  } finally {
+    if (submit) submit.disabled = false;
+  }
+}
+
 function openCertificateLogin() {
   openAuthModal('signup');
   document.getElementById('dh-auth-modal').classList.add('certificate-login');
@@ -11020,53 +11098,53 @@ async function shareMyCertificate(nativeShare) {
 
 async function loadMyCertificateView(openSignIn = false) {
   const $cert = id => document.getElementById(id);
-  const signIn = $cert('mycert-sign-in');
+  const claimForm = $cert('mycert-claim');
   const message = $cert('mycert-message');
   const details = $cert('mycert-details');
   const lock = $cert('mycert-lock');
   const blank = $cert('mycert-blank');
   const canvas = $cert('mycert-preview');
   const link = $cert('mycert-verify-link');
-  if (!signIn) return;
+  if (!claimForm) return;
   myCertificateRequest?.abort();
   const request = new AbortController();
   myCertificateRequest = request;
   details.hidden = canvas.hidden = true;
+  $cert('mycert-email-verification').hidden = true;
   lock.hidden = false;
   $cert('mycert-linkedin').removeAttribute('href');
   blank.hidden = false;
   $cert('mycert-heading').textContent = 'Unlock your certificate';
   $cert('mycert-recipient-name').textContent = '';
   $cert('mycert-credential-id').textContent = '';
-  link.href = '/verify-certificate';
+  link.hidden = true;
   if (location.protocol === 'file:') {
-    signIn.hidden = false;
-    signIn.onclick = () => { location.href = 'https://devharbour.in/my-certificate'; };
-    link.href = 'https://devharbour.in/verify-certificate';
-    message.textContent = 'Open Dev Harbour and continue with your registered Gmail address.';
+    claimForm.hidden = false;
+    message.textContent = 'Open Dev Harbour to claim your certificate using your registration email.';
     return;
   }
   const auth = getAuthHeaders();
-  signIn.hidden = Boolean(auth.Authorization);
-  if (!auth.Authorization) {
-    message.textContent = 'Sign in or sign up with the Gmail address you registered for Innovative India.';
-    if (openSignIn) openCertificateLogin();
+  claimForm.hidden = false;
+  if (!certificateClaimEmail || !auth.Authorization) {
+    message.textContent = certificateClaimEmail
+      ? 'Confirm your registration email with Google.'
+      : 'Enter the email address you used to register for Innovative India.';
+    if (certificateClaimEmail) requestCertificateOwnership(openSignIn);
     return;
   }
   message.textContent = 'Checking your registration…';
   try {
-    const response = await fetch('/api/certificates/my-certificate', { headers: auth, signal: request.signal, cache: 'no-store' });
+    const response = await fetch('/api/certificates/my-certificate', { headers: { ...auth, 'X-Certificate-Email': certificateClaimEmail }, signal: request.signal, cache: 'no-store' });
     const result = await response.json();
     if (request.signal.aborted) return;
     if (response.status === 401) {
-      signIn.hidden = false;
       message.textContent = 'Your session has ended. Sign in to continue.';
-      if (openSignIn) openCertificateLogin();
+      requestCertificateOwnership(openSignIn);
       return;
     }
-    if (result.requiresGoogle) {
-      signIn.hidden = false;
+    if (result.requiresGoogle || result.emailMismatch || result.requiresVerification) {
       message.textContent = result.error;
+      requestCertificateOwnership(openSignIn);
       return;
     }
     if (!response.ok || !result.eligible) {
@@ -11079,6 +11157,8 @@ async function loadMyCertificateView(openSignIn = false) {
     $cert('mycert-recipient-name').textContent = cert.recipient_name;
     $cert('mycert-credential-id').textContent = cert.credential_id;
     link.href = cert.verification_url;
+    link.hidden = false;
+    claimForm.hidden = true;
     const shareUrl = new URL('https://www.linkedin.com/sharing/share-offsite/');
     shareUrl.searchParams.set('url', link.href);
     $cert('mycert-linkedin').href = shareUrl.href;
@@ -11145,19 +11225,15 @@ async function downloadMyCertificatePdf() {
   }
 }
 
-async function handleVerifySubmit(event) {
-  event?.preventDefault();
-  const input = document.getElementById('verify-input-id');
+async function showVerificationResult(credentialId) {
   const message = document.getElementById('verify-status-msg');
-  const button = document.getElementById('btn-verify-submit');
   const details = document.getElementById('verify-result-box');
-  const id = input.value.trim().toUpperCase();
+  const id = credentialId.trim().toUpperCase();
   details.hidden = true;
   if (!/^IN-26-\d{7}$/.test(id)) {
-    message.textContent = 'Enter an ID in the format IN-26-0000001.';
+    message.textContent = 'This verification link has an invalid credential ID.';
     return;
   }
-  button.disabled = true;
   message.textContent = 'Checking the registry…';
   try {
     const response = await fetch('/api/certificates/innovative-india/verify/' + encodeURIComponent(id), { cache: 'no-store' });
@@ -11170,8 +11246,6 @@ async function handleVerifySubmit(event) {
     details.hidden = false;
   } catch {
     message.textContent = 'Verification is temporarily unavailable.';
-  } finally {
-    button.disabled = false;
   }
 }
 
@@ -11618,21 +11692,13 @@ function submitContactForm() {
   if (route.startsWith('certificate/verify/') || route.startsWith('verify/')) {
     const id = route.replace(/^(certificate\/verify\/|verify\/)/, '');
     show('verify-certificate', true, false);
-    document.getElementById('verify-input-id').value = id;
-    handleVerifySubmit();
+    showVerificationResult(id);
   } else if (['my-certificate', 'mycertificate', 'certificate'].includes(route)) {
     show('my-certificate', true, route === 'certificate');
   } else if (route.startsWith('verify-certificate') || route === 'verify') {
-    show('verify-certificate', true, false);
-    const searchParams = new URLSearchParams(window.location.search);
-    const qId = searchParams.get('id') || (route.includes('/') ? route.split('/')[1] : '');
-    if (qId) {
-      const inp = document.getElementById('verify-input-id');
-      if (inp) {
-        inp.value = qId;
-        if (typeof handleVerifySubmit === 'function') handleVerifySubmit();
-      }
-    }
+    const id = new URLSearchParams(location.search).get('id') || route.split('/')[1];
+    show(id ? 'verify-certificate' : 'my-certificate', true, false);
+    if (id) showVerificationResult(id);
   } else if (route === 'about') {
     show('about', true, false);
   } else if (route === 'contact') {

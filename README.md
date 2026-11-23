@@ -128,7 +128,7 @@ The application automatically creates and seeds `devharbour.sqlite` on first boo
 
 ## Innovative India certificate deployment
 
-The certificate pages are `/my-certificate` and `/verify-certificate`. Issuance reuses Dev Harbour's existing sessions and requires a Google-authenticated session with an @gmail.com address that matches the private event register. Public verification exposes the ID, event, issuer, issue date, and validity. The server overlays the name and ID as text on the redrawn vector master. To rebuild that master, run `scripts/draw_innovative_india_certificate.py` in a Python environment with ReportLab, pypdf, NumPy, and OpenCV. The supplied blank PDF remains the reference for the logos, seal, and signature.
+The certificate pages are `/my-certificate` and `/verify-certificate`. Participants enter their registration email on My Certificate. Gmail users confirm with Google and other participants can verify with an email code. Issuance requires the verified account to match the private event register. Public verification exposes the ID, event, issuer, issue date, and validity. The server overlays the name and ID as text on the redrawn vector master. To rebuild that master, run `scripts/draw_innovative_india_certificate.py` in a Python environment with ReportLab, pypdf, NumPy, and OpenCV. The supplied blank PDF remains the reference for the logos, seal, and signature.
 
 ### Prepare Supabase
 

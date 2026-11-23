@@ -289,7 +289,7 @@ test('8. Google-Authenticated User Direct Certificate Access (Zero Extra OTP)', 
   assert.equal(downloadRes.data.credential.credential_id, cert.credential_id);
 });
 
-test('Only the registered Gmail session unlocks Innovative India, including on a later Google login', async () => {
+test('Verified registered accounts can claim Innovative India, including on a later Google login', async () => {
   const stamp = Date.now();
   const signIn = async email => {
     const credential = 'certificate-' + email;
@@ -307,9 +307,13 @@ test('Only the registered Gmail session unlocks Innovative India, including on a
   for (const email of [gmail, other]) {
     await db.insertParticipant({ eventSlug: 'innovative-india-2026', candidateName: 'Participant', candidateEmail: email });
   }
-  const locked = await api('/certificates/my-certificate', { headers: await signIn(other) });
-  assert.equal(locked.status, 403);
-  assert.equal(locked.data.requiresGoogle, true);
+  const verifiedOther = await signIn(other);
+  const mismatch = await api('/certificates/my-certificate', { headers: { ...verifiedOther, 'X-Certificate-Email': gmail } });
+  assert.equal(mismatch.status, 403);
+  assert.equal(mismatch.data.emailMismatch, true);
+  const otherClaim = await api('/certificates/my-certificate', { headers: { ...verifiedOther, 'X-Certificate-Email': other } });
+  assert.equal(otherClaim.status, 200);
+  assert.equal(otherClaim.data.eligible, true);
   const first = await api('/certificates/my-certificate', { headers: await signIn(gmail) });
   const next = await api('/certificates/my-certificate', { headers: await signIn(gmail) });
   assert.equal(first.status, 200);
