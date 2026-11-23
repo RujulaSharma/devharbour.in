@@ -195,7 +195,7 @@ test('7. Existing User Google Login & Profile Picture Sync', async () => {
     body: { email, username, fullName: 'Existing Developer', password: 'Password123!' }
   });
   assert.equal(signup.status, 201);
-  const existingUserId = signup.data.user.id;
+  const existingUserId = (await db.getUserByEmail(email)).id;
   await db.markEmailVerified(existingUserId);
 
   // Now, log in with Google using that same verified email

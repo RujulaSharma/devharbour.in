@@ -11,18 +11,20 @@ const http = require('node:http');
 
 // Set test environment
 process.env.NODE_ENV = 'test';
-process.env.PORT = '3099';
+process.env.DB_PATH = ':memory:';
+process.env.LOGIN_EMAIL_OTP = 'false';
 
 const app = require('../server/index');
 const db = require('../server/db');
 
 let server;
-const BASE_URL = 'http://localhost:3099/api';
+let BASE_URL;
 
 test.before(async () => {
   await new Promise(resolve => {
-    server = app.listen(3099, resolve);
+    server = app.listen(0, '127.0.0.1', resolve);
   });
+  BASE_URL = 'http://127.0.0.1:' + server.address().port + '/api';
 });
 
 test.after(async () => {
@@ -42,6 +44,19 @@ async function api(endpoint, options = {}) {
   });
   const data = await res.json().catch(() => ({}));
   return { status: res.status, ok: res.ok, data };
+}
+
+async function signupAndLogin(account) {
+  const signup = await api('/auth/signup', { method: 'POST', body: account });
+  assert.strictEqual(signup.status, 201);
+  const user = await db.getUserByEmail(account.email);
+  await db.markEmailVerified(user.id);
+  const login = await api('/auth/login', {
+    method: 'POST', body: { login: account.email, password: account.password }
+  });
+  assert.strictEqual(login.status, 200);
+  assert.ok(login.data.token);
+  return login.data;
 }
 
 test('1. System Health Check', async () => {
@@ -65,13 +80,11 @@ test('2. Authentication Flow: Signup, Login, Profile & Session Persistence', asy
     body: testUser
   });
   assert.strictEqual(signupRes.status, 201);
-  assert.ok(signupRes.data.token);
-  assert.strictEqual(signupRes.data.user.email, testUser.email.toLowerCase());
-  assert.strictEqual(signupRes.data.user.role, 'student');
-
-  await db.markEmailVerified(signupRes.data.user.id);
-
-  const token = signupRes.data.token;
+  assert.strictEqual(signupRes.data.requiresVerification, true);
+  assert.strictEqual(signupRes.data.token, undefined);
+  const pendingUser = await db.getUserByEmail(testUser.email);
+  assert.strictEqual(pendingUser.role, 'student');
+  await db.markEmailVerified(pendingUser.id);
 
   // Duplicate email registration prevention
   const dupRes = await api('/auth/signup', {
@@ -87,6 +100,7 @@ test('2. Authentication Flow: Signup, Login, Profile & Session Persistence', asy
   });
   assert.strictEqual(loginRes.status, 200);
   assert.ok(loginRes.data.token);
+  const { token } = loginRes.data;
 
   // Authenticated profile verification (/me)
   const meRes = await api('/auth/me', {
@@ -119,8 +133,7 @@ test('4. Reading Mode & Anti-Duplicate XP Verification', async () => {
     fullName: 'Avid Reader',
     password: 'Password123!'
   };
-  const { data: { token, user } } = await api('/auth/signup', { method: 'POST', body: student });
-  await db.markEmailVerified(user.id);
+  const { token } = await signupAndLogin(student);
 
   const lessonId = 'lesson-cs50-1';
 
@@ -167,8 +180,7 @@ test('6. Verified users cannot execute code on the web server', async () => {
     fullName: 'Code Challenger',
     password: 'Password123!'
   };
-  const { data: { token, user } } = await api('/auth/signup', { method: 'POST', body: student });
-  await db.markEmailVerified(user.id);
+  const { token } = await signupAndLogin(student);
 
   const submission = await api('/challenges/challenge-two-sum/submit', {
     method: 'POST',
@@ -180,10 +192,16 @@ test('6. Verified users cannot execute code on the web server', async () => {
 });
 
 test('7. Leaderboard Calculation & Timeframe Integrity', async () => {
+  const user = await db.createUser({
+    email: 'real@leaderboard-fixture.invalid', username: 'ranked_reader',
+    fullName: 'Ranked Reader', passwordHash: 'fixture', salt: 'fixture'
+  });
+  await db.markEmailVerified(user.id);
+  await db.awardXp(user.id, 10, 'lesson_complete', 'lesson-cs50-1');
   const res = await api('/leaderboard?timeframe=All-time');
   assert.strictEqual(res.status, 200);
   assert.ok(Array.isArray(res.data.rankings));
-  assert.ok(res.data.rankings.length > 0);
+  assert.ok(res.data.rankings.some(row => row.userId === user.id && row.xp === 10));
 
   // Ranks must be sorted strictly descending by XP
   for (let i = 1; i < res.data.rankings.length; i++) {
@@ -198,8 +216,7 @@ test('8. Featured Projects: Publishing, Voting, Bookmarks & Deletion Security', 
     fullName: 'Project Builder',
     password: 'Password123!'
   };
-  const { data: { token: authorToken, user: authorUser } } = await api('/auth/signup', { method: 'POST', body: author });
-  await db.markEmailVerified(authorUser.id);
+  const { token: authorToken } = await signupAndLogin(author);
 
   // Create Project
   const prjData = {
@@ -253,8 +270,7 @@ test('8. Featured Projects: Publishing, Voting, Bookmarks & Deletion Security', 
     fullName: 'Other User',
     password: 'Password123!'
   };
-  const { data: { token: otherToken, user: otherUser } } = await api('/auth/signup', { method: 'POST', body: otherStudent });
-  await db.markEmailVerified(otherUser.id);
+  const { token: otherToken } = await signupAndLogin(otherStudent);
 
   const unauthorizedDel = await api(`/projects/${projectId}`, {
     method: 'DELETE',
@@ -277,8 +293,7 @@ test('9. User Settings & Theme Synchronization', async () => {
     fullName: 'Settings User',
     password: 'Password123!'
   };
-  const { data: { token, user } } = await api('/auth/signup', { method: 'POST', body: student });
-  await db.markEmailVerified(user.id);
+  const { token } = await signupAndLogin(student);
 
   // Update theme to mercury
   const updateRes = await api('/user/settings', {

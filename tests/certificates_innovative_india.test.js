@@ -32,9 +32,12 @@ test('Innovative India certificate flow', async t => {
       body: JSON.stringify({ fullName, username, email, password: 'A-test-password-123!' })
     });
     assert.equal(response.status, 201);
-    const { token, user } = await response.json();
+    const pending = await response.json();
+    assert.equal(pending.requiresVerification, true);
+    assert.equal(pending.token, undefined);
+    const user = await db.getUserByEmail(email);
     if (verified) await db.markEmailVerified(user.id);
-    return { email, passwordToken: token, token: (await db.createSession(user.id, email)).token, id: user.id };
+    return { email, passwordToken: (await db.createSession(user.id)).token, token: (await db.createSession(user.id, email)).token, id: user.id };
   };
   const credential = async token => {
     const response = await request(details, token);

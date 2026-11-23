@@ -6,7 +6,9 @@
  */
 
 process.env.NODE_ENV = 'test';
-process.env.PORT = '3199';
+process.env.DB_PATH = ':memory:';
+process.env.LOGIN_EMAIL_OTP = 'false';
+process.env.GOOGLE_CLIENT_ID = 'test-google-client-id.apps.googleusercontent.com';
 process.env.EMAIL_VERIFICATION_SECRET = 'test_secret_key_1234567890abcdef';
 
 const test = require('node:test');
@@ -17,12 +19,13 @@ const db = require('../server/db');
 const { generateOtp, hashOtp, verifyOtpHash } = require('../server/email');
 
 let server;
-const BASE_URL = 'http://localhost:3199/api';
+let BASE_URL;
 
 test.before(async () => {
   await new Promise(resolve => {
-    server = app.listen(3199, resolve);
+    server = app.listen(0, '127.0.0.1', resolve);
   });
+  BASE_URL = 'http://127.0.0.1:' + server.address().port + '/api';
 });
 
 test.after(async () => {
@@ -136,7 +139,7 @@ test('6. Complete End-to-End OTP Verification & Password Reset Flow', async () =
     }
   });
   assert.equal(signupRes.status, 201);
-  const user = signupRes.data.user;
+  const user = await db.getUserByEmail(email);
 
   // Step 2: Generate OTP and save verification record directly to simulate email delivery
   const otp = '741852';
@@ -255,7 +258,9 @@ test('9. Full Signup -> Email OTP -> Login -> Direct Certificate Access (Zero Ex
   });
   assert.equal(signupRes.status, 201);
   assert.equal(signupRes.data.requiresVerification, true);
-  assert.equal(signupRes.data.user.emailVerified, false);
+  assert.equal(signupRes.data.token, undefined);
+  const user = await db.getUserByEmail(email);
+  assert.equal(await db.isEmailVerified(user.id), false);
 
   // Step 2: Attempt Login BEFORE verification -> MUST fail with 403
   const prematureLogin = await api('/auth/login', {
@@ -288,9 +293,9 @@ test('9. Full Signup -> Email OTP -> Login -> Direct Certificate Access (Zero Ex
   // Step 4: Verify Email OTP directly
   const otp = '852963';
   const challengeId = 'chal-signup-' + Date.now();
-  const codeHash = hashOtp(signupRes.data.user.id, challengeId, otp, process.env.EMAIL_VERIFICATION_SECRET || 'test_secret_key_1234567890abcdef');
+  const codeHash = hashOtp(user.id, challengeId, otp, process.env.EMAIL_VERIFICATION_SECRET || 'test_secret_key_1234567890abcdef');
   await db.saveEmailVerification({
-    userId: signupRes.data.user.id,
+    userId: user.id,
     email,
     challengeId,
     codeHash,
@@ -341,8 +346,10 @@ test('10. Certificate Ownership Authorization: Users Cannot Access Others Privat
     method: 'POST',
     body: { email: u1Email, username: u1Name, fullName: 'Owner User', password: 'Password123!', role: 'admin' }
   });
-  assert.equal((await db.getUserById(u1Signup.data.user.id)).role, 'student');
-  await db.markEmailVerified(u1Signup.data.user.id);
+  assert.equal(u1Signup.status, 201);
+  const owner = await db.getUserByEmail(u1Email);
+  assert.equal(owner.role, 'student');
+  await db.markEmailVerified(owner.id);
   const u1Login = await api('/auth/login', { method: 'POST', body: { login: u1Email, password: 'Password123!' } });
   const u1Token = u1Login.data.token;
 
@@ -372,7 +379,8 @@ test('10. Certificate Ownership Authorization: Users Cannot Access Others Privat
     method: 'POST',
     body: { email: u2Email, username: u2Name, fullName: 'Intruder User', password: 'Password123!' }
   });
-  await db.markEmailVerified(u2Signup.data.user.id);
+  assert.equal(u2Signup.status, 201);
+  await db.markEmailVerified((await db.getUserByEmail(u2Email)).id);
   const u2Login = await api('/auth/login', { method: 'POST', body: { login: u2Email, password: 'Password123!' } });
   const u2Token = u2Login.data.token;
 

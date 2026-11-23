@@ -1,5 +1,6 @@
 process.env.NODE_ENV = 'test';
 process.env.DB_PATH = ':memory:';
+process.env.LOGIN_EMAIL_OTP = 'false';
 const app = require('../server/index');
 const db = require('../server/db');
 let port;
@@ -54,9 +55,13 @@ test('Workspace API Endpoints Suite', async (t) => {
   });
 
   assert.equal(signupRes.status, 201, 'User signup should return 201');
-  await db.markEmailVerified(signupRes.body.user.id);
-  const token = signupRes.body.token;
-  assert.ok(token, 'Signup should provide a JWT token');
+  assert.equal(signupRes.body.token, undefined);
+  const user = await db.getUserByEmail(testEmail);
+  await db.markEmailVerified(user.id);
+  const login = await request('POST', '/api/auth/login', { login: testEmail, password: 'Password123!' });
+  assert.equal(login.status, 200);
+  const { token } = login.body;
+  assert.ok(token, 'Login should provide an authenticated session');
   const authHeaders = { 'Authorization': `Bearer ${token}` };
 
   // 2. Test GET /api/workspace initial state
