@@ -4023,6 +4023,8 @@ html[data-theme="dark"] .hack-footer a span{color:var(--ink)}
 @media(prefers-reduced-motion:reduce){#intro.hero-opening::after{display:none}}
 
 .site-music{position:fixed;right:max(12px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));z-index:107;color:var(--ink)}
+body:has(#intro:not(.out)) .site-music{right:max(14px,env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+@media(min-width:761px){#intro .xh{right:max(108px,8vw)!important}}
 .site-music summary,.site-music button{cursor:pointer;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink);font:inherit;font-size:13px;font-weight:700}
 .site-music summary{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 12px;list-style:none;box-shadow:0 8px 20px #25204428}
 .site-music summary::-webkit-details-marker{display:none}
@@ -4033,7 +4035,11 @@ html[data-theme="dark"] .hack-footer a span{color:var(--ink)}
 .site-music button{min-height:44px;padding:0 12px;background:var(--soft)}
 .site-music :focus-visible{outline:2px solid currentColor;outline-offset:2px}
 #site-music-error{margin:8px 0 0;font-size:12px}
-@media(max-width:760px){.site-music{bottom:calc(76px + env(safe-area-inset-bottom,0px))}}
+@media(max-width:760px){
+  .site-music{bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+  body:has(#intro:not(.out)) .site-music{bottom:calc(8px + env(safe-area-inset-bottom,0px))}
+  .site-music summary{width:44px;padding:0;font-size:0;gap:0}
+}
 </style>
 <style id="dh-winner-cards">
 /* ===== Hero winner cards (added layer) ===== */
@@ -11889,7 +11895,7 @@ window.addEventListener('popstate', function() {
 
 
 <details class="site-music">
-  <summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18V5l11-2v13"/><ellipse cx="6" cy="18" rx="3" ry="2"/><ellipse cx="17" cy="16" rx="3" ry="2"/></svg> Music</summary>
+  <summary aria-label="Music"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18V5l11-2v13"/><ellipse cx="6" cy="18" rx="3" ry="2"/><ellipse cx="17" cy="16" rx="3" ry="2"/></svg> Music</summary>
   <div class="site-music-panel">
     <p><strong>I Really Want to Stay at Your House</strong><br><small>Rosa Walton &amp; Hallie Coggins</small></p>
     <div class="site-music-actions">
@@ -11907,7 +11913,7 @@ window.addEventListener('popstate', function() {
   const mute = document.getElementById('site-music-mute');
   const error = document.getElementById('site-music-error');
   const source = '/assets/stay-at-your-house.mp3';
-  audio.volume = 0.45;
+  audio.volume = 1;
   const syncPlayback = () => { play.textContent = audio.paused ? 'Play' : 'Pause'; };
   audio.addEventListener('play', syncPlayback);
   audio.addEventListener('pause', syncPlayback);
