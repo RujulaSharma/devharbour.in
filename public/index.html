@@ -4180,6 +4180,7 @@ html[data-theme="dark"] .dh-submit-btn{color:#0b0b0b}
 .dh-ii-envelope::before{background:#dbc8f0}
 .dh-ii-envelope::after{background:linear-gradient(155deg,#eee1fb,#d9c3ef);clip-path:polygon(0 100%,50% 27%,100% 100%)}
 .dh-ii-envelope-flap{background:linear-gradient(166deg,#f7efff,#dfcbf2);clip-path:polygon(0 0,100% 0,50% 66%);filter:drop-shadow(0 2px 3px #4e336531)}
+.dh-ii-certificate-shimmer{position:absolute;inset:0;pointer-events:none;opacity:0;background:linear-gradient(106deg,transparent 34%,#fff2c8a0 49%,transparent 64%)}
 .dh-ii-envelope-seal{display:grid;place-items:center;gap:8px;margin-top:9%;color:#42285e;font-size:clamp(.72rem,2vw,.88rem);font-weight:750}
 .dh-ii-envelope-seal svg{box-sizing:content-box;padding:clamp(8px,1.8vw,13px);border-radius:50%;background:#fdf9ff;border:1px solid #b69acc;box-shadow:0 3px 12px #4e33652b}
 .dh-ii-preview-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin:0 0 12px;padding:0 2px}
@@ -5422,6 +5423,7 @@ requestAnimationFrame(loop);
         <div class="dh-ii-art">
           <img id="mycert-blank" src="/assets/innovative_india_certificate.webp?v=lavender" width="1080" height="720" alt="Blank Innovative India participation certificate in light lavender">
           <canvas id="mycert-preview" width="1620" height="1080" aria-label="Your personalized Innovative India certificate" role="img" hidden></canvas>
+          <div id="mycert-shimmer" class="dh-ii-certificate-shimmer" aria-hidden="true"></div>
           <div id="mycert-envelope" class="dh-ii-envelope">
             <div class="dh-ii-envelope-flap" aria-hidden="true"></div>
             <div class="dh-ii-envelope-seal">
@@ -11342,8 +11344,17 @@ async function loadMyCertificateView(openSignIn = false) {
     shareUrl.searchParams.set('url', link.href);
     $cert('mycert-linkedin').href = shareUrl.href;
     $cert('mycert-share').hidden = typeof navigator.share !== 'function';
+    try {
+      await drawMyCertificate(cert, blank, canvas, request.signal);
+    } catch {
+      if (!request.signal.aborted) message.textContent = 'The preview could not load. You can still download your PDF.';
+    }
+    if (request.signal.aborted) return;
     details.hidden = false;
-    await drawMyCertificate(cert, blank, canvas, request.signal);
+    const download = $cert('btn-download-mycert-pdf');
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches && download.animate) {
+      download.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 170, easing: 'ease-out' });
+    }
   } catch {
     if (!request.signal.aborted) message.textContent = 'The certificate preview could not be loaded. Please try again.';
   } finally {
@@ -11377,26 +11388,45 @@ async function drawMyCertificate(cert, blank, canvas, signal) {
   ctx.fillText(cert.credential_id, width * 0.73, height * 0.816);
   const envelope = document.getElementById('mycert-envelope');
   const flap = envelope.querySelector('.dh-ii-envelope-flap');
+  const seal = envelope.querySelector('.dh-ii-envelope-seal');
+  const shimmer = document.getElementById('mycert-shimmer');
+  blank.hidden = true;
+  canvas.hidden = false;
+  document.getElementById('mycert-sample').hidden = true;
+
   if (!matchMedia('(prefers-reduced-motion: reduce)').matches && envelope.animate) {
-    const open = flap.animate([
-      { transform: 'perspective(700px) rotateX(0deg)', transformOrigin: 'top' },
-      { transform: 'perspective(700px) rotateX(95deg)', transformOrigin: 'top' }
-    ], { duration: 340, easing: 'ease-in-out', fill: 'forwards' });
-    const exit = envelope.animate([
-      { transform: 'translateY(0)', opacity: 1 },
-      { transform: 'translateY(65%)', opacity: 0 }
-    ], { delay: 270, duration: 370, easing: 'ease-in', fill: 'forwards' });
-    const cancel = () => { open.cancel(); exit.cancel(); };
+    const animations = [
+      seal.animate([
+        { transform: 'translateY(0) rotate(0)', opacity: 1 },
+        { transform: 'translateY(-22px) rotate(-10deg)', opacity: 0 }
+      ], { duration: 210, fill: 'forwards', easing: 'ease-out' }),
+      flap.animate([
+        { transform: 'perspective(700px) rotateX(0deg)', transformOrigin: 'top' },
+        { transform: 'perspective(700px) rotateX(110deg)', transformOrigin: 'top' }
+      ], { delay: 115, duration: 275, fill: 'forwards', easing: 'ease-in-out' }),
+      canvas.animate([
+        { transform: 'translateY(22%)', opacity: .86 },
+        { transform: 'translateY(22%)', opacity: .86, offset: .36 },
+        { transform: 'translateY(0)', opacity: 1 }
+      ], { duration: 700, easing: 'cubic-bezier(.25,.65,.25,1)' }),
+      envelope.animate([
+        { transform: 'translateY(0)', opacity: 1 },
+        { transform: 'translateY(72%)', opacity: 0 }
+      ], { delay: 350, duration: 350, fill: 'forwards', easing: 'ease-in' }),
+      shimmer.animate([
+        { transform: 'translateX(-55%)', opacity: 0 },
+        { opacity: .48, offset: .42 },
+        { transform: 'translateX(55%)', opacity: 0 }
+      ], { delay: 560, duration: 310, easing: 'ease-out' })
+    ];
+    const cancel = () => animations.forEach(animation => animation.cancel());
     signal.addEventListener('abort', cancel, { once: true });
-    await Promise.allSettled([open.finished, exit.finished]);
+    await Promise.allSettled(animations.map(animation => animation.finished));
     signal.removeEventListener('abort', cancel);
     if (signal.aborted) return;
     envelope.hidden = true;
     cancel();
   }
-  blank.hidden = true;
-  canvas.hidden = false;
-  document.getElementById('mycert-sample').hidden = true;
   envelope.hidden = true;
 }
 
