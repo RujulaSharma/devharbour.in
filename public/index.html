@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta name="google-adsense-account" content="ca-pub-8063985890472880">
 <meta name="google-gis-client-id" id="google-gis-client-id" content="">
@@ -66,18 +66,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#faf8ff">
-<script>
-(function(){
-  try {
-    var h = new Date().getHours();
-    var autoTheme = (h >= 20 || h < 8) ? 'dark' : 'light';
-    var manual = localStorage.getItem('dh-theme-manual');
-    var manualTime = parseInt(localStorage.getItem('dh-theme-manual-time') || '0', 10);
-    var theme = (manual && (Date.now() - manualTime < 4 * 3600 * 1000)) ? (localStorage.getItem('dh-theme') || autoTheme) : autoTheme;
-    document.documentElement.setAttribute('data-theme', theme);
-  } catch(e) {}
-})();
-</script>
 <title>Dev Harbour — Learn. Build. Compete. Grow.</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Michroma&display=swap" rel="stylesheet">
@@ -5869,7 +5857,6 @@ requestAnimationFrame(loop);
       </p>
       <ul>
         <li><code>dh_token</code> &amp; <code>dh_user</code>: Secure JWT authentication session persistence.</li>
-        <li><code>dh-theme</code>: Remembering your preference between Light, Dark, and Mercury themes.</li>
       </ul>
       <p>
         We do not use invasive third-party cross-site tracking cookies or ad-tracking beacons.
@@ -10042,18 +10029,13 @@ if(!RM){const st=$('zpst');let q=0;intro.addEventListener('scroll',()=>{if(q)ret
 })();
 </script>
 <script>
-/* theme: auto schedule (8 PM dark mode, 8 AM light mode) with manual control */
+/* Theme controls for the current page. */
 (function(){
- const root = document.documentElement, KEY = 'dh-theme';
+ const root = document.documentElement;
  const cur = () => {
    const t = root.getAttribute('data-theme');
    return t === 'dark' || t === 'mercury' ? t : 'light';
  };
-
- function getScheduledTheme() {
-   const hour = new Date().getHours();
-   return (hour >= 20 || hour < 8) ? 'dark' : 'light';
- }
 
  function sync() {
    const d = cur() === 'dark';
@@ -10062,34 +10044,13 @@ if(!RM){const st=$('zpst');let q=0;intro.addEventListener('scroll',()=>{if(q)ret
    const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = d ? '#000000' : cur() === 'mercury' ? '#f2f2f3' : '#faf8ff';
  }
 
- function set(t, isSilent) {
+ function set(t) {
    root.classList.add('theming');
    root.setAttribute('data-theme', t);
-   try {
-     localStorage.setItem(KEY, t);
-     if (!isSilent) {
-       localStorage.setItem('dh-theme-manual', t);
-       localStorage.setItem('dh-theme-manual-time', String(Date.now()));
-     }
-   } catch(e) {}
    sync();
    clearTimeout(set.t);
    set.t = setTimeout(() => root.classList.remove('theming'), 600);
-   if (!isSilent) {
-     toast(t === 'dark' ? 'Dark mode on' : t === 'mercury' ? 'Mercury mode on' : 'Light mode on');
-   }
- }
-
- function checkSchedule() {
-   const manual = localStorage.getItem('dh-theme-manual');
-   const manualTime = parseInt(localStorage.getItem('dh-theme-manual-time') || '0', 10);
-   const hasActiveManual = manual && (Date.now() - manualTime < 4 * 3600 * 1000);
-   if (!hasActiveManual) {
-     const scheduled = getScheduledTheme();
-     if (cur() !== scheduled) {
-       set(scheduled, true);
-     }
-   }
+   toast(t === 'dark' ? 'Dark mode on' : t === 'mercury' ? 'Mercury mode on' : 'Light mode on');
  }
 
  document.addEventListener('click', e => {
@@ -10098,12 +10059,7 @@ if(!RM){const st=$('zpst');let q=0;intro.addEventListener('scroll',()=>{if(q)ret
    if (e.target.closest('#swd')) set(cur() === 'dark' ? 'light' : 'dark');
  });
 
- checkSchedule();
  sync();
- setInterval(checkSchedule, 30000);
- document.addEventListener('visibilitychange', () => {
-   if (document.visibilityState === 'visible') checkSchedule();
- });
 })();
 </script>
 <script>
