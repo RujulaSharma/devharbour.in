@@ -857,7 +857,8 @@ function getLeaderboardActivityDays(userIds) {
     WHERE user_id IN (${params})
       AND amount > 0
       AND (source_type IN ('challenge_pass','lesson_complete') OR
-           (source_type = 'project_submit' AND coalesce(reference_id,'') NOT LIKE 'vote-%'))
+           (source_type = 'project_submit' AND coalesce(reference_id,'') NOT LIKE 'vote-%') OR
+           (source_type = 'streak_bonus' AND (reference_id LIKE 'focus:%' OR reference_id LIKE 'assignment:%')))
   `).all(...userIds);
 }
 

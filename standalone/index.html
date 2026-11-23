@@ -1042,6 +1042,14 @@ html[data-theme="dark"] .fc-chip i {
 .lb-search-input{width:100%;box-sizing:border-box;padding:9px 14px 9px 36px;border-radius:12px;border:1px solid var(--line);background:var(--soft);color:var(--ink);font-size:13px;font-family:inherit;outline:none;transition:border-color .2s,box-shadow .2s}
 .lb-search-input:focus{border-color:var(--ink);box-shadow:0 0 0 2px rgba(120,110,170,.2)}
 .lb-search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:.5;pointer-events:none;display:flex;align-items:center}
+.lb-crystal{display:inline-block;width:.85em;height:.95em;vertical-align:-.06em;margin-inline-end:.28em;clip-path:polygon(30% 0,70% 0,100% 35%,50% 100%,0 35%);background:linear-gradient(135deg,#f4d8ff 7%,#a976e1 49%,#644098 52%,#b596e9)}
+.lb-rank-gem{width:22px;height:25px;font-size:1rem}
+.lb-demo{margin:14px 0 0;border:1px solid var(--line);border-radius:13px;background:var(--card);padding:12px}
+.lb-demo summary{cursor:pointer;font-weight:750}
+.lb-demo p{margin:8px 0;color:var(--mut);font-size:.8rem}
+.lb-demo ol{margin:0;padding-inline-start:24px}
+.lb-demo li{padding:5px 0}
+.lb-demo li span{float:inline-end;font-size:.8rem;font-weight:700;color:var(--mut)}
 .lb-user-banner{margin:10px 0 14px;padding:10px 14px;border-radius:14px;background:var(--soft);border:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;font-weight:600}
 .lb-user-banner b{color:var(--ink)}
 .lb-empty{text-align:center;padding:28px 16px;color:var(--mut);font-size:13px}
@@ -4796,6 +4804,11 @@ requestAnimationFrame(loop);
         <div id="lb-practice-user-bar"></div>
         <p id="lb-practice-streak" class="mut" style="font-size:.82rem;margin:0 0 10px" hidden></p>
         <div id="lb"></div>
+        <details class="lb-demo">
+          <summary><span class="lb-crystal" aria-hidden="true"></span> Demo leaderboard</summary>
+          <p>Fictional profiles and sample XP. Demo scores are excluded from certificate eligibility.</p>
+          <ol id="lb-demo-rows"></ol>
+        </details>
       </div>
     </div>
   </div>
@@ -4869,7 +4882,8 @@ requestAnimationFrame(loop);
         <p class="mut">Minimalist aesthetic flip clock engineered for deep work and Pomodoro sprints.</p>
       </div>
 
-      <div class="dh-timer-tabs" role="tablist">
+      <p class="mut">Earn 15 XP for your first completed 25, 50, or 60 minute focus session each day while signed in.</p>
+    <div class="dh-timer-tabs" role="tablist">
         <button class="dh-timer-tab on" id="dh-mode-clock-btn" type="button" role="tab" aria-selected="true">
           <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           <span>Live Clock</span>
@@ -7033,6 +7047,15 @@ function safeHttpLink(value) {
 
 /* ===== REAL DYNAMIC LEADERBOARD CONTROLLER ===== */
 const LB_TIMEFRAMES = ['Weekly', 'Monthly', 'All-time'];
+const leaderboardCrystal = '<span class="lb-crystal" aria-hidden="true"></span>';
+const demoLeaderboard = [
+  ['Aarav Mehta', 1800], ['Diya Iyer', 1710], ['Ishaan Bhat', 1640],
+  ['Ananya Nair', 1530], ['Rohan Kulkarni', 1450], ['Meera Sethi', 1315],
+  ['Vihaan Rao', 1260], ['Tara Menon', 1130], ['Arjun Bansal', 1020],
+  ['Kavya Deshpande', 915], ['Neil Sharma', 780], ['Sana Patel', 690]
+];
+$('lb-demo-rows').innerHTML = demoLeaderboard.map(([name, xp]) =>
+  `<li>${esc(name)} <span>${xp.toLocaleString('en-IN')} XP</span></li>`).join('');
 let currentLeaderboardTimeframe = 'Weekly';
 let currentLeaderboardList = [];
 let leaderboardState = 'loading';
@@ -7100,8 +7123,8 @@ window.openDeveloperModal = function(devOrKey) {
   const tags = Array.isArray(dev.tags) && dev.tags.length > 0
     ? dev.tags
     : [
-        dev.rank && dev.rank <= 3 ? '👑 Podium Finisher' : '🚀 Top Builder',
-        solved >= 10 ? '💻 10+ Solved' : '⚡ Problem Solver',
+        dev.rank && dev.rank <= 3 ? 'Podium finisher' : 'Ranked developer',
+        solved >= 10 ? '10+ solved' : 'Practice',
         `Level ${dev.level || 5}`
       ];
 
@@ -7123,8 +7146,8 @@ window.openDeveloperModal = function(devOrKey) {
   if (mBio) mBio.textContent = bio;
   if (mXp) mXp.textContent = xp;
   if (mSolved) mSolved.textContent = String(solved);
-  if (mStreak) mStreak.textContent = `🔥 ${streak}d`;
-  if (cheerBtn) cheerBtn.innerHTML = `<span>👏 Cheer Developer</span><span class="dh-cheer-count" id="dh-dev-modal-cheers">${cheersCount}</span>`;
+  if (mStreak) mStreak.textContent = `${streak}d`;
+  if (cheerBtn) cheerBtn.innerHTML = `<span>Cheer developer</span><span class="dh-cheer-count" id="dh-dev-modal-cheers">${cheersCount}</span>`;
 
   if (mTags) {
     mTags.innerHTML = tags.map(t => `<span class="dh-dev-tag">${esc(t)}</span>`).join('');
@@ -7145,9 +7168,9 @@ window.cheerCurrentDeveloper = function() {
   const newCount = cheerDeveloper(key);
   const cheerBtn = document.getElementById('dh-dev-cheer-btn');
   if (cheerBtn) {
-    cheerBtn.innerHTML = `<span>👏 Cheered!</span><span class="dh-cheer-count">${newCount}</span>`;
+    cheerBtn.innerHTML = `<span>Cheered</span><span class="dh-cheer-count">${newCount}</span>`;
   }
-  toast(`👏 Sent cheers to ${activeModalDev.fullName || activeModalDev.username}!`);
+  toast(`Sent cheers to ${activeModalDev.fullName || activeModalDev.username}!`);
 };
 
 document.addEventListener('keydown', e => {
@@ -7197,10 +7220,9 @@ function renderAllLeaderboardViews() {
         const initial = (name || 'D')[0].toUpperCase();
         const xp = (u.xp || u.allTimeXp || u.totalXp || 0).toLocaleString();
         const solved = u.challengesSolved != null ? u.challengesSolved : (u.solved || 0);
-        const crown = r === 1 ? '👑' : (r === 2 ? '🥈' : '🥉');
         const devKey = u.userId || u.username || name;
         return `<div class="pd p${r}" data-developer="${esc(devKey)}" onclick="openDeveloperModal(this.dataset.developer)">
-          <span class="pd-crown">${crown}</span>
+          <span class="pd-crown lb-crystal lb-rank-gem" aria-hidden="true"></span>
           <span class="pd-avatar">${esc(initial)}</span>
           <small>0${r}</small>
           <b>${esc(name)}</b>
@@ -7238,7 +7260,7 @@ function renderAllLeaderboardViews() {
                 <span class="dev-handle">${u.username ? '@' + esc(u.username) : ''}</span>
               </div>
             </div>
-            <span>${solved} <small class="lb-streak">🔥${streak}d</small></span>
+            <span>${solved} <small class="lb-streak">${leaderboardCrystal}${streak}d</small></span>
             <span>${xp}</span>
           </div>`;
         }).join('');
@@ -7266,22 +7288,22 @@ function renderAllLeaderboardViews() {
         const diff = ((aheadDev.xp || 0) - myXp) + 1;
         aheadText = `<span><b>+${diff > 0 ? diff.toLocaleString() : 50} XP</b> to overtake #${myRank - 1} (${esc(aheadDev.fullName || aheadDev.username)})</span>`;
       } else {
-        aheadText = `<span style="color:var(--sv);font-weight:700;">🌟 You are holding the #1 position!</span>`;
+        aheadText = `<span style="color:var(--sv);font-weight:700;">${leaderboardCrystal} You are holding the #1 position!</span>`;
       }
       bannerHtml = `<div class="lb-user-banner">
-        <span>🏆 <b>Your Rank:</b> #${myRank} · ${(myXp || 0).toLocaleString()} XP</span>
+        <span>${leaderboardCrystal} <b>Your Rank:</b> #${myRank} · ${(myXp || 0).toLocaleString()} XP</span>
         ${aheadText}
       </div>`;
     } else {
       const userXp = myUser.totalXp || myUser.xp || 0;
       bannerHtml = `<div class="lb-user-banner">
-        <span>👋 <b>${esc(myUser.fullName || myUser.username)}</b>: You have ${(userXp).toLocaleString()} XP</span>
-        <span>Solve challenges to climb the top ranking!</span>
+        <span>${leaderboardCrystal} <b>${esc(myUser.fullName || myUser.username)}</b>: You have ${(userXp).toLocaleString()} XP</span>
+        <span>Earn XP from focused study and completed work.</span>
       </div>`;
     }
   } else {
     bannerHtml = `<div class="lb-user-banner">
-      <span>💡 Join Dev Harbour to solve coding challenges, earn XP &amp; climb the live leaderboard.</span>
+      <span>${leaderboardCrystal} Join Dev Harbour to solve coding challenges, earn XP &amp; climb the live leaderboard.</span>
       <button class="bt" type="button" onclick="openAuthModal()" style="padding:4px 12px;font-size:11.5px;border-radius:99px;background:var(--ink);color:var(--bg);cursor:pointer;">Sign In</button>
     </div>`;
   }
@@ -7292,7 +7314,7 @@ function renderAllLeaderboardViews() {
   if (personalStreak) {
     personalStreak.hidden = !myUser || currentLeaderboardStreak === null;
     if (!personalStreak.hidden) {
-      personalStreak.textContent = '🔥 Your activity streak: ' + currentLeaderboardStreak + (currentLeaderboardStreak === 1 ? ' day' : ' days');
+      personalStreak.textContent = 'Your activity streak: ' + currentLeaderboardStreak + (currentLeaderboardStreak === 1 ? ' day' : ' days');
     }
   }
 
@@ -7321,7 +7343,7 @@ function renderAllLeaderboardViews() {
         return `<div class="lr${isMe ? ' is-me' : ''}" style="cursor:pointer;" data-developer="${esc(devKey)}" onclick="openDeveloperModal(this.dataset.developer)">
           <b>${u.rank || (i + 1)}</b>
           <span class="a" title="${esc(name)}">${esc(initial)}</span>
-          <span><b>${esc(name)}</b> ${uName ? `<small class="mut">${esc(uName)}</small>` : ''}<br><em>${solvedText}</em> <small class="lb-streak" title="Current activity streak">🔥 ${streak}d</small></span>
+          <span><b>${esc(name)}</b> ${uName ? `<small class="mut">${esc(uName)}</small>` : ''}<br><em>${solvedText}</em> <small class="lb-streak" title="Current activity streak">${streak}d</small></span>
           <span>${xp} XP</span>
         </div>`;
       }).join('');
@@ -7502,6 +7524,33 @@ function readPendingVerificationEmail() {
 function rememberPendingVerification(email) {
   try { localStorage.setItem(pendingVerificationKey, email.trim().toLowerCase()); }
   catch {}
+}
+
+function showStudyReward(reward) {
+  if (!reward?.awarded || !currentUser) return;
+  currentUser.totalXp = reward.currentXp;
+  currentUser.level = reward.level;
+  localStorage.setItem('dh_current_user', JSON.stringify(currentUser));
+  localStorage.setItem('dh-current-user', JSON.stringify(currentUser));
+  updateAuthUI();
+  if (window.rl) window.rl();
+  toast('+' + reward.amount + ' XP earned');
+}
+
+async function syncWorkspaceAssignment(assignment) {
+  if (!currentUser) return assignment;
+  const id = assignment.id;
+  const options = { headers: getAuthHeaders(), body: JSON.stringify(assignment) };
+  let response = await fetch(id ? '/api/workspace/assignments/' + encodeURIComponent(id) : '/api/workspace/assignments',
+    { ...options, method: id ? 'PUT' : 'POST' });
+  if (id && response.status === 404) {
+    response = await fetch('/api/workspace/assignments', { ...options, method: 'POST' });
+  }
+  if (!response.ok) throw new Error('Assignment save failed');
+  const result = await response.json();
+  if (id && result.assignment.id !== id) LocalDB.workspace.deleteAssignment(id);
+  showStudyReward(result.reward);
+  return { ...assignment, id: result.assignment.id };
 }
 
 function updateAuthUI() {
@@ -9270,20 +9319,15 @@ const WorkspaceManager = {
     if (!asg) return;
     const states = ['pending', 'in_progress', 'completed'];
     const nextIdx = (states.indexOf(asg.status) + 1) % states.length;
-    asg.status = states[nextIdx];
-    LocalDB.workspace.saveAssignment(asg);
+    const changed = { ...asg, status: states[nextIdx] };
+    try {
+      LocalDB.workspace.saveAssignment(await syncWorkspaceAssignment(changed));
+    } catch {
+      toast('Could not save the assignment. Try again.');
+      return;
+    }
     this.renderAssignments();
     this.renderOverview();
-
-    if (window.currentUser && localStorage.getItem('dh_token')) {
-      try {
-        await fetch('/api/workspace/assignments/' + id, {
-          method: 'PUT',
-          headers: getAuthHeaders(),
-          body: JSON.stringify(asg)
-        });
-      } catch(e) {}
-    }
   },
 
   async deleteAssignment(id) {
@@ -9718,21 +9762,16 @@ window.handleWsFormSubmit = async function(e, type, editId) {
     const link_url = document.getElementById('ws-form-asg-link').value.trim();
 
     const asg = { id: editId || undefined, title, subject, deadline, status, priority, description, link_url };
-    LocalDB.workspace.saveAssignment(asg);
+    try {
+      LocalDB.workspace.saveAssignment(await syncWorkspaceAssignment(asg));
+    } catch {
+      toast('Could not save the assignment. Try again.');
+      return;
+    }
     WorkspaceManager.renderAssignments();
     WorkspaceManager.renderOverview();
     closeWsModal();
     toast(editId ? 'Assignment updated' : 'Assignment created');
-
-    if (window.currentUser && localStorage.getItem('dh_token')) {
-      try {
-        await fetch(editId ? '/api/workspace/assignments/' + editId : '/api/workspace/assignments', {
-          method: editId ? 'PUT' : 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify(asg)
-        });
-      } catch(e) {}
-    }
   } else if (type === 'bookmark') {
     const title = document.getElementById('ws-form-bmk-title').value.trim();
     const category = document.getElementById('ws-form-bmk-cat').value;
@@ -10155,7 +10194,7 @@ new MutationObserver(()=>{P.querySelectorAll('span').forEach(up);R.querySelector
     </div>
     <div class="dh-dev-modal-footer">
       <button type="button" class="dh-cheer-btn" id="dh-dev-cheer-btn" onclick="cheerCurrentDeveloper()">
-        <span>👏 Cheer Developer</span>
+        <span>Cheer developer</span>
         <span class="dh-cheer-count" id="dh-dev-modal-cheers">142</span>
       </button>
     </div>
@@ -10626,6 +10665,19 @@ new MutationObserver(()=>{P.querySelectorAll('span').forEach(up);R.querySelector
     } catch(e) {}
   }
 
+  let focusRewardToken = null;
+
+  async function requestFocusReward(path, body) {
+    try {
+      const response = await fetch('/api/workspace/focus/' + path, {
+        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body)
+      });
+      return response.ok ? await response.json() : null;
+    } catch {
+      return null;
+    }
+  }
+
   // Countdown Controls
   function toggleCountdownTimer() {
     if (isStudyRunning) {
@@ -10635,6 +10687,9 @@ new MutationObserver(()=>{P.querySelectorAll('span').forEach(up);R.querySelector
       if (timerToggleIcon) timerToggleIcon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
     } else {
       if (studyRemainingSeconds <= 0) studyRemainingSeconds = studyDurationSeconds;
+      if (studyRemainingSeconds === studyDurationSeconds && currentPresetType === 'focus' && currentUser) {
+        focusRewardToken = requestFocusReward('start', { minutes: studyDurationSeconds / 60 });
+      }
       isStudyRunning = true;
       if (timerToggleText) timerToggleText.textContent = 'Pause';
       if (timerToggleIcon) timerToggleIcon.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
@@ -10658,6 +10713,12 @@ new MutationObserver(()=>{P.querySelectorAll('span').forEach(up);R.querySelector
               localStorage.setItem('dh_study_minutes', String(totalFocusedMinutes));
             } catch(e) {}
             updateStatsUI();
+            const started = focusRewardToken;
+            focusRewardToken = null;
+            started?.then(result => {
+              if (!result?.token) return;
+              return requestFocusReward('complete', { token: result.token }).then(saved => showStudyReward(saved?.reward));
+            });
             if (window.toast) window.toast('Focus session completed! Great job on your study streak.');
           } else {
             if (window.toast) window.toast('Break finished! Ready to get back into flow?');
@@ -10668,6 +10729,7 @@ new MutationObserver(()=>{P.querySelectorAll('span').forEach(up);R.querySelector
   }
 
   function resetCountdownTimer() {
+    focusRewardToken = null;
     clearInterval(studyTimerInterval);
     isStudyRunning = false;
     studyRemainingSeconds = studyDurationSeconds;

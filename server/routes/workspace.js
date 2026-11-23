@@ -2,6 +2,39 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { requireAuth } = require('../auth');
+const { rateLimit } = require('../rate-limiter');
+const { indiaDay, startFocus, canClaimFocus } = require('../study-rewards');
+
+router.post('/focus/start', requireAuth, rateLimit({ max: 12 }), (req, res) => {
+  const token = startFocus(req.user.id, req.body?.minutes, process.env.EMAIL_VERIFICATION_SECRET);
+  if (!token) return res.status(400).json({ error: 'Start a 25, 50, or 60 minute focus session to earn XP.' });
+  res.setHeader('Cache-Control', 'private, no-store');
+  return res.json({ token });
+});
+
+router.post('/focus/complete', requireAuth, rateLimit({ max: 12 }), async (req, res) => {
+  const completedAt = canClaimFocus(req.body?.token, req.user.id, process.env.EMAIL_VERIFICATION_SECRET);
+  if (!completedAt) {
+    return res.status(400).json({ error: 'Complete a signed-in focus session before claiming XP.' });
+  }
+  try {
+    const reward = await db.awardXp(req.user.id, 15, 'streak_bonus', 'focus:' + indiaDay(completedAt), 'Completed a study timer session');
+    return res.json({ reward });
+  } catch {
+    return res.status(503).json({ error: 'Study XP is temporarily unavailable.' });
+  }
+});
+
+async function assignmentReward(userId, assignment) {
+  if (assignment.status !== 'completed') return null;
+  try {
+    const day = indiaDay(Date.now());
+    return await db.awardXp(userId, 10, 'streak_bonus', 'assignment:' + day, 'Completed a Workspace assignment');
+  } catch (error) {
+    console.error('[ASSIGNMENT XP]', error.code || error.name);
+    return null;
+  }
+}
 
 function isValidHttpUrl(string) {
   if (!string || typeof string !== 'string') return false;
@@ -121,7 +154,8 @@ router.post('/assignments', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Assignment title is required.' });
     }
     const assignment = await db.createWorkspaceAssignment(req.user.id, { title, description, dueDate, priority, status, link });
-    res.status(201).json({ ...assignment, assignment });
+    const reward = await assignmentReward(req.user.id, assignment);
+    res.status(201).json({ ...assignment, assignment, reward });
   } catch (err) {
     res.status(500).json({ error: 'Failed to create assignment.' });
   }
@@ -133,7 +167,8 @@ router.put('/assignments/:id', requireAuth, async (req, res) => {
     if (!assignment) {
       return res.status(404).json({ error: 'Assignment not found or unauthorized.' });
     }
-    res.json({ ...assignment, assignment });
+    const reward = req.body.status === 'completed' ? await assignmentReward(req.user.id, assignment) : null;
+    res.json({ ...assignment, assignment, reward });
   } catch (err) {
     res.status(500).json({ error: 'Failed to update assignment.' });
   }
