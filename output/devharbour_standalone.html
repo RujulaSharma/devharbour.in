@@ -3790,8 +3790,16 @@ html[data-theme="dark"] .dh-hero-cert-text{color:#f0ecff}
 .dh-tabs-compact .dh-tab-btn{padding:8px 12px;font-size:13px;border-radius:9px}
 
 /* ===== PRACTICE CODING STUDIO ===== */
-#dh-practice-studio-wrap{animation:wi .3s ease}
+#dh-practice-studio-wrap{animation:wi .3s ease;container-type:inline-size;min-width:0}
 .ps-header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 18px;border-radius:16px;background:var(--soft);border:1px solid var(--line);flex-wrap:wrap}
+.ps-studio-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:clamp(12px,2.5cqw,20px);margin-top:14px;align-items:start}
+.ps-studio-grid > .c{min-width:0;width:auto;max-width:100%}
+.ps-studio-grid .ed{height:clamp(280px,50cqw,430px)}
+.ps-studio-grid .ed:focus-within{outline:2px solid var(--acc,#644be0);outline-offset:2px;border-radius:10px}
+#ps-desc{white-space:pre-line;overflow-wrap:anywhere}
+#ps-out{white-space:pre-wrap;overflow-wrap:anywhere;max-height:240px;overflow:auto}
+.ps-run-note{margin:0;color:var(--mut);font-size:.78rem;line-height:1.5}
+@container (max-width:720px){.ps-studio-grid{grid-template-columns:minmax(0,1fr)}}
 .lr.is-me{background:rgba(110,68,255,0.12);border-radius:12px;padding:10px 10px;margin:2px -10px;box-shadow:inset 0 0 0 1px rgba(110,68,255,0.3)}
 .lr .a{display:grid;place-content:center;font-weight:800;font-size:12px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.5)}
 
@@ -4139,9 +4147,9 @@ button,a,[role="button"],.nv,.pill,.mob-dock-btn{touch-action:manipulation;-webk
   #cf,#lt,#pf{flex-wrap:nowrap!important;overflow-x:auto!important;scrollbar-width:none;padding-bottom:4px;max-width:100%}
   #cf .pill,#lt .pill,#pf .pill{flex:0 0 auto;white-space:nowrap;padding:7px 14px;font-size:12.5px}
   .ps-header{flex-direction:column;align-items:stretch;gap:10px;padding:12px}
-  .ps-actions{display:grid!important;grid-template-columns:auto 1fr 1.25fr;gap:8px;width:100%}
-  #ps-reset-btn,#ps-run-btn,#ps-submit-btn{padding:9px 10px!important;font-size:12px!important;white-space:nowrap!important;justify-content:center}
-  #dh-practice-studio-wrap .c.s5{min-height:auto!important;padding:16px!important}
+  .ps-actions{display:grid!important;grid-template-columns:auto 1fr;gap:8px;width:100%}
+  #ps-reset-btn,#ps-run-btn{padding:9px 10px!important;font-size:12px!important;white-space:nowrap!important;justify-content:center}
+  #dh-practice-studio-wrap .ps-problem{min-height:auto!important;padding:16px!important}
   #dh-practice-studio-wrap .ed{height:240px!important;min-height:220px!important}
   .ws-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
   .ws-stat-card{padding:12px!important;gap:10px!important;border-radius:16px}
@@ -4819,13 +4827,12 @@ requestAnimationFrame(loop);
       <div class="ps-actions" style="display:flex;align-items:center;gap:8px;">
         <button type="button" class="bt" id="ps-reset-btn" onclick="resetPracticeCode()" style="padding:8px 14px;font-size:13px;border-radius:99px;background:var(--card);color:var(--ink);border:1px solid var(--line);cursor:pointer;">Reset</button>
         <button type="button" class="run" id="ps-run-btn" onclick="runPracticeCode()" style="padding:9px 18px;font-size:13px;font-weight:700;border-radius:99px;background:var(--ink);color:var(--bg);cursor:pointer;">Run Code</button>
-        <button type="button" class="bt d" id="ps-submit-btn" onclick="submitPracticeCode()" style="padding:9px 18px;font-size:13px;font-weight:800;border-radius:99px;cursor:pointer;">Submit (+50 XP)</button>
       </div>
     </div>
 
-    <div class="g" style="margin-top:14px;">
+    <div class="ps-studio-grid">
       <!-- Problem Info -->
-      <div class="c s5" style="display:flex;flex-direction:column;gap:12px;min-height:460px;background:var(--card);padding:20px;border-radius:20px;box-shadow:inset 0 0 0 1px var(--line);">
+      <div class="c ps-problem" style="display:flex;flex-direction:column;gap:12px;min-height:460px;background:var(--card);padding:20px;border-radius:20px;box-shadow:inset 0 0 0 1px var(--line);">
         <div class="h" style="padding-bottom:10px;border-bottom:1px solid var(--line);"><h4 style="margin:0;font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);">Problem Statement</h4></div>
         <div id="ps-desc" style="font-size:14px;line-height:1.6;color:var(--ink);font-weight:500;"></div>
         <div class="h" style="margin-top:10px;padding-bottom:8px;border-bottom:1px solid var(--line);"><h4 style="margin:0;font-size:13px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;">Sample Input</h4></div>
@@ -4836,7 +4843,7 @@ requestAnimationFrame(loop);
       </div>
 
       <!-- Code Editor & Console Output -->
-      <div class="c s7" style="display:flex;flex-direction:column;gap:12px;">
+      <div class="c ps-editor-column" style="display:flex;flex-direction:column;gap:12px;">
         <div style="background:var(--card);padding:16px;border-radius:20px;box-shadow:inset 0 0 0 1px var(--line);">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
             <span style="font-size:11px;font-weight:800;letter-spacing:.1em;color:var(--mut);text-transform:uppercase;">JavaScript (ES6 Sandbox)</span>
@@ -4851,9 +4858,10 @@ requestAnimationFrame(loop);
         <div style="background:var(--card);padding:16px;border-radius:20px;box-shadow:inset 0 0 0 1px var(--line);display:flex;flex-direction:column;gap:8px;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <label style="font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--mut);text-transform:uppercase;">Execution Output</label>
-            <div class="rs" id="ps-res"></div>
+            <div class="rs" id="ps-res" role="status"></div>
           </div>
           <pre id="ps-out" style="min-height:60px;background:var(--soft);padding:10px 14px;border-radius:12px;font-family:monospace;font-size:13px;margin:0;border:1px solid var(--line);">Press Run Code to test your solution.</pre>
+          <p class="ps-run-note">Run Code checks the sample in your browser. XP requires official grading, which is currently unavailable.</p>
         </div>
       </div>
     </div>
@@ -11402,7 +11410,7 @@ function openPracticeStudio(idx) {
   document.getElementById('ps-diff').textContent = c[1];
   document.getElementById('ps-diff').className = c[1];
   document.getElementById('ps-cat').textContent = c[2];
-  document.getElementById('ps-desc').innerHTML = (challengeDescriptions[idx] || c[0]).replace(/\n/g, '<br>');
+  document.getElementById('ps-desc').textContent = challengeDescriptions[idx] || c[0];
   document.getElementById('ps-sample-box').textContent = c[5];
   document.getElementById('ps-expected-box').textContent = c[6];
   document.getElementById('ps-code').value = c[4];
@@ -11501,15 +11509,9 @@ addEventListener('message', m => {
     const c = C[activeChallengeIdx];
     const ok = t.trim() === c[6];
     res.className = 'rs ' + (ok ? 'ok' : 'no');
-    res.textContent = ok ? '✓ Test Passed!' : '✕ Expected: ' + c[6];
+    res.textContent = ok ? '✓ Sample passed' : '✕ Expected: ' + c[6];
   }
 });
-
-function submitPracticeCode() {
-  runPracticeCode();
-  toast('Server grading is temporarily unavailable. You can still run the public examples.');
-}
-window.submitPracticeCode = submitPracticeCode;
 
 /* ===== GOOGLE AUTHENTICATION (Cryptographically Secured) ===== */
 /* ===== GOOGLE AUTHENTICATION (Account Chooser & One Tap with FedCM) ===== */
