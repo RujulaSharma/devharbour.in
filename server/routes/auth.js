@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('node:crypto');
 const db = require('../db');
-const { hashPassword, verifyPassword, validateEmail, validateUsername, validatePassword, sanitizeUser, requireAuth } = require('../auth');
+const { hashPassword, verifyPassword, validateEmail, validateUsername, validatePassword, sanitizeUser, requireAuth, getAuthToken, setSessionCookie, clearSessionCookie } = require('../auth');
 const { generateOtp, hashOtp, verifyOtpHash, sendVerificationOtpEmail } = require('../email');
 const { rateLimit } = require('../rate-limiter');
 const eventBus = require('../events');
@@ -153,7 +153,7 @@ router.post('/login', rateLimit({ windowMs: 60000, max: 15 }), async (req, res) 
       const challengeId = await sendLoginCode(user);
       return res.status(202).json({ requiresLoginCode: true, challengeId });
     }
-    return await finishPasswordLogin(user, res);
+    return await finishPasswordLogin(user, req, res);
   } catch (err) {
     if (err.status !== 429) console.error('[PASSWORD LOGIN]', err.code || err.name);
     res.status(err.status === 429 ? 429 : 503).json({ error: err.status === 429 ? err.message : 'Sign in is temporarily unavailable.' });
@@ -175,18 +175,19 @@ router.post('/login/verify', rateLimit({ windowMs: 60000, max: 15 }), async (req
     if (!user || !(await db.isEmailVerified(user.id))) {
       return res.status(401).json({ error: 'Incorrect or expired code. Try again or request a new code.' });
     }
-    return await finishPasswordLogin(user, res);
+    return await finishPasswordLogin(user, req, res);
   } catch (error) {
     console.error('[LOGIN CODE VERIFY]', error.code || error.name);
     return res.status(503).json({ error: 'Sign in is temporarily unavailable.' });
   }
 });
 
-async function finishPasswordLogin(user, res) {
+async function finishPasswordLogin(user, req, res) {
   const { token, expiresAt } = await db.createSession(user.id);
   const totalXp = await db.getUserTotalXp(user.id);
   const streak = await db.updateStreak(user.id);
 
+  setSessionCookie(req, res, token, expiresAt);
   res.json({
     message: 'Welcome back to Dev Harbour!',
     token,
@@ -316,6 +317,7 @@ router.post('/google', rateLimit({ windowMs: 60000, max: 10 }), async (req, res)
     const totalXp = await db.getUserTotalXp(user.id);
     const streak = await db.updateStreak(user.id);
 
+    setSessionCookie(req, res, token, expiresAt);
     res.json({
       message: 'Successfully authenticated with Google.',
       token,
@@ -460,6 +462,7 @@ router.post('/otp/verify', rateLimit({ windowMs: 60000, max: 10 }), async (req, 
     const totalXp = await db.getUserTotalXp(user.id);
     const streak = await db.updateStreak(user.id);
 
+    setSessionCookie(req, res, token, expiresAt);
     res.json({
       success: true,
       message: 'Email address successfully verified! Your account is active.',
@@ -591,11 +594,11 @@ router.post('/password-reset/confirm', rateLimit({ windowMs: 60000, max: 10 }), 
 // POST /api/auth/logout
 router.post('/logout', async (req, res) => {
   try {
-    const authorization = req.headers.authorization;
-    const token = req.token || (authorization?.startsWith('Bearer ') ? authorization.slice(7) : req.headers['x-auth-token']);
+    const token = getAuthToken(req);
     if (token) {
       await db.deleteSession(token);
     }
+    clearSessionCookie(req, res);
     res.json({ message: 'Successfully signed out.' });
   } catch (err) {
     res.status(500).json({ error: 'Logout failed.' });
@@ -610,10 +613,13 @@ router.get('/me', requireAuth, async (req, res) => {
     const interactions = await db.getUserInteractions(user.id);
     const achievements = await db.getUserAchievements(user.id);
 
+    res.setHeader('Cache-Control', 'private, no-store');
+    setSessionCookie(req, res, req.token, req.authExpiresAt);
     res.json({
       user: {
         id: user.id,
         email: user.email,
+        emailVerified: user.emailVerified,
         username: user.username,
         fullName: user.full_name,
         role: user.role,

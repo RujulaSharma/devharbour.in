@@ -40,10 +40,41 @@ function sanitizeUser(user, extras = {}) {
   };
 }
 
+const SESSION_COOKIE = 'dh_session';
+
+function canUseSessionCookie(req) {
+  const fetchSite = req.headers['sec-fetch-site'];
+  if (fetchSite && fetchSite !== 'same-origin' && fetchSite !== 'none') return false;
+  const origin = req.headers.origin;
+  if (!origin) return true;
+  const appOrigin = process.env.APP_BASE_URL?.replace(/\/$/, '');
+  return origin === appOrigin || origin === req.protocol + '://' + req.get?.('host');
+}
+
+function setSessionCookie(req, res, token, expiresAt) {
+  if (!canUseSessionCookie(req)) return;
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.cookie(SESSION_COOKIE, token, {
+    httpOnly: true, secure: process.env.NODE_ENV === 'production' || req.secure,
+    sameSite: 'strict', expires: new Date(expiresAt), path: '/api'
+  });
+}
+
+function clearSessionCookie(req, res) {
+  if (canUseSessionCookie(req)) res.clearCookie(SESSION_COOKIE, {
+    httpOnly: true, secure: process.env.NODE_ENV === 'production' || req.secure,
+    sameSite: 'strict', path: '/api'
+  });
+}
+
 function getAuthToken(req) {
   const authHeader = req.headers.authorization;
   if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) return authHeader.slice(7);
-  return typeof req.headers['x-auth-token'] === 'string' ? req.headers['x-auth-token'] : null;
+  if (typeof req.headers['x-auth-token'] === 'string') return req.headers['x-auth-token'];
+  if (!canUseSessionCookie(req)) return null;
+  const cookie = req.headers.cookie?.split(';').find(value => value.trimStart().startsWith(SESSION_COOKIE + '='));
+  const token = cookie?.trim().slice(SESSION_COOKIE.length + 1);
+  return /^[0-9a-f]{64}$/.test(token || '') ? token : null;
 }
 
 // Authentication Middleware: populates req.user if valid token provided
@@ -63,10 +94,12 @@ async function authMiddleware(req, res, next) {
             level: db.calculateLevel(totalXp || 0)
           });
           req.token = token;
+          req.authExpiresAt = session.expires_at;
         }
       }
     } catch (err) {
-      console.error('authMiddleware error:', err.message);
+      req.authUnavailable = true;
+      console.error('authMiddleware error:', err.code || err.name);
     }
   }
 
@@ -75,6 +108,7 @@ async function authMiddleware(req, res, next) {
 
 // Strict requirement for authenticated endpoints
 function requireAuth(req, res, next) {
+  if (req.authUnavailable) return res.status(503).json({ error: 'Session check temporarily unavailable.' });
   if (!req.user) {
     return res.status(401).json({ error: 'Authentication required. Please sign in.' });
   }
@@ -109,6 +143,8 @@ module.exports = {
   validatePassword,
   sanitizeUser,
   getAuthToken,
+  setSessionCookie,
+  clearSessionCookie,
   authMiddleware,
   requireAuth,
   requireRole

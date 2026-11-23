@@ -8156,6 +8156,7 @@ async function handleLogout() {
     toast('Could not sign out. Please check your connection and try again.');
     return;
   }
+  authSessionRevision++;
   window.google?.accounts?.id?.disableAutoSelect();
   window.__oneTapPromptActive = false;
   localStorage.removeItem('dh_token');
@@ -8177,56 +8178,46 @@ function clearCachedAuthSession() {
   updateAuthUI();
 }
 
-function checkAuthSession() {
-  const token = localStorage.getItem('dh_token') || localStorage.getItem('dh-auth-token');
-  const storedUser = localStorage.getItem('dh_current_user') || localStorage.getItem('dh-current-user');
+let authSessionRevision = 0;
 
-  if (storedUser) {
-    try {
-      currentUser = JSON.parse(storedUser);
-      updateAuthUI();
-    } catch(e) {}
-  }
-
-  if (!token) {
+async function checkAuthSession() {
+  if (location.protocol === 'file:') {
     clearCachedAuthSession();
     return;
   }
-  if (token.startsWith('local-token-')) {
+  let headers = getAuthHeaders();
+  if (headers.Authorization?.startsWith('Bearer local-token-')) {
     clearCachedAuthSession();
-    return;
+    headers = getAuthHeaders();
   }
-
-  fetch('/api/auth/me', {
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + token
+  const revision = authSessionRevision;
+  const isCurrent = () => revision === authSessionRevision && getAuthHeaders().Authorization === headers.Authorization;
+  try {
+    let response = await fetch('/api/auth/me', { headers, cache: 'no-store' });
+    const retryWithCookie = response.status === 401 && headers.Authorization && isCurrent();
+    if (retryWithCookie) {
+      response = await fetch('/api/auth/me', { cache: 'no-store' });
     }
-  })
-    .then(r => {
-      if (r.status === 401) {
-        clearCachedAuthSession();
-        return null;
-      }
-      if (!r.ok) throw new Error('Session check failed');
-      return r.json();
-    })
-    .then(data => {
-      if (data && data.user) {
-        currentUser = data.user;
-        localStorage.setItem('dh_token', token); localStorage.setItem('dh-auth-token', token);
-        localStorage.setItem('dh-auth-token', token);
-        localStorage.setItem('dh_current_user', JSON.stringify(currentUser)); localStorage.setItem('dh-current-user', JSON.stringify(currentUser));
-        localStorage.setItem('dh-current-user', JSON.stringify(currentUser));
-        updateAuthUI();
-      }
-    })
-    .catch(() => {
-      if (!currentUser && storedUser) {
-        try { currentUser = JSON.parse(storedUser); } catch(e) {}
-      }
-      updateAuthUI();
-    });
+    if (!isCurrent()) return;
+    if (response.status === 401) {
+      clearCachedAuthSession();
+      return;
+    }
+    if (!response.ok) return;
+    const { user } = await response.json();
+    if (!user || !isCurrent()) return;
+    if (retryWithCookie) {
+      localStorage.removeItem('dh_token');
+      localStorage.removeItem('dh-auth-token');
+    }
+    currentUser = user;
+    localStorage.setItem('dh_current_user', JSON.stringify(user));
+    localStorage.setItem('dh-current-user', JSON.stringify(user));
+    updateAuthUI();
+  } catch {
+    // Leave the session intact if the connection is briefly unavailable.
+    if (isCurrent()) updateAuthUI();
+  }
 }
 window.checkAuthSession = checkAuthSession;
 checkAuthSession();
@@ -11333,7 +11324,7 @@ async function loadMyCertificateView(openSignIn = false) {
   const auth = getAuthHeaders();
   claimForm.hidden = false;
   const signedInEmail = currentUser?.email?.trim().toLowerCase();
-  if (!certificateClaimEmail || !auth.Authorization || signedInEmail !== certificateClaimEmail) {
+  if (!certificateClaimEmail || signedInEmail !== certificateClaimEmail) {
     message.textContent = certificateClaimEmail
       ? 'Confirm that you own the registration email you entered.'
       : 'Enter the email address you used to register for Innovative India.';

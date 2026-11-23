@@ -41,7 +41,7 @@ async function request(path, body, token, method = 'POST') {
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     ...(body ? { body: JSON.stringify(body) } : {})
   });
-  return { status: response.status, body: await response.json() };
+  return { status: response.status, headers: response.headers, body: await response.json() };
 }
 
 test('signup requires the emailed code, consumes it once, and logout revokes the session', async () => {
@@ -75,7 +75,17 @@ test('signup requires the emailed code, consumes it once, and logout revokes the
   const signedIn = await request('/login', login);
   assert.equal(signedIn.status, 200);
   assert.ok(signedIn.body.token);
-  assert.equal((await request('/logout', {}, signedIn.body.token)).status, 200);
+  const cookie = signedIn.headers.get('set-cookie');
+  assert.match(cookie, /dh_session=[0-9a-f]{64}; Path=\/api; Expires=.*; HttpOnly; SameSite=Strict/);
+  const cookieHeader = cookie.split(';')[0];
+  const reopened = await fetch(base + '/me', { headers: { Cookie: cookieHeader } });
+  assert.equal(reopened.status, 200);
+  assert.equal((await reopened.json()).user.email, account.email);
+  const crossOrigin = await fetch(base + '/me', { headers: { Cookie: cookieHeader, Origin: 'https://unrelated.example.test', 'Sec-Fetch-Site': 'cross-site' } });
+  assert.equal(crossOrigin.status, 401);
+  const logout = await fetch(base + '/logout', { method: 'POST', headers: { Cookie: cookieHeader } });
+  assert.equal(logout.status, 200);
+  assert.match(logout.headers.get('set-cookie'), /dh_session=;/);
   assert.equal((await request('/me', null, signedIn.body.token, 'GET')).status, 401);
 });
 
