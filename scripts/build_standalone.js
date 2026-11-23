@@ -11,7 +11,7 @@ const assets = {
   'lively-thumbnail.svg': 'image/svg+xml',
   'pipos-thumbnail.svg': 'image/svg+xml'
 };
-const assetUrl = /(["'])(?:\/?assets\/)([\w.-]+)\1/g;
+const assetUrl = /(["'])(?:\/?assets\/)([\w.-]+)(?:\?v=[\w.-]+)?\1/g;
 const source = fs.readFileSync(path.join(publicDir, 'index.html'), 'utf8');
 const html = source.replace(assetUrl, (reference, quote, file) => {
   if (!assets[file]) return reference;

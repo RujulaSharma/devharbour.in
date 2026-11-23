@@ -4159,12 +4159,21 @@ html[data-theme="dark"] .dh-submit-btn{color:#0b0b0b}
 .dh-ii-header p,.dh-ii-card p{color:var(--mut);line-height:1.55}
 .dh-ii-event{font-size:13px;font-weight:800;color:var(--acc,#624bd2);margin:0 0 8px}
 .dh-ii-header h2{font-size:clamp(2rem,5vw,3.2rem);line-height:1.05;letter-spacing:-.048em;margin:0 0 10px}
-.dh-ii-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(260px,1fr);align-items:start;gap:20px}
+.dh-ii-grid{display:grid;grid-template-columns:minmax(265px,1fr) minmax(0,1.45fr);align-items:start;gap:clamp(16px,3vw,32px)}
+#v-my-certificate .dh-ii{container-type:inline-size}
+#v-my-certificate .dh-ii-header{margin-bottom:clamp(20px,3vw,36px)}
+#v-my-certificate .dh-ii-card{padding:clamp(18px,3vw,30px);background:color-mix(in srgb,var(--surface,var(--card,#fff)) 93%,#b496e4);border-color:color-mix(in srgb,var(--line) 66%,#b496e4)}
+#v-my-certificate .dh-ii-card h3{font-size:clamp(1.25rem,2.5vw,1.65rem);letter-spacing:-.025em}
+#mycert-claim .dh-ii-field{font-weight:700;font-size:.92rem}
+#mycert-email{min-height:48px}
+#mycert-email:focus-visible{outline:2px solid var(--acc,#624bd2);outline-offset:2px}
+#mycert-claim .dh-cert-submit-btn{min-height:48px;padding:12px 16px}
 .dh-ii-preview,.dh-ii-card{min-width:0;border:1px solid var(--line);border-radius:18px;background:var(--surface,var(--card,#f8f6ff));padding:clamp(12px,2vw,22px)}
 .dh-ii-preview{margin:0}
-.dh-ii-art{position:relative;overflow:hidden;border-radius:8px}
-.dh-ii-lock{position:absolute;inset:0;display:grid;place-items:center;background:rgba(29,23,51,.18);backdrop-filter:blur(4px)}
-.dh-ii-lock span{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:30px;background:#fff;color:#241d38;font-size:14px;font-weight:700;box-shadow:0 2px 12px #20163625}
+.dh-ii-art{overflow:hidden;border-radius:10px;border:1px solid var(--line);background:#f8f3fc}
+.dh-ii-preview-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin:0 0 12px;padding:0 2px}
+.dh-ii-preview-head strong{font-size:.95rem}
+.dh-ii-preview-head span{color:var(--mut);font-size:.8rem}
 #dh-auth-modal.certificate-login .dh-auth-divider,#dh-auth-modal.certificate-login .dh-tabs,#dh-auth-modal.certificate-login form{display:none!important}
 .dh-ii-share{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:14px}
 .dh-ii-share button{width:auto;margin:0;font:inherit;color:inherit;cursor:pointer}
@@ -4182,7 +4191,7 @@ html[data-theme="dark"] .dh-submit-btn{color:#0b0b0b}
 .dh-ii-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:16px;font-size:14px}
 .dh-ii-verify{max-width:690px}
 .dh-ii-result{margin-top:16px}
-@media(max-width:740px){.dh-ii-grid{grid-template-columns:minmax(0,1fr)}.dh-ii-card{grid-row:1}}
+@container (max-width:640px){.dh-ii-grid{grid-template-columns:minmax(0,1fr)}}
 </style>
 </head>
 <body>
@@ -5356,21 +5365,12 @@ requestAnimationFrame(loop);
 <section class="view" id="v-my-certificate">
   <div class="dh-ii">
     <header class="dh-ii-header">
-      <p class="dh-ii-event">Innovative India · Certificate of Participation</p>
+      <p class="dh-ii-event">Innovative India</p>
       <h2>My Certificate</h2>
-      <p>View and download your official Dev Harbour certificate.</p>
     </header>
     <div class="dh-ii-grid">
-      <figure class="dh-ii-preview">
-        <div class="dh-ii-art">
-        <img id="mycert-blank" src="/assets/innovative_india_certificate.webp" width="1080" height="720" alt="Blank Innovative India certificate with the Adaption AI sponsor logo, Dev Harbour seal, and signature">
-        <canvas id="mycert-preview" width="1620" height="1080" aria-label="Your personalized Innovative India certificate" role="img" hidden></canvas>
-        <div id="mycert-lock" class="dh-ii-lock"><span><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Certificate locked</span></div>
-        </div>
-        <figcaption>Innovative India · Sponsored by Adaption AI</figcaption>
-      </figure>
       <div class="dh-ii-card" aria-labelledby="mycert-heading">
-        <h3 id="mycert-heading">Unlock your certificate</h3>
+        <h3 id="mycert-heading">Claim your certificate</h3>
         <p id="mycert-message" role="status" aria-live="polite">Enter the email address you used to register for Innovative India.</p>
         <form id="mycert-claim" onsubmit="submitCertificateEmail(event)">
           <label class="dh-ii-field" for="mycert-email">Registration email
@@ -5403,6 +5403,17 @@ requestAnimationFrame(loop);
           <a href="/contact" data-go="contact">Contact support</a>
         </div>
       </div>
+      <figure class="dh-ii-preview" aria-labelledby="mycert-preview-title">
+        <div class="dh-ii-preview-head">
+          <strong id="mycert-preview-title">Certificate preview</strong>
+          <span id="mycert-sample">Sample template</span>
+        </div>
+        <div class="dh-ii-art">
+          <img id="mycert-blank" src="/assets/innovative_india_certificate.webp?v=lavender" width="1080" height="720" alt="Blank Innovative India participation certificate in light lavender">
+          <canvas id="mycert-preview" width="1620" height="1080" aria-label="Your personalized Innovative India certificate" role="img" hidden></canvas>
+        </div>
+        <figcaption>Sponsored by Adaption AI</figcaption>
+      </figure>
     </div>
   </div>
 </section>
@@ -11140,7 +11151,7 @@ async function loadMyCertificateView(openSignIn = false) {
   const claimForm = $cert('mycert-claim');
   const message = $cert('mycert-message');
   const details = $cert('mycert-details');
-  const lock = $cert('mycert-lock');
+  const sample = $cert('mycert-sample');
   const blank = $cert('mycert-blank');
   const canvas = $cert('mycert-preview');
   const link = $cert('mycert-verify-link');
@@ -11150,10 +11161,10 @@ async function loadMyCertificateView(openSignIn = false) {
   myCertificateRequest = request;
   details.hidden = canvas.hidden = true;
   $cert('mycert-email-verification').hidden = true;
-  lock.hidden = false;
+  sample.hidden = false;
   $cert('mycert-linkedin').removeAttribute('href');
   blank.hidden = false;
-  $cert('mycert-heading').textContent = 'Unlock your certificate';
+  $cert('mycert-heading').textContent = 'Claim your certificate';
   $cert('mycert-recipient-name').textContent = '';
   $cert('mycert-credential-id').textContent = '';
   link.hidden = true;
@@ -11204,7 +11215,6 @@ async function loadMyCertificateView(openSignIn = false) {
     $cert('mycert-linkedin').href = shareUrl.href;
     $cert('mycert-share').hidden = typeof navigator.share !== 'function';
     details.hidden = false;
-    lock.hidden = true;
     await drawMyCertificate(cert, blank, canvas, request.signal);
   } catch {
     if (!request.signal.aborted) message.textContent = 'The certificate preview could not be loaded. Please try again.';
@@ -11237,6 +11247,7 @@ async function drawMyCertificate(cert, blank, canvas, signal) {
   ctx.fillText(cert.credential_id, width * 0.73, height * 0.816);
   blank.hidden = true;
   canvas.hidden = false;
+  document.getElementById('mycert-sample').hidden = true;
 }
 
 async function downloadMyCertificatePdf() {
