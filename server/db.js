@@ -1788,12 +1788,17 @@ try {
 }
 
 function isPostgres() {
-  return process.env.DB_PROVIDER === 'postgresql' && process.env.NODE_ENV !== 'test' && pgDb !== null;
+  if (process.env.NODE_ENV === 'test') return false;
+  return process.env.DB_PROVIDER === 'postgresql' ||
+    (process.env.DB_PROVIDER !== 'sqlite' && Boolean(
+      process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL ||
+      process.env.DIRECT_URL || process.env.SUPABASE_DATABASE_URL || process.env.POSTGRES_URL_NON_POOLING
+    ));
 }
 
 function delegate(fnName, sqliteFn) {
   return async function(...args) {
-    if (process.env.NODE_ENV !== 'test' && (process.env.DB_PROVIDER === 'postgresql' || process.env.VERCEL)) {
+    if (isPostgres() || (process.env.NODE_ENV !== 'test' && process.env.VERCEL)) {
       if (!pgDb?.pool || typeof pgDb[fnName] !== 'function') throw new Error('Persistent database unavailable.');
       return pgDb[fnName](...args);
     }

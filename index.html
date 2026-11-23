@@ -7751,6 +7751,8 @@ function switchAuthTab(tab) {
   const liForm = document.getElementById('form-login');
   const resetForm = document.getElementById('form-password-reset');
   if (resetForm) resetForm.hidden = true;
+  const verificationForm = document.getElementById('form-email-verification');
+  if (verificationForm) verificationForm.hidden = true;
   const suBtn = document.getElementById('tab-btn-signup');
   const liBtn = document.getElementById('tab-btn-login');
   if (tab === 'signup') {
@@ -7792,6 +7794,9 @@ function handleSignup(e) {
   const msg = document.getElementById('su-msg');
   msg.className = 'dh-status-msg';
   msg.textContent = 'Creating your account…';
+  const submit = document.getElementById('su-submit');
+  if (submit.disabled) return;
+  submit.disabled = true;
 
   fetch('/api/auth/signup', {
     method: 'POST',
@@ -7803,6 +7808,11 @@ function handleSignup(e) {
       return { ok: r.ok, status: r.status, data };
     })
     .then(({ ok, data }) => {
+      if (data.requiresVerification) {
+        document.getElementById('su-pass').value = '';
+        openEmailVerification(data.email || email, data.message);
+        return;
+      }
       if (!ok || !data.token || !data.user) {
         msg.className = 'dh-status-msg error';
         msg.textContent = data.error || 'Failed to create account.';
@@ -7824,7 +7834,8 @@ function handleSignup(e) {
     .catch(() => {
       msg.className = 'dh-status-msg error';
       msg.textContent = 'Error creating account. Please try again.';
-    });
+    })
+    .finally(() => { submit.disabled = false; });
 }
 window.handleSignup = handleSignup;
 
@@ -7887,6 +7898,11 @@ function handleLogin(e) {
         closeAuthModal();
         toast(`✦ Welcome back, @${currentUser.username}!`);
       } else {
+        if (data.requiresVerification && data.email) {
+          document.getElementById('li-pass').value = '';
+          openEmailVerification(data.email, data.error);
+          return;
+        }
         msg.className = 'dh-status-msg error';
         msg.textContent = (data && data.error) ? data.error : 'Invalid username or password.';
       }
@@ -7898,6 +7914,59 @@ function handleLogin(e) {
     .finally(() => { submit.disabled = false; });
 }
 window.handleLogin = handleLogin;
+
+function openEmailVerification(email, message) {
+  switchAuthTab('login');
+  document.getElementById('form-login').style.display = 'none';
+  const form = document.getElementById('form-email-verification');
+  form.reset();
+  form.hidden = false;
+  document.getElementById('verification-email').value = email;
+  document.getElementById('verification-msg').textContent = message || 'Enter the six-digit code sent to your email.';
+  document.getElementById('verification-code').focus();
+}
+
+async function handleEmailVerification(event, resend = false) {
+  event.preventDefault();
+  const form = document.getElementById('form-email-verification');
+  if (form.dataset.busy === 'true') return;
+  const email = document.getElementById('verification-email');
+  if (!email.reportValidity()) return;
+  const status = document.getElementById('verification-msg');
+  const buttons = form.querySelectorAll('button');
+  for (const button of buttons) button.disabled = true;
+  form.dataset.busy = 'true';
+  status.textContent = resend ? 'Sending a new code…' : 'Verifying your email…';
+  try {
+    const response = await fetch('/api/auth/otp/' + (resend ? 'send' : 'verify'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.value.trim(), ...(resend ? {} : { otp: document.getElementById('verification-code').value.trim() }) })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      status.textContent = data.error || 'Verification failed. Please try again.';
+      return;
+    }
+    if (resend) {
+      status.textContent = data.message;
+      return;
+    }
+    if (!data.token || !data.user) throw new Error('Incomplete verification response');
+    currentUser = data.user;
+    for (const key of ['dh_token', 'dh-auth-token']) localStorage.setItem(key, data.token);
+    for (const key of ['dh_current_user', 'dh-current-user']) localStorage.setItem(key, JSON.stringify(currentUser));
+    localStorage.setItem('dh_last_username', currentUser.username);
+    updateAuthUI();
+    closeAuthModal();
+    toast('Email verified. You are signed in.');
+  } catch {
+    status.textContent = 'Could not verify your email. Please try again.';
+  } finally {
+    delete form.dataset.busy;
+    for (const button of buttons) button.disabled = false;
+  }
+}
 
 function openPasswordReset() {
   document.getElementById('form-login').style.display = 'none';
@@ -8044,8 +8113,17 @@ function handleSaveProfile(e) {
 }
 window.handleSaveProfile = handleSaveProfile;
 
-function handleLogout() {
-  fetch('/api/auth/logout', { method: 'POST', headers: getAuthHeaders() }).catch(() => {});
+async function handleLogout() {
+  const headers = getAuthHeaders();
+  try {
+    const response = await fetch('/api/auth/logout', { method: 'POST', headers });
+    if (!response.ok && response.status !== 401) throw new Error('Logout failed');
+  } catch {
+    toast('Could not sign out. Please check your connection and try again.');
+    return;
+  }
+  window.google?.accounts?.id?.disableAutoSelect();
+  window.__oneTapPromptActive = false;
   localStorage.removeItem('dh_token');
   localStorage.removeItem('dh-auth-token');
   localStorage.removeItem('dh_current_user');
@@ -10392,6 +10470,21 @@ new MutationObserver(()=>{P.querySelectorAll('span').forEach(up);R.querySelector
       <button type="submit" class="dh-submit-btn">Reset password</button>
       <button type="button" class="dh-tab-btn" onclick="switchAuthTab('login')">Back to sign in</button>
       <div class="dh-status-msg" id="reset-msg" role="status"></div>
+    </form>
+
+    <form id="form-email-verification" onsubmit="handleEmailVerification(event)" hidden>
+      <div class="dh-field">
+        <label for="verification-email">Account email</label>
+        <input type="email" id="verification-email" required autocomplete="email">
+      </div>
+      <div class="dh-field">
+        <label for="verification-code">Six-digit verification code</label>
+        <input type="text" id="verification-code" required pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" maxlength="6">
+      </div>
+      <button type="submit" class="dh-submit-btn">Verify email and sign in</button>
+      <button type="button" class="dh-tab-btn" onclick="handleEmailVerification(event, true)">Resend code</button>
+      <button type="button" class="dh-tab-btn" onclick="switchAuthTab('login')">Back to sign in</button>
+      <div class="dh-status-msg" id="verification-msg" role="status"></div>
     </form>
 
     <!-- SIGN UP FORM -->

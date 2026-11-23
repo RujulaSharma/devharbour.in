@@ -32,6 +32,13 @@ router.post('/signup', rateLimit({ windowMs: 60000, max: 10 }), async (req, res)
     // Check unique constraints
     const existingEmail = await db.getUserByEmail(email);
     if (existingEmail) {
+      if (!(await db.isEmailVerified(existingEmail.id))) {
+        return res.status(409).json({
+          requiresVerification: true,
+          email: existingEmail.email,
+          message: 'This account is waiting for email verification. Enter your code or request a new one.'
+        });
+      }
       return res.status(409).json({ error: 'An account with this email address already exists.' });
     }
     const existingUser = await db.getUserByUsername(username);
@@ -75,9 +82,13 @@ router.post('/signup', rateLimit({ windowMs: 60000, max: 10 }), async (req, res)
       });
     } catch (err) {
       console.error('[SIGNUP OTP EMAIL ERROR]:', err.message);
+      return res.status(201).json({
+        requiresVerification: true,
+        email: user.email,
+        emailSent: false,
+        message: 'Your account is pending verification. Email delivery failed. Use Resend code to try again.'
+      });
     }
-
-    const { token, expiresAt: sessionExpiresAt } = await db.createSession(user.id);
 
     // Broadcast real-time user signup
     eventBus.broadcast({
@@ -90,8 +101,9 @@ router.post('/signup', rateLimit({ windowMs: 60000, max: 10 }), async (req, res)
     res.status(201).json({
       message: 'Account successfully registered! A 6-digit verification code has been dispatched to your email.',
       requiresVerification: true,
-      token,
-      expiresAt: sessionExpiresAt,
+      email: user.email,
+      emailSent: true,
+      cooldownSeconds: 60,
       user: sanitizeUser(user, {
         emailVerified: false,
         totalXp: 0,
@@ -109,7 +121,7 @@ router.post('/login', rateLimit({ windowMs: 60000, max: 15 }), async (req, res) 
   try {
     const { login, password } = req.body; // login can be email or username
 
-    if (!login || !password) {
+    if (typeof login !== 'string' || !login.trim() || typeof password !== 'string' || !password) {
       return res.status(400).json({ error: 'Email/Username and password are required.' });
     }
 
@@ -200,6 +212,8 @@ async function finishPasswordLogin(user, res) {
 
 // POST /api/auth/google (Continue with Google — Cryptographically Verified)
 router.post('/google', rateLimit({ windowMs: 60000, max: 10 }), async (req, res) => {
+  const configuredClientId = process.env.GOOGLE_CLIENT_ID;
+  if (!configuredClientId) return res.status(503).json({ error: 'Google Sign-In is not configured.' });
   const { credential } = req.body;
 
   if (!credential || typeof credential !== 'string' || !credential.trim()) {
@@ -239,8 +253,6 @@ router.post('/google', rateLimit({ windowMs: 60000, max: 10 }), async (req, res)
     return res.status(401).json({ error: 'Google account email must be verified.' });
   }
 
-  const configuredClientId = process.env.GOOGLE_CLIENT_ID;
-  if (!configuredClientId) return res.status(503).json({ error: 'Google sign-in is temporarily unavailable.' });
   if (googleUser.aud !== configuredClientId) {
     return res.status(401).json({ error: 'Google client ID mismatch.' });
   }
@@ -577,10 +589,12 @@ router.post('/password-reset/confirm', rateLimit({ windowMs: 60000, max: 10 }), 
 });
 
 // POST /api/auth/logout
-router.post('/logout', requireAuth, async (req, res) => {
+router.post('/logout', async (req, res) => {
   try {
-    if (req.token) {
-      await db.deleteSession(req.token);
+    const authorization = req.headers.authorization;
+    const token = req.token || (authorization?.startsWith('Bearer ') ? authorization.slice(7) : req.headers['x-auth-token']);
+    if (token) {
+      await db.deleteSession(token);
     }
     res.json({ message: 'Successfully signed out.' });
   } catch (err) {
