@@ -11912,7 +11912,7 @@ window.addEventListener('popstate', function() {
   const play = document.getElementById('site-music-play');
   const mute = document.getElementById('site-music-mute');
   const error = document.getElementById('site-music-error');
-  const source = '/assets/stay-at-your-house.mp3';
+  const source = '/assets/stay-at-your-house.mp3?v=full';
   audio.volume = 1;
   const syncPlayback = () => { play.textContent = audio.paused ? 'Play' : 'Pause'; };
   audio.addEventListener('play', syncPlayback);
