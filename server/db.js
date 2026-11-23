@@ -820,8 +820,16 @@ function getLeaderboard(timeframe = 'All-time', limit = 20) {
       u.streak_days
     FROM users u
     LEFT JOIN xp_ledger l ON u.id = l.user_id ${dateFilter}
+    LEFT JOIN user_settings settings ON settings.user_id = u.id
+    WHERE u.id NOT IN ('usr-ayesha','usr-kabir','usr-mei','usr-nora')
+      AND NOT (lower(u.email) LIKE '%@example.test' OR lower(u.email) LIKE '%@example.com'
+        OR lower(u.email) LIKE '%@example.net' OR lower(u.email) LIKE '%@example.org'
+        OR lower(u.email) LIKE '%@test.local')
+      AND EXISTS (SELECT 1 FROM email_verifications ev WHERE ev.user_id = u.id AND ev.verified_at IS NOT NULL)
+      AND coalesce(cast(settings.profile_public AS text), '1') IN ('1', 'true')
     GROUP BY u.id
-    ORDER BY total_xp DESC, challenges_solved DESC, u.created_at ASC
+    HAVING SUM(l.amount) > 0
+    ORDER BY total_xp DESC, challenges_solved DESC, u.created_at ASC, u.id ASC
     LIMIT ?
   `;
 

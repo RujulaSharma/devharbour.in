@@ -4443,7 +4443,7 @@ requestAnimationFrame(loop);
 </div>
 <div id="lb-user-standing"></div>
 <div class="pod" id="lpod"></div><div id="lrows"></div>
-<div class="lbf"><p class="zn">Top student developers ranked by verified challenge and project XP.</p><button class="zb" type="button" data-go="practice">Join the leaderboard</button></div></div></section>
+<div class="lbf"><p class="zn">Rankings use XP recorded by Dev Harbour. Top eligible performers may earn the <strong>Certificate of Consistency</strong> after review.</p><button class="zb" type="button" data-go="practice">Join the leaderboard</button></div></div></section>
 <section class="zs" id="learning"><h2 class="zh">Curiosity, with direction.</h2><div class="zq" id="zpath" data-st></div><p class="zn" style="margin-top:34px">Every path is free, start to finish.</p></section>
 <!-- 5 DEVELOPER PROFILES -->
 <section class="zs" id="profiles"><h2 class="zh">People building what’s next.</h2><div class="zpr" id="zprof" data-st></div><p class="zn" style="margin-top:34px">Featured student developers building and shipping on Dev Harbour.</p></section>
@@ -4791,6 +4791,7 @@ requestAnimationFrame(loop);
       </div>
       <div class="c k s4">
         <div class="h" id="practice-leaderboard"><h3>Leaderboard</h3><span class="tag">Live</span></div>
+        <p class="mut" style="font-size:.85rem;margin:0 0 10px">Top eligible performers may earn the <strong>Certificate of Consistency</strong> after review.</p>
         <div class="fl" id="lt"></div>
         <div class="lb-search-wrap" style="margin:8px 0 10px;">
           <span class="lb-search-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
@@ -7038,6 +7039,8 @@ function safeHttpLink(value) {
 const LB_TIMEFRAMES = ['Weekly', 'Monthly', 'All-time'];
 let currentLeaderboardTimeframe = 'Weekly';
 let currentLeaderboardList = [];
+let leaderboardState = 'loading';
+let leaderboardRequest;
 let lbLandingFilter = '';
 let lbPracticeFilter = '';
 let activeModalDev = null;
@@ -7052,198 +7055,23 @@ function getCurrentUser() {
   }
 }
 
-const SEED_LB_DEVELOPERS = [
-  {
-    userId: 'usr-mei',
-    username: 'mei',
-    fullName: 'Mei Chen',
-    allTimeXp: 18400,
-    monthlyXp: 4200,
-    weeklyXp: 980,
-    challengesSolved: 212,
-    weeklySolved: 14,
-    monthlySolved: 48,
-    streakDays: 7,
-    level: 14,
-    bio: 'Security & Systems · Linux, Rust, CTFs. Building safe, high-performance distributed systems.',
-    tags: ['🛡️ CTF Ace', '⚡ Fast Solver', '🦀 Rustacean', '👑 Top 1'],
-    baseCheers: 142
-  },
-  {
-    userId: 'usr-ayesha',
-    username: 'ayesha',
-    fullName: 'Ayesha Khan',
-    allTimeXp: 17320,
-    monthlyXp: 3950,
-    weeklyXp: 890,
-    challengesSolved: 198,
-    weeklySolved: 12,
-    monthlySolved: 44,
-    streakDays: 9,
-    level: 14,
-    bio: 'AI & Machine Learning · PyTorch, Python, SQL. Exploring generative models and multi-agent systems.',
-    tags: ['🤖 AI Explorer', '🔥 High Streak', '🥈 Podium Finisher'],
-    baseCheers: 128
-  },
-  {
-    userId: 'usr-kabir',
-    username: 'kabir',
-    fullName: 'Kabir Verma',
-    allTimeXp: 15900,
-    monthlyXp: 3600,
-    weeklyXp: 840,
-    challengesSolved: 187,
-    weeklySolved: 10,
-    monthlySolved: 40,
-    streakDays: 5,
-    level: 13,
-    bio: 'Full-Stack & Systems · React, Node, TypeScript. Crafting open-source tooling and web interfaces.',
-    tags: ['💻 Full-Stack', '🥉 Podium Finisher', '🚀 Builder'],
-    baseCheers: 119
-  },
-  {
-    userId: 'usr-nora',
-    username: 'nora',
-    fullName: 'Nora Davis',
-    allTimeXp: 13300,
-    monthlyXp: 3100,
-    weeklyXp: 720,
-    challengesSolved: 160,
-    weeklySolved: 8,
-    monthlySolved: 35,
-    streakDays: 4,
-    level: 12,
-    bio: 'Algorithms & Competitive Programming · Python, C++. Solving algorithm challenges daily.',
-    tags: ['⚡ Problem Solver', '🎯 100+ Solved', '💡 Innovator'],
-    baseCheers: 84
-  },
-  {
-    userId: 'usr-lucas',
-    username: 'lucas',
-    fullName: 'Lucas Vance',
-    allTimeXp: 12100,
-    monthlyXp: 2750,
-    weeklyXp: 640,
-    challengesSolved: 151,
-    weeklySolved: 7,
-    monthlySolved: 31,
-    streakDays: 4,
-    level: 11,
-    bio: 'Cloud & DevOps Architect · Go, Docker, Kubernetes. Deploying resilient student cloud architectures.',
-    tags: ['☁️ Cloud Native', '🐳 Docker Pro', '🔧 DevOps'],
-    baseCheers: 73
-  },
-  {
-    userId: 'usr-admin-parth',
-    username: 'parth',
-    fullName: 'Parth Gidde',
-    allTimeXp: 10800,
-    monthlyXp: 2400,
-    weeklyXp: 580,
-    challengesSolved: 139,
-    weeklySolved: 6,
-    monthlySolved: 27,
-    streakDays: 3,
-    level: 10,
-    bio: 'Full-Stack Architect · TypeScript, Supabase, Next.js. Core Dev Harbour Architect.',
-    tags: ['⚙️ Core Architect', '⚡ TypeScript Ace', '🌟 Top 10'],
-    baseCheers: 65
-  },
-  {
-    userId: 'usr-rujula',
-    username: 'rujula',
-    fullName: 'Rujula Sharma',
-    allTimeXp: 9600,
-    monthlyXp: 2150,
-    weeklyXp: 520,
-    challengesSolved: 124,
-    weeklySolved: 5,
-    monthlySolved: 24,
-    streakDays: 4,
-    level: 9,
-    bio: 'Founder & CEO @devharbour · Systems, Cloud & Product Architecture. Building for learners worldwide.',
-    tags: ['👑 Dev Harbour Founder', '🌟 Product Lead', '🚀 Visionary'],
-    baseCheers: 186
-  },
-  {
-    userId: 'usr-riya',
-    username: 'riya',
-    fullName: 'Riya Sen',
-    allTimeXp: 8400,
-    monthlyXp: 1900,
-    weeklyXp: 450,
-    challengesSolved: 110,
-    weeklySolved: 5,
-    monthlySolved: 21,
-    streakDays: 3,
-    level: 8,
-    bio: 'UI/UX & Frontend Engineer · Vue, Tailwind, CSS Animation specialist.',
-    tags: ['🎨 UI Craftsman', '✨ CSS Magician'],
-    baseCheers: 49
-  },
-  {
-    userId: 'usr-zane',
-    username: 'zane',
-    fullName: 'Zane Miller',
-    allTimeXp: 7200,
-    monthlyXp: 1650,
-    weeklyXp: 390,
-    challengesSolved: 95,
-    weeklySolved: 4,
-    monthlySolved: 18,
-    streakDays: 2,
-    level: 7,
-    bio: 'Mobile & Cross-Platform Developer · Flutter, Dart, Firebase.',
-    tags: ['📱 Mobile Pro', '🎯 Swift Builder'],
-    baseCheers: 38
-  },
-  {
-    userId: 'usr-tara',
-    username: 'tara',
-    fullName: 'Tara Patel',
-    allTimeXp: 6100,
-    monthlyXp: 1400,
-    weeklyXp: 330,
-    challengesSolved: 82,
-    weeklySolved: 3,
-    monthlySolved: 15,
-    streakDays: 2,
-    level: 6,
-    bio: 'Data Science & Visualizations · Python, Pandas, D3.js. Making numbers tell stories.',
-    tags: ['📊 Data Wizard', '📈 Chart Master'],
-    baseCheers: 32
-  }
-];
-
-function getDevXp(dev, tf) {
-  if (tf === 'Weekly') return dev.weeklyXp || (dev.xp != null && dev.allTimeXp ? Math.round(dev.xp * 0.06) : (dev.xp || 320));
-  if (tf === 'Monthly') return dev.monthlyXp || (dev.xp != null && dev.allTimeXp ? Math.round(dev.xp * 0.24) : (dev.xp || 750));
-  return dev.allTimeXp || dev.xp || dev.totalXp || 1200;
-}
-
-function getDevSolved(dev, tf) {
-  if (tf === 'Weekly') return dev.weeklySolved || dev.challengesSolvedWeekly || Math.max(1, Math.round((dev.challengesSolved || 10) * 0.08));
-  if (tf === 'Monthly') return dev.monthlySolved || dev.challengesSolvedMonthly || Math.max(2, Math.round((dev.challengesSolved || 10) * 0.25));
-  return dev.challengesSolved || dev.solved || 12;
-}
-
 function getDevCheers(key, base) {
   try {
     const store = JSON.parse(localStorage.getItem('dh-dev-cheers') || '{}');
     if (store[key] != null) return store[key];
   } catch {}
-  return base || 25;
+  return base ?? 0;
 }
 
 function cheerDeveloper(key) {
   try {
     const store = JSON.parse(localStorage.getItem('dh-dev-cheers') || '{}');
-    const cur = store[key] != null ? store[key] : (activeModalDev?.baseCheers || 25);
+    const cur = store[key] != null ? store[key] : (activeModalDev?.baseCheers ?? 0);
     store[key] = cur + 1;
     localStorage.setItem('dh-dev-cheers', JSON.stringify(store));
     return store[key];
   } catch {
-    return (activeModalDev?.baseCheers || 25) + 1;
+    return (activeModalDev?.baseCheers ?? 0) + 1;
   }
 }
 
@@ -7253,9 +7081,7 @@ window.openDeveloperModal = function(devOrKey) {
     dev = devOrKey;
   } else if (typeof devOrKey === 'string') {
     dev = currentLeaderboardList.find(d => d.username === devOrKey || d.userId === devOrKey || d.fullName === devOrKey);
-    if (!dev) {
-      dev = SEED_LB_DEVELOPERS.find(d => d.username === devOrKey || d.userId === devOrKey || d.fullName === devOrKey);
-    }
+
   }
   if (!dev) return;
   activeModalDev = dev;
@@ -7268,11 +7094,11 @@ window.openDeveloperModal = function(devOrKey) {
   const initial = (name || 'D')[0].toUpperCase();
   const xp = (dev.xp || dev.allTimeXp || dev.totalXp || 0).toLocaleString();
   const solved = dev.challengesSolved != null ? dev.challengesSolved : (dev.solved || 0);
-  const streak = dev.streakDays || dev.streak || 1;
+  const streak = dev.streakDays ?? 0;
   const rank = dev.rank ? `Rank #${dev.rank}` : 'Top Dev';
   const bio = dev.bio || `${name} is an active student developer building, testing, and shipping software on Dev Harbour.`;
   const cheersKey = dev.userId || dev.username || name;
-  const cheersCount = getDevCheers(cheersKey, dev.baseCheers || 30);
+  const cheersCount = getDevCheers(cheersKey, 0);
 
   const tags = Array.isArray(dev.tags) && dev.tags.length > 0
     ? dev.tags
@@ -7360,7 +7186,9 @@ function renderAllLeaderboardViews() {
 
   if (lpod) {
     if (filteredLanding.length === 0) {
-      lpod.innerHTML = `<div class="lb-empty" style="grid-column:1/-1;">No developers found matching "${esc(lbLandingFilter)}".</div>`;
+      lpod.innerHTML = `<div class="lb-empty" style="grid-column:1/-1;">${leaderboardEmptyMessage(lbLandingFilter)}</div>`;
+    } else if (lbLandingFilter) {
+      lpod.innerHTML = '';
     } else {
       // Silver #2 (left), Gold #1 (center), Bronze #3 (right)
       const P = [top3[1] || null, top3[0] || null, top3[2] || null];
@@ -7388,7 +7216,7 @@ function renderAllLeaderboardViews() {
   }
 
   if (lrows) {
-    const rest = filteredLanding.slice(3);
+    const rest = lbLandingFilter ? filteredLanding : filteredLanding.slice(3);
     if (filteredLanding.length === 0 || (rest.length === 0 && top3.length > 0)) {
       lrows.innerHTML = '';
     } else {
@@ -7402,7 +7230,7 @@ function renderAllLeaderboardViews() {
           const xp = (u.xp || u.allTimeXp || u.totalXp || 0).toLocaleString();
           const solved = u.challengesSolved != null ? u.challengesSolved : (u.solved || 0);
           const devKey = u.userId || u.username || name;
-          const streak = u.streakDays || u.streak || 1;
+          const streak = u.streakDays ?? 0;
           const isMe = myUser && (u.userId === myUser.id || u.username === myUser.username || u.id === myUser.id);
           return `<div class="lrw${isMe ? ' is-me' : ''}" data-developer="${esc(devKey)}" onclick="openDeveloperModal(this.dataset.developer)">
             <b>${rankStr}</b>
@@ -7473,7 +7301,7 @@ function renderAllLeaderboardViews() {
       return n.includes(lbPracticeFilter) || un.includes(lbPracticeFilter);
     });
     if (filteredPractice.length === 0) {
-      lbContainer.innerHTML = `<p class="mut" style="padding:20px 0;text-align:center;">No rankings matching "${esc(lbPracticeFilter)}".</p>`;
+      lbContainer.innerHTML = `<p class="mut" style="padding:20px 0;text-align:center;">${leaderboardEmptyMessage(lbPracticeFilter)}</p>`;
     } else {
       lbContainer.innerHTML = filteredPractice.map((u, i) => {
         const isMe = myUser && (u.userId === myUser.id || u.username === myUser.username || (u.id && u.id === myUser.id));
@@ -7498,15 +7326,15 @@ function renderAllLeaderboardViews() {
   const zav = $('zav');
   const zlb = $('zlb');
   const topCommunity = currentLeaderboardList.slice(0, 5);
-  if (zav && topCommunity.length > 0) {
+  if (zav) {
     zav.innerHTML = topCommunity.map(u => {
       const name = u.fullName || u.username || 'Dev';
       const devKey = u.userId || u.username || name;
       return `<span class="zav" style="cursor:pointer;" title="${esc(name)}" data-developer="${esc(devKey)}" onclick="openDeveloperModal(this.dataset.developer)">${esc(name[0].toUpperCase())}</span>`;
     }).join('');
   }
-  if (zlb && topCommunity.length > 0) {
-    zlb.innerHTML = topCommunity.map((u, i) => {
+  if (zlb) {
+    zlb.innerHTML = topCommunity.length ? topCommunity.map((u, i) => {
       const name = u.fullName || u.username || 'Dev';
       const solved = u.challengesSolved != null ? u.challengesSolved : (u.solved || 0);
       const xp = (u.xp || u.allTimeXp || u.totalXp || 0).toLocaleString();
@@ -7517,96 +7345,43 @@ function renderAllLeaderboardViews() {
         <span>${solved}</span>
         <span>${xp} XP</span>
       </div>`;
-    }).join('');
+    }).join('') : '<p class="zn">' + leaderboardEmptyMessage('') + '</p>';
   }
 }
 
+function leaderboardEmptyMessage(search) {
+  if (leaderboardState === 'loading') return 'Loading rankings…';
+  if (leaderboardState === 'error') return 'Rankings are temporarily unavailable.';
+  if (search) return 'No developers match your search.';
+  return 'No eligible XP has been recorded for this period yet.';
+}
+
 async function rl(k) {
-  currentLeaderboardTimeframe = k || currentLeaderboardTimeframe || 'Weekly';
-
+  const timeframe = LB_TIMEFRAMES.includes(k) ? k : currentLeaderboardTimeframe;
+  leaderboardRequest?.abort();
+  const request = new AbortController();
+  leaderboardRequest = request;
+  if (timeframe !== currentLeaderboardTimeframe || !currentLeaderboardList.length) {
+    currentLeaderboardList = [];
+    leaderboardState = 'loading';
+    currentLeaderboardTimeframe = timeframe;
+    renderAllLeaderboardViews();
+  }
   try {
-    const res = await fetch(`/api/leaderboard?timeframe=${encodeURIComponent(currentLeaderboardTimeframe)}&limit=30`);
-    if (res.ok) {
-      const data = await res.json();
-      if (data.rankings && data.rankings.length > 0) {
-        currentLeaderboardList = data.rankings.map(r => {
-          const matchSeed = SEED_LB_DEVELOPERS.find(s => s.username === r.username || s.userId === r.userId);
-          return {
-            ...matchSeed,
-            ...r,
-            bio: r.bio || matchSeed?.bio || `${r.fullName || r.username} is a student developer on Dev Harbour.`,
-            tags: r.tags || matchSeed?.tags || ['💻 Developer', `Level ${r.level || 5}`],
-            baseCheers: matchSeed?.baseCheers || 30
-          };
-        });
-        renderAllLeaderboardViews();
-        return;
-      }
-    }
-  } catch(err) {
-    console.warn('Backend leaderboard fetch fallback:', err);
-  }
-
-  // Local fallback: map SEED_LB_DEVELOPERS to timeframe
-  let list = SEED_LB_DEVELOPERS.map(d => ({
-    ...d,
-    xp: getDevXp(d, currentLeaderboardTimeframe),
-    challengesSolved: getDevSolved(d, currentLeaderboardTimeframe)
-  }));
-
-  // Merge any local registered users from LocalDB
-  const localUsers = typeof LocalDB !== 'undefined' ? LocalDB.getUsers() : [];
-  if (localUsers.length > 0) {
-    for (const lu of localUsers) {
-      if (!list.some(c => c.username === lu.username || c.userId === lu.id)) {
-        const uXp = lu.totalXp || 150;
-        const fakeDev = {
-          userId: lu.id,
-          username: lu.username,
-          fullName: lu.fullName || lu.username,
-          allTimeXp: uXp,
-          weeklyXp: Math.round(uXp * 0.1) || 50,
-          monthlyXp: Math.round(uXp * 0.3) || 100,
-          challengesSolved: (lu.solvedChallenges || []).length || 1,
-          streakDays: lu.streak || 1,
-          level: lu.level || 1,
-          bio: lu.bio || 'Student developer building on Dev Harbour.'
-        };
-        list.push({
-          ...fakeDev,
-          xp: getDevXp(fakeDev, currentLeaderboardTimeframe),
-          challengesSolved: getDevSolved(fakeDev, currentLeaderboardTimeframe)
-        });
-      }
-    }
-  }
-
-  // Merge current logged-in user if not in list
-  const myUser = getCurrentUser();
-  if (myUser && !list.some(c => c.username === myUser.username || c.userId === myUser.id)) {
-    const myXp = myUser.totalXp || myUser.xp || 150;
-    const fakeMe = {
-      userId: myUser.id,
-      username: myUser.username,
-      fullName: myUser.fullName || myUser.username,
-      allTimeXp: myXp,
-      weeklyXp: Math.round(myXp * 0.1) || 50,
-      monthlyXp: Math.round(myXp * 0.3) || 100,
-      challengesSolved: (myUser.solvedChallenges || []).length || 1,
-      streakDays: myUser.streak || 1,
-      level: myUser.level || 1,
-      bio: myUser.bio || 'Student developer building on Dev Harbour.'
-    };
-    list.push({
-      ...fakeMe,
-      xp: getDevXp(fakeMe, currentLeaderboardTimeframe),
-      challengesSolved: getDevSolved(fakeMe, currentLeaderboardTimeframe)
+    const response = await fetch('/api/leaderboard?timeframe=' + encodeURIComponent(timeframe) + '&limit=30', {
+      cache: 'no-store', signal: request.signal
     });
+    if (!response.ok) throw new Error('Leaderboard request failed');
+    const data = await response.json();
+    if (!Array.isArray(data.rankings)) throw new Error('Invalid rankings response');
+    if (request.signal.aborted) return;
+    currentLeaderboardList = data.rankings;
+    leaderboardState = 'ready';
+  } catch {
+    if (request.signal.aborted) return;
+    currentLeaderboardList = [];
+    leaderboardState = 'error';
   }
-
-  list.sort((a, b) => (b.xp || 0) - (a.xp || 0));
-  list = list.map((u, i) => ({ ...u, rank: i + 1 }));
-  currentLeaderboardList = list;
   renderAllLeaderboardViews();
 }
 
@@ -10227,14 +10002,7 @@ $('zpath').innerHTML=PA.map(p=>`<article><h3>${p[0]}</h3><p>${p[1]}</p><ul class
 /* profiles (demo, handles match the leaderboard) */
 const PR=[['Ayesha','AI · Data','Python,PyTorch,SQL',198,5,3],['Kabir','Web · Open source','React,Node,TypeScript',187,7,2],['Mei','Security · Systems','Linux,Rust,CTFs',212,4,4]];
 $('zprof').innerHTML=PR.map(p=>`<article><div class="zav">${p[0][0]}</div><h3>${p[0]}</h3><p class="zn">${p[1]}</p><div class="zt">${T(p[2].split(','))}</div><p class="zst2">${p[3]} challenges · ${p[4]} projects · ${p[5]} hackathons</p><div class="zk"><a class="zl" href="https://github.com/RujulaSharma/devharbour.in" target="_blank" rel="noopener noreferrer">GitHub ↗</a><a class="zl" href="https://devharbour.in" target="_blank" rel="noopener noreferrer">Portfolio ↗</a></div></article>`).join('');
-/* community + leaderboard */
-if (typeof renderAllLeaderboardViews === 'function') {
-  renderAllLeaderboardViews();
-} else {
-  const LB=[['Mei',212,18400],['Ayesha',198,17120],['Kabir',187,15900],['Nora',160,13300],['Lucas',151,12100]];
-  if ($('zav')) $('zav').innerHTML=LB.map(u=>`<span class="zav" style="cursor:pointer;" data-developer="${esc(u[0]).toLowerCase()}" onclick="openDeveloperModal(this.dataset.developer)" title="${esc(u[0])}">${esc(u[0])[0].toUpperCase()}</span>`).join('');
-  if ($('zlb')) $('zlb').innerHTML=LB.map((u,i)=>`<div class="zlb" style="cursor:pointer;" data-developer="${esc(u[0]).toLowerCase()}" onclick="openDeveloperModal(this.dataset.developer)"><b>${i+1}</b><span>${esc(u[0])}</span><span>${esc(u[1])}</span><span>${esc(u[2].toLocaleString())} XP</span></div>`).join('');
-}
+renderAllLeaderboardViews();
 /* footer */
 $('zfl').src=document.querySelector('.xlg .xli').src;
 const syncLogos=()=>{const src=$('zfl').src;document.querySelectorAll('[data-logo]').forEach(i=>{if(!i.src)i.src=src;});};

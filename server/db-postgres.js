@@ -294,8 +294,17 @@ async function getLeaderboard(timeframe = 'All-time', limit = 20) {
       COALESCE(u.streak_days, 0) as "streakDays"
     FROM users u
     LEFT JOIN xp_ledger l ON u.id = l.user_id ${dateFilter}
+    LEFT JOIN user_settings settings ON settings.user_id = u.id
+    WHERE u.id NOT IN ('usr-ayesha','usr-kabir','usr-mei','usr-nora')
+      AND NOT (lower(u.email) LIKE '%@example.test' OR lower(u.email) LIKE '%@example.com'
+        OR lower(u.email) LIKE '%@example.net' OR lower(u.email) LIKE '%@example.org'
+        OR lower(u.email) LIKE '%@test.local')
+      AND EXISTS (SELECT 1 FROM email_verifications ev WHERE ev.user_id = u.id AND ev.verified_at IS NOT NULL)
+      AND coalesce(cast(settings.profile_public AS text), '1') IN ('1', 'true')
+      AND lower(u.email) !~ '^(student|reader|coder|builder|intruder|settings|owner|otp_user|cert_user|new_google_user|existing_dev)_[0-9]{13}@devharbour[.]in$'
     GROUP BY u.id, u.username, u.full_name, u.avatar_url, u.streak_days, u.created_at
-    ORDER BY xp DESC, "challengesSolved" DESC, u.created_at ASC
+    HAVING SUM(l.amount) > 0
+    ORDER BY xp DESC, "challengesSolved" DESC, u.created_at ASC, u.id ASC
     LIMIT $1;
   `, [limit]);
 
