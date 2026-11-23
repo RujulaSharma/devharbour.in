@@ -4168,6 +4168,10 @@ html[data-theme="dark"] .dh-submit-btn{color:#0b0b0b}
 #mycert-email{min-height:48px}
 #mycert-email:focus-visible{outline:2px solid var(--acc,#624bd2);outline-offset:2px}
 #mycert-claim .dh-cert-submit-btn{min-height:48px;padding:12px 16px}
+#mycert-claim[aria-busy="true"] .dh-cert-submit-btn::after{content:"";display:inline-block;margin-inline-start:10px;width:.85em;height:.85em;vertical-align:-.1em;border:2px solid currentColor;border-inline-end-color:transparent;border-radius:50%;animation:dh-cert-spin .75s linear infinite}
+@keyframes dh-cert-spin{to{transform:rotate(1turn)}}
+@media(prefers-reduced-motion:reduce){#mycert-claim[aria-busy="true"] .dh-cert-submit-btn::after{animation:none}}
+
 .dh-ii-preview,.dh-ii-card{min-width:0;border:1px solid var(--line);border-radius:18px;background:var(--surface,var(--card,#f8f6ff));padding:clamp(12px,2vw,22px)}
 .dh-ii-preview{margin:0}
 .dh-ii-art{position:relative;overflow:hidden;border-radius:10px;border:1px solid var(--line);background:#f8f3fc}
@@ -11161,7 +11165,7 @@ new MutationObserver(()=>{P.querySelectorAll('span').forEach(up);R.querySelector
 let myCertificateRequest;
 let certificateClaimEmail = '';
 
-function submitCertificateEmail(event) {
+async function submitCertificateEmail(event) {
   event.preventDefault();
   if (location.protocol === 'file:') {
     location.href = 'https://devharbour.in/my-certificate';
@@ -11169,7 +11173,21 @@ function submitCertificateEmail(event) {
   }
   certificateClaimEmail = document.getElementById('mycert-email').value.trim().toLowerCase();
   document.getElementById('mycert-email-code').value = '';
-  loadMyCertificateView(true);
+  const button = event.currentTarget.querySelector('button[type="submit"]');
+  const seal = document.querySelector('.dh-ii-envelope-seal svg');
+  button.disabled = true;
+  try {
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches && seal?.animate) {
+      await seal.animate([
+        { transform: 'scale(1)' },
+        { transform: 'scale(1.15) rotate(-7deg)', offset: .55 },
+        { transform: 'scale(1)' }
+      ], { duration: 260, easing: 'ease-out' }).finished;
+    }
+    await loadMyCertificateView(true);
+  } finally {
+    button.disabled = false;
+  }
 }
 function openCertificateSignup() {
   openAuthModal('signup');
@@ -11266,6 +11284,7 @@ async function loadMyCertificateView(openSignIn = false) {
   myCertificateRequest?.abort();
   const request = new AbortController();
   myCertificateRequest = request;
+  claimForm.removeAttribute('aria-busy');
   details.hidden = canvas.hidden = true;
   $cert('mycert-email-verification').hidden = true;
   sample.hidden = false;
@@ -11292,6 +11311,7 @@ async function loadMyCertificateView(openSignIn = false) {
     return;
   }
   message.textContent = 'Checking your registration…';
+  claimForm.setAttribute('aria-busy', 'true');
   try {
     const response = await fetch('/api/certificates/my-certificate', { headers: { ...auth, 'X-Certificate-Email': certificateClaimEmail }, signal: request.signal, cache: 'no-store' });
     const result = await response.json();
@@ -11326,6 +11346,8 @@ async function loadMyCertificateView(openSignIn = false) {
     await drawMyCertificate(cert, blank, canvas, request.signal);
   } catch {
     if (!request.signal.aborted) message.textContent = 'The certificate preview could not be loaded. Please try again.';
+  } finally {
+    if (myCertificateRequest === request) claimForm.removeAttribute('aria-busy');
   }
 }
 
@@ -11353,10 +11375,29 @@ async function drawMyCertificate(cert, blank, canvas, signal) {
   ctx.font = '700 ' + width * 0.014 + 'px Arial, sans-serif';
   ctx.fillStyle = '#101f3d';
   ctx.fillText(cert.credential_id, width * 0.73, height * 0.816);
+  const envelope = document.getElementById('mycert-envelope');
+  const flap = envelope.querySelector('.dh-ii-envelope-flap');
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches && envelope.animate) {
+    const open = flap.animate([
+      { transform: 'perspective(700px) rotateX(0deg)', transformOrigin: 'top' },
+      { transform: 'perspective(700px) rotateX(95deg)', transformOrigin: 'top' }
+    ], { duration: 340, easing: 'ease-in-out', fill: 'forwards' });
+    const exit = envelope.animate([
+      { transform: 'translateY(0)', opacity: 1 },
+      { transform: 'translateY(65%)', opacity: 0 }
+    ], { delay: 270, duration: 370, easing: 'ease-in', fill: 'forwards' });
+    const cancel = () => { open.cancel(); exit.cancel(); };
+    signal.addEventListener('abort', cancel, { once: true });
+    await Promise.allSettled([open.finished, exit.finished]);
+    signal.removeEventListener('abort', cancel);
+    if (signal.aborted) return;
+    envelope.hidden = true;
+    cancel();
+  }
   blank.hidden = true;
   canvas.hidden = false;
   document.getElementById('mycert-sample').hidden = true;
-  document.getElementById('mycert-envelope').hidden = true;
+  envelope.hidden = true;
 }
 
 async function downloadMyCertificatePdf() {

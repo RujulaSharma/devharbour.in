@@ -4168,6 +4168,10 @@ html[data-theme="dark"] .dh-submit-btn{color:#0b0b0b}
 #mycert-email{min-height:48px}
 #mycert-email:focus-visible{outline:2px solid var(--acc,#624bd2);outline-offset:2px}
 #mycert-claim .dh-cert-submit-btn{min-height:48px;padding:12px 16px}
+#mycert-claim[aria-busy="true"] .dh-cert-submit-btn::after{content:"";display:inline-block;margin-inline-start:10px;width:.85em;height:.85em;vertical-align:-.1em;border:2px solid currentColor;border-inline-end-color:transparent;border-radius:50%;animation:dh-cert-spin .75s linear infinite}
+@keyframes dh-cert-spin{to{transform:rotate(1turn)}}
+@media(prefers-reduced-motion:reduce){#mycert-claim[aria-busy="true"] .dh-cert-submit-btn::after{animation:none}}
+
 .dh-ii-preview,.dh-ii-card{min-width:0;border:1px solid var(--line);border-radius:18px;background:var(--surface,var(--card,#f8f6ff));padding:clamp(12px,2vw,22px)}
 .dh-ii-preview{margin:0}
 .dh-ii-art{position:relative;overflow:hidden;border-radius:10px;border:1px solid var(--line);background:#f8f3fc}
@@ -7751,6 +7755,8 @@ function switchAuthTab(tab) {
   const liForm = document.getElementById('form-login');
   const resetForm = document.getElementById('form-password-reset');
   if (resetForm) resetForm.hidden = true;
+  const verificationForm = document.getElementById('form-email-verification');
+  if (verificationForm) verificationForm.hidden = true;
   const suBtn = document.getElementById('tab-btn-signup');
   const liBtn = document.getElementById('tab-btn-login');
   if (tab === 'signup') {
@@ -7792,6 +7798,9 @@ function handleSignup(e) {
   const msg = document.getElementById('su-msg');
   msg.className = 'dh-status-msg';
   msg.textContent = 'Creating your account…';
+  const submit = document.getElementById('su-submit');
+  if (submit.disabled) return;
+  submit.disabled = true;
 
   fetch('/api/auth/signup', {
     method: 'POST',
@@ -7803,6 +7812,11 @@ function handleSignup(e) {
       return { ok: r.ok, status: r.status, data };
     })
     .then(({ ok, data }) => {
+      if (data.requiresVerification) {
+        document.getElementById('su-pass').value = '';
+        openEmailVerification(data.email || email, data.message);
+        return;
+      }
       if (!ok || !data.token || !data.user) {
         msg.className = 'dh-status-msg error';
         msg.textContent = data.error || 'Failed to create account.';
@@ -7824,7 +7838,8 @@ function handleSignup(e) {
     .catch(() => {
       msg.className = 'dh-status-msg error';
       msg.textContent = 'Error creating account. Please try again.';
-    });
+    })
+    .finally(() => { submit.disabled = false; });
 }
 window.handleSignup = handleSignup;
 
@@ -7887,6 +7902,11 @@ function handleLogin(e) {
         closeAuthModal();
         toast(`✦ Welcome back, @${currentUser.username}!`);
       } else {
+        if (data.requiresVerification && data.email) {
+          document.getElementById('li-pass').value = '';
+          openEmailVerification(data.email, data.error);
+          return;
+        }
         msg.className = 'dh-status-msg error';
         msg.textContent = (data && data.error) ? data.error : 'Invalid username or password.';
       }
@@ -7898,6 +7918,59 @@ function handleLogin(e) {
     .finally(() => { submit.disabled = false; });
 }
 window.handleLogin = handleLogin;
+
+function openEmailVerification(email, message) {
+  switchAuthTab('login');
+  document.getElementById('form-login').style.display = 'none';
+  const form = document.getElementById('form-email-verification');
+  form.reset();
+  form.hidden = false;
+  document.getElementById('verification-email').value = email;
+  document.getElementById('verification-msg').textContent = message || 'Enter the six-digit code sent to your email.';
+  document.getElementById('verification-code').focus();
+}
+
+async function handleEmailVerification(event, resend = false) {
+  event.preventDefault();
+  const form = document.getElementById('form-email-verification');
+  if (form.dataset.busy === 'true') return;
+  const email = document.getElementById('verification-email');
+  if (!email.reportValidity()) return;
+  const status = document.getElementById('verification-msg');
+  const buttons = form.querySelectorAll('button');
+  for (const button of buttons) button.disabled = true;
+  form.dataset.busy = 'true';
+  status.textContent = resend ? 'Sending a new code…' : 'Verifying your email…';
+  try {
+    const response = await fetch('/api/auth/otp/' + (resend ? 'send' : 'verify'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.value.trim(), ...(resend ? {} : { otp: document.getElementById('verification-code').value.trim() }) })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      status.textContent = data.error || 'Verification failed. Please try again.';
+      return;
+    }
+    if (resend) {
+      status.textContent = data.message;
+      return;
+    }
+    if (!data.token || !data.user) throw new Error('Incomplete verification response');
+    currentUser = data.user;
+    for (const key of ['dh_token', 'dh-auth-token']) localStorage.setItem(key, data.token);
+    for (const key of ['dh_current_user', 'dh-current-user']) localStorage.setItem(key, JSON.stringify(currentUser));
+    localStorage.setItem('dh_last_username', currentUser.username);
+    updateAuthUI();
+    closeAuthModal();
+    toast('Email verified. You are signed in.');
+  } catch {
+    status.textContent = 'Could not verify your email. Please try again.';
+  } finally {
+    delete form.dataset.busy;
+    for (const button of buttons) button.disabled = false;
+  }
+}
 
 function openPasswordReset() {
   document.getElementById('form-login').style.display = 'none';
@@ -8044,8 +8117,17 @@ function handleSaveProfile(e) {
 }
 window.handleSaveProfile = handleSaveProfile;
 
-function handleLogout() {
-  fetch('/api/auth/logout', { method: 'POST', headers: getAuthHeaders() }).catch(() => {});
+async function handleLogout() {
+  const headers = getAuthHeaders();
+  try {
+    const response = await fetch('/api/auth/logout', { method: 'POST', headers });
+    if (!response.ok && response.status !== 401) throw new Error('Logout failed');
+  } catch {
+    toast('Could not sign out. Please check your connection and try again.');
+    return;
+  }
+  window.google?.accounts?.id?.disableAutoSelect();
+  window.__oneTapPromptActive = false;
   localStorage.removeItem('dh_token');
   localStorage.removeItem('dh-auth-token');
   localStorage.removeItem('dh_current_user');
@@ -10394,6 +10476,21 @@ new MutationObserver(()=>{P.querySelectorAll('span').forEach(up);R.querySelector
       <div class="dh-status-msg" id="reset-msg" role="status"></div>
     </form>
 
+    <form id="form-email-verification" onsubmit="handleEmailVerification(event)" hidden>
+      <div class="dh-field">
+        <label for="verification-email">Account email</label>
+        <input type="email" id="verification-email" required autocomplete="email">
+      </div>
+      <div class="dh-field">
+        <label for="verification-code">Six-digit verification code</label>
+        <input type="text" id="verification-code" required pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" maxlength="6">
+      </div>
+      <button type="submit" class="dh-submit-btn">Verify email and sign in</button>
+      <button type="button" class="dh-tab-btn" onclick="handleEmailVerification(event, true)">Resend code</button>
+      <button type="button" class="dh-tab-btn" onclick="switchAuthTab('login')">Back to sign in</button>
+      <div class="dh-status-msg" id="verification-msg" role="status"></div>
+    </form>
+
     <!-- SIGN UP FORM -->
     <form id="form-signup" onsubmit="handleSignup(event)" style="display:none;">
       <div class="dh-field">
@@ -11068,7 +11165,7 @@ new MutationObserver(()=>{P.querySelectorAll('span').forEach(up);R.querySelector
 let myCertificateRequest;
 let certificateClaimEmail = '';
 
-function submitCertificateEmail(event) {
+async function submitCertificateEmail(event) {
   event.preventDefault();
   if (location.protocol === 'file:') {
     location.href = 'https://devharbour.in/my-certificate';
@@ -11076,7 +11173,21 @@ function submitCertificateEmail(event) {
   }
   certificateClaimEmail = document.getElementById('mycert-email').value.trim().toLowerCase();
   document.getElementById('mycert-email-code').value = '';
-  loadMyCertificateView(true);
+  const button = event.currentTarget.querySelector('button[type="submit"]');
+  const seal = document.querySelector('.dh-ii-envelope-seal svg');
+  button.disabled = true;
+  try {
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches && seal?.animate) {
+      await seal.animate([
+        { transform: 'scale(1)' },
+        { transform: 'scale(1.15) rotate(-7deg)', offset: .55 },
+        { transform: 'scale(1)' }
+      ], { duration: 260, easing: 'ease-out' }).finished;
+    }
+    await loadMyCertificateView(true);
+  } finally {
+    button.disabled = false;
+  }
 }
 function openCertificateSignup() {
   openAuthModal('signup');
@@ -11173,6 +11284,7 @@ async function loadMyCertificateView(openSignIn = false) {
   myCertificateRequest?.abort();
   const request = new AbortController();
   myCertificateRequest = request;
+  claimForm.removeAttribute('aria-busy');
   details.hidden = canvas.hidden = true;
   $cert('mycert-email-verification').hidden = true;
   sample.hidden = false;
@@ -11199,6 +11311,7 @@ async function loadMyCertificateView(openSignIn = false) {
     return;
   }
   message.textContent = 'Checking your registration…';
+  claimForm.setAttribute('aria-busy', 'true');
   try {
     const response = await fetch('/api/certificates/my-certificate', { headers: { ...auth, 'X-Certificate-Email': certificateClaimEmail }, signal: request.signal, cache: 'no-store' });
     const result = await response.json();
@@ -11233,6 +11346,8 @@ async function loadMyCertificateView(openSignIn = false) {
     await drawMyCertificate(cert, blank, canvas, request.signal);
   } catch {
     if (!request.signal.aborted) message.textContent = 'The certificate preview could not be loaded. Please try again.';
+  } finally {
+    if (myCertificateRequest === request) claimForm.removeAttribute('aria-busy');
   }
 }
 
@@ -11260,10 +11375,29 @@ async function drawMyCertificate(cert, blank, canvas, signal) {
   ctx.font = '700 ' + width * 0.014 + 'px Arial, sans-serif';
   ctx.fillStyle = '#101f3d';
   ctx.fillText(cert.credential_id, width * 0.73, height * 0.816);
+  const envelope = document.getElementById('mycert-envelope');
+  const flap = envelope.querySelector('.dh-ii-envelope-flap');
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches && envelope.animate) {
+    const open = flap.animate([
+      { transform: 'perspective(700px) rotateX(0deg)', transformOrigin: 'top' },
+      { transform: 'perspective(700px) rotateX(95deg)', transformOrigin: 'top' }
+    ], { duration: 340, easing: 'ease-in-out', fill: 'forwards' });
+    const exit = envelope.animate([
+      { transform: 'translateY(0)', opacity: 1 },
+      { transform: 'translateY(65%)', opacity: 0 }
+    ], { delay: 270, duration: 370, easing: 'ease-in', fill: 'forwards' });
+    const cancel = () => { open.cancel(); exit.cancel(); };
+    signal.addEventListener('abort', cancel, { once: true });
+    await Promise.allSettled([open.finished, exit.finished]);
+    signal.removeEventListener('abort', cancel);
+    if (signal.aborted) return;
+    envelope.hidden = true;
+    cancel();
+  }
   blank.hidden = true;
   canvas.hidden = false;
   document.getElementById('mycert-sample').hidden = true;
-  document.getElementById('mycert-envelope').hidden = true;
+  envelope.hidden = true;
 }
 
 async function downloadMyCertificatePdf() {
