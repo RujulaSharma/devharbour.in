@@ -163,7 +163,28 @@ def main():
     label(page, "for actively participating in Innovative India, a national-level hackathon", 700, 602, 20, tracking=2.6)
     label(page, "by Devharbour, encouraging innovation, problem-solving, and real-world impact.", 700, 629, 20, tracking=1.9)
 
-    mark(page, reference, (254, 678, 544, 755), ("#16161A",), 190)
+    # Hand-drawn pen strokes in certificate coordinates.
+    page.saveState()
+    page.setLineCap(1)
+    page.setLineJoin(1)
+    draw_paths(page, [
+        ((268, 713), [(259, 694, 315, 678, 337, 691), (360, 706, 320, 733, 289, 737)]),
+        ((290, 736), [(301, 722, 308, 705, 316, 695)]),
+        ((278, 726), [(307, 717, 338, 722, 353, 713)]),
+        ((348, 721), [(360, 701, 380, 685, 376, 692), (372, 700, 355, 714, 348, 721),
+                     (357, 716, 364, 713, 366, 717), (365, 723, 374, 716, 380, 716)]),
+        ((383, 716), [(375, 714, 374, 723, 381, 721), (386, 720, 387, 716, 389, 715),
+                     (383, 723, 392, 721, 399, 716), (393, 725, 406, 720, 409, 715),
+                     (402, 714, 416, 711, 412, 716), (410, 722, 418, 719, 426, 714)]),
+        ((401, 709), [(401, 709, 402, 708, 402, 708)]),
+        ((427, 713), [(420, 723, 432, 721, 440, 712), (430, 732, 407, 751, 400, 747),
+                     (398, 742, 425, 725, 449, 716), (455, 712, 459, 716, 452, 719),
+                     (444, 724, 447, 718, 453, 715), (449, 723, 463, 720, 472, 715)]),
+        ((493, 700), [(524, 685, 496, 687, 478, 694), (448, 705, 484, 705, 485, 716),
+                     (486, 726, 454, 741, 449, 735), (444, 728, 476, 716, 503, 718),
+                     (513, 718, 526, 720, 531, 721)]),
+    ], "#16161A", stroke=True, width=1.35)
+    page.restoreState()
     line(page, 264, 758, 516, 758)
     label(page, "Co-Founder", 390, 783, 21, "GaramondBold")
     label(page, "Devharbour", 390, 807, 21, "GaramondBold")
@@ -183,6 +204,7 @@ def main():
     line(page, 547, 863, 561, 863, width=.8)
     line(page, 547, 871, 561, 871, width=.8)
     label(page, "Official Web. – Devharbour.in", 723, 876, 23, "GaramondBold")
+    page.linkURL("https://devharbour.in/home", (540, y(883), 880, y(850)), relative=1, thickness=0)
     page.save()
 
 
