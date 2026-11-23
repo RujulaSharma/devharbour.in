@@ -4443,7 +4443,7 @@ requestAnimationFrame(loop);
 </div>
 <div id="lb-user-standing"></div>
 <div class="pod" id="lpod"></div><div id="lrows"></div>
-<div class="lbf"><p class="zn">Rankings use XP recorded by Dev Harbour. Top eligible performers each calendar month may earn the <strong>Certificate of Consistency</strong> after review.</p><button class="zb" type="button" data-go="practice">Join the leaderboard</button></div></div></section>
+<div class="lbf"><p class="zn">Rankings use XP recorded by Dev Harbour. Keep an activity streak by earning XP on consecutive days. Top eligible performers each calendar month may earn the <strong>Certificate of Consistency</strong> after review.</p><button class="zb" type="button" data-go="practice">Join the leaderboard</button></div></div></section>
 <section class="zs" id="learning"><h2 class="zh">Curiosity, with direction.</h2><div class="zq" id="zpath" data-st></div><p class="zn" style="margin-top:34px">Every path is free, start to finish.</p></section>
 <!-- 5 DEVELOPER PROFILES -->
 <section class="zs" id="profiles"><h2 class="zh">People building what’s next.</h2><div class="zpr" id="zprof" data-st></div><p class="zn" style="margin-top:34px">Featured student developers building and shipping on Dev Harbour.</p></section>
@@ -4791,13 +4791,14 @@ requestAnimationFrame(loop);
       </div>
       <div class="c k s4">
         <div class="h" id="practice-leaderboard"><h3>Leaderboard</h3><span class="tag">Live</span></div>
-        <p class="mut" style="font-size:.85rem;margin:0 0 10px">Top eligible performers each calendar month may earn the <strong>Certificate of Consistency</strong> after review.</p>
+        <p class="mut" style="font-size:.85rem;margin:0 0 10px">Keep an activity streak by earning XP on consecutive days. Top eligible performers each calendar month may earn the <strong>Certificate of Consistency</strong> after review.</p>
         <div class="fl" id="lt"></div>
         <div class="lb-search-wrap" style="margin:8px 0 10px;">
           <span class="lb-search-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
           <input class="lb-search-input" id="lb-practice-search" type="search" placeholder="Search rankings…" aria-label="Search rankings">
         </div>
         <div id="lb-practice-user-bar"></div>
+        <p id="lb-practice-streak" class="mut" style="font-size:.82rem;margin:0 0 10px" hidden></p>
         <div id="lb"></div>
       </div>
     </div>
@@ -7040,6 +7041,7 @@ const LB_TIMEFRAMES = ['Weekly', 'Monthly', 'All-time'];
 let currentLeaderboardTimeframe = 'Weekly';
 let currentLeaderboardList = [];
 let leaderboardState = 'loading';
+let currentLeaderboardStreak = null;
 let leaderboardRequest;
 let lbLandingFilter = '';
 let lbPracticeFilter = '';
@@ -7291,6 +7293,14 @@ function renderAllLeaderboardViews() {
   if (stEl) stEl.innerHTML = bannerHtml;
   if (pStEl) pStEl.innerHTML = bannerHtml;
 
+  const personalStreak = $('lb-practice-streak');
+  if (personalStreak) {
+    personalStreak.hidden = !myUser || currentLeaderboardStreak === null;
+    if (!personalStreak.hidden) {
+      personalStreak.textContent = '🔥 Your activity streak: ' + currentLeaderboardStreak + (currentLeaderboardStreak === 1 ? ' day' : ' days');
+    }
+  }
+
   // 5. Practice View Leaderboard (#lb)
   const lbContainer = $('lb');
   if (lbContainer) {
@@ -7310,12 +7320,13 @@ function renderAllLeaderboardViews() {
         const initial = (name || 'D')[0].toUpperCase();
         const solvedCount = u.challengesSolved != null ? u.challengesSolved : (u.solved || 0);
         const solvedText = `${solvedCount} solved`;
+        const streak = u.streakDays ?? 0;
         const devKey = u.userId || u.username || name;
         const xp = (u.xp || u.allTimeXp || u.totalXp || 0).toLocaleString();
         return `<div class="lr${isMe ? ' is-me' : ''}" style="cursor:pointer;" data-developer="${esc(devKey)}" onclick="openDeveloperModal(this.dataset.developer)">
           <b>${u.rank || (i + 1)}</b>
           <span class="a" title="${esc(name)}">${esc(initial)}</span>
-          <span><b>${esc(name)}</b> ${uName ? `<small class="mut">${esc(uName)}</small>` : ''}<br><em>${solvedText}</em></span>
+          <span><b>${esc(name)}</b> ${uName ? `<small class="mut">${esc(uName)}</small>` : ''}<br><em>${solvedText}</em> <small class="lb-streak" title="Current activity streak">🔥 ${streak}d</small></span>
           <span>${xp} XP</span>
         </div>`;
       }).join('');
@@ -7369,17 +7380,19 @@ async function rl(k) {
   }
   try {
     const response = await fetch('/api/leaderboard?timeframe=' + encodeURIComponent(timeframe) + '&limit=30', {
-      cache: 'no-store', signal: request.signal
+      headers: getAuthHeaders(), cache: 'no-store', signal: request.signal
     });
     if (!response.ok) throw new Error('Leaderboard request failed');
     const data = await response.json();
     if (!Array.isArray(data.rankings)) throw new Error('Invalid rankings response');
     if (request.signal.aborted) return;
     currentLeaderboardList = data.rankings;
+    currentLeaderboardStreak = data.currentUserStreak ?? null;
     leaderboardState = 'ready';
   } catch {
     if (request.signal.aborted) return;
     currentLeaderboardList = [];
+    currentLeaderboardStreak = null;
     leaderboardState = 'error';
   }
   renderAllLeaderboardViews();

@@ -35,3 +35,20 @@ test('leaderboard ranks recorded XP and excludes demo, unverified, and private e
   assert.equal(offline.status, 503);
   assert.deepEqual((await offline.json()).rankings, []);
 });
+
+test('activity streak uses consecutive India dates and allows yesterday as the latest active day', () => {
+  const { currentActivityStreaks } = require('../server/activity-streak');
+  const rows = [
+    { user_id: 'active', activity_day: '2026-11-24' },
+    { user_id: 'active', activity_day: '2026-11-23' },
+    { user_id: 'active', activity_day: '2026-11-23' },
+    { user_id: 'active', activity_day: '2026-11-21' },
+    { user_id: 'yesterday', activity_day: '2026-11-23' },
+    { user_id: 'yesterday', activity_day: '2026-11-22' },
+    { user_id: 'expired', activity_day: '2026-11-22' }
+  ];
+  const streaks = currentActivityStreaks(rows, Date.parse('2026-11-23T19:00:00Z'));
+  assert.equal(streaks.get('active'), 2);
+  assert.equal(streaks.get('yesterday'), 2);
+  assert.equal(streaks.get('expired'), 0);
+});

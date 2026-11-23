@@ -322,6 +322,19 @@ async function getLeaderboard(timeframe = 'All-time', limit = 20) {
 }
 
 // ================= COURSES & LESSONS =================
+async function getLeaderboardActivityDays(userIds) {
+  if (!userIds.length) return [];
+  const { rows } = await query(`
+    SELECT DISTINCT user_id, ((created_at::timestamp + interval '330 minutes')::date)::text AS activity_day
+    FROM xp_ledger
+    WHERE user_id = ANY($1::text[])
+      AND amount > 0
+      AND (source_type IN ('challenge_pass','lesson_complete') OR
+           (source_type = 'project_submit' AND coalesce(reference_id,'') NOT LIKE 'vote-%'))
+  `, [userIds]);
+  return rows;
+}
+
 async function getCourses(category = 'All') {
   let q = 'SELECT * FROM courses';
   const params = [];
@@ -1225,6 +1238,7 @@ module.exports = {
   getUserTotalXp,
   getXpHistory,
   getLeaderboard,
+  getLeaderboardActivityDays,
   getCourses,
   getCourseById,
   getCourseLessons,

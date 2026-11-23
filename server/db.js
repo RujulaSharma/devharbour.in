@@ -848,6 +848,19 @@ function getLeaderboard(timeframe = 'All-time', limit = 20) {
 }
 
 // Courses & Lessons
+function getLeaderboardActivityDays(userIds) {
+  if (!userIds.length) return [];
+  const params = userIds.map(() => '?').join(',');
+  return db.prepare(`
+    SELECT DISTINCT user_id, date(created_at, '+330 minutes') AS activity_day
+    FROM xp_ledger
+    WHERE user_id IN (${params})
+      AND amount > 0
+      AND (source_type IN ('challenge_pass','lesson_complete') OR
+           (source_type = 'project_submit' AND coalesce(reference_id,'') NOT LIKE 'vote-%'))
+  `).all(...userIds);
+}
+
 function getCourses(category = null) {
   if (category && category !== 'All') {
     return db.prepare('SELECT * FROM courses WHERE category = ? ORDER BY is_featured DESC, rating DESC').all(category);
@@ -1843,6 +1856,7 @@ const exported = {
   getUserTotalXp: delegate('getUserTotalXp', getUserTotalXp),
   getXpHistory: delegate('getXpHistory', getXpHistory),
   getLeaderboard: delegate('getLeaderboard', getLeaderboard),
+  getLeaderboardActivityDays: delegate('getLeaderboardActivityDays', getLeaderboardActivityDays),
   getCourses: delegate('getCourses', getCourses),
   getCourseById: delegate('getCourseById', getCourseById),
   getCourseLessons: delegate('getCourseLessons', getCourseLessons),
