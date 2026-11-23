@@ -195,19 +195,34 @@ body:has(#intro:not(.out)) .sidebar-greeting{visibility:hidden}
 .project-category-label{display:flex;align-items:center;flex-wrap:wrap;gap:8px;color:var(--mut);font-size:13px;font-weight:700}
 #orcathon-category{max-width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit}
 .orcathon-thumb{
-  position:relative;isolation:isolate;min-height:132px;padding:16px;display:flex;align-items:center;gap:8px;
-  color:#fff;background:radial-gradient(ellipse at var(--thumb-shift) 18%,color-mix(in srgb,var(--thumb-accent) 37%,transparent),transparent 69%),var(--thumb-base);
+  position:relative;isolation:isolate;overflow:hidden;aspect-ratio:2.05;min-height:145px;
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:12px;
+  padding:clamp(13px,2.1vw,23px);color:#fff;
+  background:radial-gradient(ellipse at var(--thumb-shift) 15%,color-mix(in srgb,var(--thumb-accent) 29%,transparent),transparent 72%),var(--thumb-base);
 }
+.orcathon-thumb::before,.orcathon-thumb::after{content:"";pointer-events:none;position:absolute;z-index:-1}
 .orcathon-thumb::before{
-  content:"";position:absolute;inset:0;z-index:-1;opacity:.16;
-  background:linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px);
-  background-size:22px 22px;mask-image:linear-gradient(90deg,transparent,#000);
+  inset:0;opacity:.13;
+  background:radial-gradient(circle,#fff 1px,transparent 1.3px) 0 0/13px 13px;
+  mask-image:linear-gradient(110deg,transparent 28%,#000);
 }
-.orcathon-thumb-copy{min-width:0;flex:1;padding-right:72px}
-.orcathon-thumb-copy small{display:block;margin-bottom:5px;color:var(--thumb-accent);font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
-.orcathon-thumb-copy b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;font-size:clamp(15px,2vw,21px);line-height:1.2}
-.orcathon-thumb svg{flex:none;width:clamp(34px,5vw,66px);height:auto;color:var(--thumb-accent);opacity:.75}
+.orcathon-thumb::after{
+  right:-20%;bottom:-91%;width:84%;aspect-ratio:1;border-radius:50%;
+  border:1px solid color-mix(in srgb,var(--thumb-accent) 30%,transparent);
+  box-shadow:0 0 0 18px color-mix(in srgb,var(--thumb-accent) 10%,transparent),0 0 0 38px color-mix(in srgb,var(--thumb-accent) 7%,transparent);
+}
+.orcathon-thumb-copy{min-width:0;padding-top:26px}
+.orcathon-thumb-copy small{display:block;margin-bottom:6px;color:var(--thumb-accent);font-size:.72rem;font-weight:750}
+.orcathon-thumb-copy b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;font-size:clamp(1.02rem,2vw,1.44rem);line-height:1.12;letter-spacing:-.024em}
+.orcathon-thumb-symbol{
+  display:grid;place-items:center;align-self:center;margin-top:22px;
+  inline-size:clamp(42px,5vw,68px);aspect-ratio:1;border-radius:20%;
+  color:var(--thumb-accent);background:color-mix(in srgb,var(--thumb-accent) 14%,transparent);
+  border:1px solid color-mix(in srgb,var(--thumb-accent) 34%,transparent);
+}
+.orcathon-thumb-symbol svg{width:56%;height:auto}
 .orcathon-thumb .px-like-btn{position:absolute;top:12px;right:12px;z-index:5}
+.orcathon-project-summary{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
 .orcathon-project-tags{display:flex;flex-wrap:wrap;gap:6px}
 .pc .b{padding:20px}.pc p{color:var(--mut);font-size:14px;margin:4px 0 14px}.pc .f{display:flex;gap:6px;align-items:center}.pc .f a{margin-left:auto;background:var(--blk);color:#fff;border-radius:12px;padding:8px 14px;font-size:13px;font-weight:700}
 .dl div{display:flex;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--line);font-size:14px}.dl dt{color:var(--mut)}.dl dd{font-weight:700;text-align:right}
@@ -6937,13 +6952,7 @@ let orcathonGalleryState = "loading";
 const J=[
   ['Emergency E-Card','Full-stack emergency response app with medical profile, SOS alerts, nearby responders and live location sharing.','Web','https://emergency-e-card-1.onrender.com','https://emergency-e-card-1.onrender.com','assets/emergency-e-card-thumbnail.svg',{detail:'During emergencies, delays in accessing critical medical information, contacting trusted people, and finding nearby assistance can make an already difficult situation even more challenging. Emergency E-Card is a full-stack web application built around a streamlined emergency response system. Users can create a medical profile, trigger an SOS button to raise an emergency alert, navigate to the SOS location, discover nearby registered responders, and share a time-limited location-tracking link. It also notifies emergency contacts to connect people in distress with their trusted contacts. Work is ongoing, with further development and improvements in progress.',screenshots:'https://drive.google.com/drive/folders/1qgwt4eNxSx_7NioGoX1IdSpbscnFxWXo',linkedin:'https://lnkd.in/p/diwCmXdU',github:'https://github.com/mohammed-hasan-ECE/emergency-e-card'}],
   ['Lively!','A community app for writers to publish stories, poems, quotes and journals, and find readers who actually read.','Mobile','https://www.readinlively.com','https://www.readinlively.com','assets/lively-thumbnail.svg',{detail:'Lively! is a community for writers. Publish stories, poems, quotes, and journals, and find readers who actually read. Tagline: "Composes, that make you think." Free on Android.',playStore:'https://play.google.com/store/apps/details?id=com.lively.stories',website:'https://www.readinlively.com'}],
-  ['PipOS — Candy Dreams','A playful pastel dream-world web app with a dream arcade, lullaby music box, dream journal, star store and an animated companion called Pip.','Web, Game','https://shimmering-sherbet-b774ae.netlify.app','https://shimmering-sherbet-b774ae.netlify.app','assets/pipos-thumbnail.svg',{detail:'PipOS is a playful, candy-coloured dream world where you meet Pip, Junior Dream Engineer at Midnight Nursery. Explore a "Little Cosmos" map, read bedtime Story Clouds, play five mini-games in the Dream Arcade (with difficulty levels, touch controls and a boss challenge), listen to a lullaby music box synthesized in the browser, write in a Dream Journal, and chat with Pip. Players earn Dream Stars and XP, spend them in the Star Store, and unlock three Dream Tiers. Progress is saved locally in the browser.\n\nFeatures: dream arcade with 5 mini-games and boss level, lullaby music box, dream journal, star store and XP tiers, daily quests and achievements, animated chat companion with optional voice.',liveUrl:'https://shimmering-sherbet-b774ae.netlify.app'}],
-  ['Orbit Notes','Markdown notes with live sync and offline persistence.','Web','https://github.com/RujulaSharma/devharbour.in','https://devharbour.in'],
-  ['Tide','A gentle habit tracker for developer streaks.','Mobile','https://github.com/RujulaSharma/devharbour.in','https://devharbour.in'],
-  ['Hullcheck','Network port auditing and vulnerability learning kit.','Security','https://github.com/RujulaSharma/devharbour.in','https://devharbour.in'],
-  ['Pixel Reef','An underwater 2D canvas platformer engine.','Game','https://github.com/RujulaSharma/devharbour.in','https://devharbour.in'],
-  ['Lantern','Accessible docs and API reference generator.','Web','https://github.com/RujulaSharma/devharbour.in','https://devharbour.in'],
-  ['Relay','Real-time hackathon team coordination space.','Web','https://github.com/RujulaSharma/devharbour.in','https://devharbour.in']
+  ['PipOS — Candy Dreams','A playful pastel dream-world web app with a dream arcade, lullaby music box, dream journal, star store and an animated companion called Pip.','Web, Game','https://shimmering-sherbet-b774ae.netlify.app','https://shimmering-sherbet-b774ae.netlify.app','assets/pipos-thumbnail.svg',{detail:'PipOS is a playful, candy-coloured dream world where you meet Pip, Junior Dream Engineer at Midnight Nursery. Explore a "Little Cosmos" map, read bedtime Story Clouds, play five mini-games in the Dream Arcade (with difficulty levels, touch controls and a boss challenge), listen to a lullaby music box synthesized in the browser, write in a Dream Journal, and chat with Pip. Players earn Dream Stars and XP, spend them in the Star Store, and unlock three Dream Tiers. Progress is saved locally in the browser.\n\nFeatures: dream arcade with 5 mini-games and boss level, lullaby music box, dream journal, star store and XP tiers, daily quests and achievements, animated chat companion with optional voice.',liveUrl:'https://shimmering-sherbet-b774ae.netlify.app'}]
 ];
 $('n1').textContent=C.length;$('n2').textContent=1;$('t1').textContent=P.length;$('t2').textContent=J.length + orcathonProjects.length;$('t3').textContent=C.length;
 $('lp').innerHTML=J.slice(0,3).map(j=>`<div class="pk"><div class="st"><s></s>${j[2]} · Verified</div><h3>${j[0]}</h3><p>${j[1]}</p></div>`).join('');
@@ -8388,10 +8397,11 @@ function renderOrcathonCard(project) {
   const likes = getProjectLikes(project.name);
   const liked = isProjectLiked(project.name);
   const safeTitle = esc(project.name);
+  const projectId = esc(project.id || project.name);
   return `<article class="c pc s4 orcathon-project" data-title="${esc(project.name)}">
     <div class="orcathon-thumb" style="--thumb-base:${base};--thumb-accent:${accent};--thumb-shift:${offset}%">
       <div class="orcathon-thumb-copy"><small>${esc(project.category)}</small><b>${esc(project.name)}</b></div>
-      <svg viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${icon}"/></svg>
+      <span class="orcathon-thumb-symbol" aria-hidden="true"><svg viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${icon}"/></svg></span>
       <button type="button" class="px-like-btn${liked ? ' active' : ''}" data-project="${safeTitle}" onclick="toggleProjectLike(this.dataset.project, event)" title="${liked ? 'Unlike' : 'Like this project'}" aria-label="Like ${esc(project.name)}">
         <svg class="px-heart-icon" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
         <span class="like-count">${likes}</span>
@@ -8400,11 +8410,11 @@ function renderOrcathonCard(project) {
     <div class="b">
       <div class="orcathon-project-tags"><span class="tag">ORCATHON 2026</span><span class="tag">${esc(project.category)}</span></div>
       <h3>${esc(project.name)}</h3>
-      ${project.summary ? `<p>${esc(project.summary)}</p>` : ''}
+      ${project.summary ? `<p class="orcathon-project-summary">${esc(project.summary)}</p>` : ''}
       <div class="orcathon-project-links">
         ${demo ? `<a class="bt d" href="${esc(demo)}" target="_blank" rel="noopener noreferrer">Live demo ↗</a>` : ''}
         ${repository ? `<a class="bt" href="${esc(repository)}" target="_blank" rel="noopener noreferrer">GitHub ↗</a>` : ''}
-        <button type="button" class="px-info-btn" data-project="${safeTitle}" onclick="openProjectModal(this.dataset.project)">Overview ✦</button>
+        <button type="button" class="px-info-btn" data-project="${projectId}" onclick="openProjectModal(this.dataset.project)">Overview ✦</button>
       </div>
     </div>
   </article>`;
@@ -8419,7 +8429,7 @@ function rp(){
         .filter(project => (!category || project.category === category) && matchesSearch(project.name, project.summary, project.category))
         .sort((a, b) => getProjectLikes(b.name) - getProjectLikes(a.name))
     : [];
-  const filtered = J.filter(j => pc === 'All' || j[2] === pc || j[2].split(',').map(s=>s.trim()).includes(pc));
+  const filtered = pc === 'ORCATHON' ? [] : J;
   // Sort descending by like count so the most liked project is on top!
   const sorted = filtered.filter(project => matchesSearch(project[0], project[1])).sort((a, b) => getProjectLikes(b[0]) - getProjectLikes(a[0]));
 
@@ -8478,7 +8488,7 @@ function rp(){
 function openProjectModal(title){
   let prj = J.find(x => x[0] === title);
   if (!prj) {
-    const orc = orcathonProjects.find(x => x.name === title);
+    const orc = orcathonProjects.find(x => x.id === title) || orcathonProjects.find(x => x.name === title);
     if (orc) {
       prj = [
         orc.name,
@@ -8558,7 +8568,7 @@ document.addEventListener('keydown',function(e){
   }
 });
 
-const projectFilters = ['All', 'ORCATHON', 'Web', 'Mobile', 'Security', 'Game'];
+const projectFilters = ['All', 'Featured', 'ORCATHON'];
 const categoryFilter = $('orcathon-category');
 async function loadOrcathonGallery() {
   orcathonGalleryState = 'loading';
