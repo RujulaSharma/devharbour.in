@@ -3982,13 +3982,28 @@ body{padding-top:var(--site-nav-height)}
 
 .hack-heading{margin:0 0 22px;font-size:clamp(30px,4vw,46px);letter-spacing:-.045em}
 .hack-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:18px}
-.hack-card{display:flex;flex-direction:column;overflow:hidden;background:var(--card);border:1px solid var(--line);border-radius:24px;box-shadow:0 12px 28px rgba(53,33,92,.06)}
-.hack-cover{position:relative;isolation:isolate;display:grid;place-items:center;aspect-ratio:2.35;overflow:hidden;color:#fff;font-size:clamp(28px,4vw,44px);font-weight:800;letter-spacing:-.04em}
-.hack-cover img{width:100%;height:100%;position:absolute;inset:0;object-fit:contain}
-.hack-cover--tatva{background:#11132a}
-.hack-cover--india{background:radial-gradient(ellipse at 76% 110%,#9a5bd7,transparent 64%),linear-gradient(125deg,#251344,#552889)}
-.hack-cover--orca{background:radial-gradient(ellipse at 90% 115%,#277b88,transparent 64%),linear-gradient(125deg,#101d33,#1e455c)}
-.hack-cover--india::before,.hack-cover--orca::before{content:"";position:absolute;inset:0;z-index:-1;background:repeating-linear-gradient(135deg,transparent 0 23px,rgba(255,255,255,.13) 24px,transparent 25px 40px);mask-image:linear-gradient(120deg,transparent,#000)}
+
+.hack-card{--hack-accent:#695ccd;display:flex;flex-direction:column;min-width:0;overflow:hidden;background:linear-gradient(155deg,var(--soft),var(--card) 52%);border:1px solid var(--line);border-radius:24px;box-shadow:0 16px 32px -24px rgba(35,25,63,.48)}
+.hack-card--india{--hack-accent:#397a66}
+.hack-card--orca{--hack-accent:#347b9f}
+.hack-cover{--glow:#a997fa;--shade:#29234b;position:relative;isolation:isolate;display:grid;place-items:center;margin:8px 8px 0;border-radius:17px;aspect-ratio:2;overflow:hidden;background:radial-gradient(ellipse at 52% 39%,var(--shade),#111527 75%);border:1px solid #ffffff28}
+.hack-cover--india{--glow:#83f7c7;--shade:#2c594c}
+.hack-cover--orca{--glow:#6ddaf6;--shade:#254c60}
+.hack-cover::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 31px,#ffffff15 32px),repeating-linear-gradient(0deg,transparent 0 31px,#ffffff15 32px);mask-image:radial-gradient(ellipse at center,#000,transparent 77%)}
+.hack-cover::after{content:"";position:absolute;inset:10px;border:1px solid #ffffff30;border-radius:11px;pointer-events:none}
+.hack-sculpture{position:relative;width:47%;aspect-ratio:1.6;display:block;isolation:isolate}
+.hack-sculpture::before,.hack-sculpture::after{content:"";position:absolute;inset:0;border-radius:50%;background:linear-gradient(155deg,#fff 1%,var(--glow) 16%,#252e41 31%,#c2c4df 49%,#343f56 66%,var(--glow) 80%,#edf6ff 95%);box-shadow:0 10px 32px -7px var(--glow),inset 0 0 0 1px #ffffff7d;mask-image:radial-gradient(ellipse closest-side,transparent 59%,#000 61%)}
+.hack-cover--tatva .hack-sculpture::before{border-radius:22%;transform:rotate(29deg) scale(.88);mask-image:none;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%,50% 0,50% 18%,19% 50%,50% 82%,81% 50%,50% 18%)}
+.hack-cover--tatva .hack-sculpture::after{transform:rotate(-28deg) scale(1.09,.74);opacity:.68}
+.hack-cover--india .hack-sculpture::before{transform:rotate(-24deg) scale(1.16,.88)}
+.hack-cover--india .hack-sculpture::after{transform:rotate(42deg) scale(.82,.71);opacity:.83}
+.hack-cover--orca .hack-sculpture::before{transform:translate(-15%,1%) rotate(-28deg) scale(.9,.75)}
+.hack-cover--orca .hack-sculpture::after{transform:translate(15%,-4%) rotate(-28deg) scale(.9,.75);opacity:.8}
+.hack-core{position:absolute;inset:34% 40%;border-radius:50%;background:radial-gradient(circle at 39% 34%,white,var(--glow) 48%,#405066 87%);box-shadow:0 0 24px var(--glow)}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){
+  .hack-sculpture{transition:transform .32s ease}
+  .hack-card:hover .hack-sculpture,.hack-card:focus-within .hack-sculpture{transform:translateY(-4px) scale(1.05)}
+}
 .hack-body{display:flex;flex:1;flex-direction:column;align-items:flex-start;gap:12px;padding:clamp(17px,2vw,24px)}
 .hack-body h3{font-size:1.2rem;line-height:1.25;letter-spacing:-.02em}
 .hack-body p{margin:0;line-height:1.5}
@@ -3998,7 +4013,9 @@ body{padding-top:var(--site-nav-height)}
 .hack-status--closed{background:var(--soft);color:var(--ink)}
 .hack-footer{width:100%;margin-top:auto;padding-top:12px;border-top:1px solid var(--line)}
 .hack-footer a{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-radius:12px;background:var(--soft);color:var(--ink);font-weight:750;text-decoration:none}
-.hack-footer a:hover{outline:1px solid currentColor}
+.hack-footer a:hover{outline:1px solid var(--hack-accent)}
+.hack-footer a span{color:var(--hack-accent)}
+html[data-theme="dark"] .hack-footer a span{color:var(--ink)}
 .hack-footer a:focus-visible{outline:2px solid currentColor;outline-offset:3px}
 
 #intro.hero-opening::after{content:"";position:fixed;z-index:15;left:var(--x,50%);top:var(--y,50%);width:50px;height:50px;pointer-events:none;border:2px solid #9978ee;border-radius:50%;box-shadow:0 0 40px 12px #cbb9ff,inset 0 0 24px #cfbfff;animation:hero-entry-ripple .48s ease-out both}
@@ -5138,9 +5155,7 @@ requestAnimationFrame(loop);
   <h2 class="hack-heading" id="hack-title">Hackathons</h2>
   <div class="hack-grid">
     <article class="hack-card">
-      <div class="hack-cover hack-cover--tatva" aria-hidden="true">
-        <img src="/assets/tatva-hackathon-poster.png" alt="" loading="lazy">
-      </div>
+      <div class="hack-cover hack-cover--tatva" aria-hidden="true"><span class="hack-sculpture"><span class="hack-core"></span></span></div>
       <div class="hack-body">
         <span class="hack-status">Submission round</span>
         <h3>TATVA — National Hackathon 2026</h3>
@@ -5150,8 +5165,8 @@ requestAnimationFrame(loop);
         <div class="hack-footer"><a href="https://unstop.com/o/9sLW7l8" target="_blank" rel="noopener noreferrer">Register for TATVA <span aria-hidden="true">↗</span></a></div>
       </div>
     </article>
-    <article class="hack-card">
-      <div class="hack-cover hack-cover--india" aria-hidden="true">Innovate India</div>
+    <article class="hack-card hack-card--india">
+      <div class="hack-cover hack-cover--india" aria-hidden="true"><span class="hack-sculpture"><span class="hack-core"></span></span></div>
       <div class="hack-body">
         <span class="hack-status">Round 2</span>
         <h3>Innovate India — Hackathon 2026</h3>
@@ -5161,8 +5176,8 @@ requestAnimationFrame(loop);
         <div class="hack-footer"><a href="https://unstop.com/o/FY4hwpy" target="_blank" rel="noopener noreferrer">Register for Innovate India <span aria-hidden="true">↗</span></a></div>
       </div>
     </article>
-    <article class="hack-card">
-      <div class="hack-cover hack-cover--orca" aria-hidden="true">ORCATHON</div>
+    <article class="hack-card hack-card--orca">
+      <div class="hack-cover hack-cover--orca" aria-hidden="true"><span class="hack-sculpture"><span class="hack-core"></span></span></div>
       <div class="hack-body">
         <span class="hack-status hack-status--closed">Registration closed</span>
         <h3>ORCA CODERS: ORCATHON 2026</h3>
