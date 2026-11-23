@@ -7700,7 +7700,24 @@ function getAuthHeaders() {
   return h;
 }
 
+const pendingVerificationKey = 'dh_pending_verification_email';
+
+function readPendingVerificationEmail() {
+  if (location.protocol === 'file:') return '';
+  try { return localStorage.getItem(pendingVerificationKey) || ''; }
+  catch { return ''; }
+}
+
+function rememberPendingVerification(email) {
+  try { localStorage.setItem(pendingVerificationKey, email.trim().toLowerCase()); }
+  catch {}
+}
+
 function updateAuthUI() {
+  const pendingEmail = readPendingVerificationEmail();
+  if (pendingEmail && currentUser?.email?.trim().toLowerCase() === pendingEmail && currentUser.emailVerified) {
+    try { localStorage.removeItem(pendingVerificationKey); } catch {}
+  }
   if (document.getElementById("v-my-certificate")?.classList.contains("on") && typeof loadMyCertificateView === "function") loadMyCertificateView();
   const btn = document.getElementById('auth-header-btn');
   const av = document.getElementById('header-avatar');
@@ -7723,22 +7740,27 @@ function updateAuthUI() {
     if (greet) greet.textContent = currentUser.fullName || currentUser.username;
   } else {
     btn.className = 'cr';
-    btn.textContent = '+ Sign up / Log in';
-    btn.title = "Create an account or sign in";
+    btn.textContent = pendingEmail ? 'Finish signup' : '+ Sign up / Log in';
+    btn.title = pendingEmail ? 'Continue verifying your email' : 'Create an account or sign in';
     btn.onclick = () => openAuthModal();
     av.innerHTML = '';
     if (greet) greet.textContent = 'Developer';
   }
 }
 
-function openAuthModal(tab = 'signup') {
+function openAuthModal(tab) {
+  const pendingEmail = !tab && !currentUser ? readPendingVerificationEmail() : '';
   const m = document.getElementById('dh-auth-modal');
   if (m) {
     m.classList.remove('certificate-login');
     document.getElementById('dh-auth-title').textContent = 'Welcome to Dev Harbour';
     document.getElementById('dh-auth-subtitle').textContent = 'Join the developer community or sign in.';
     m.classList.add('open');
-    switchAuthTab(tab);
+    if (pendingEmail) {
+      openEmailVerification(pendingEmail, 'Finish signup with the code in your inbox. If it expired, select Resend code.');
+    } else {
+      switchAuthTab(tab || 'signup');
+    }
     if (typeof window.__renderGoogleButtons === 'function') {
       window.__renderGoogleButtons();
     }
@@ -7922,6 +7944,8 @@ function handleLogin(e) {
 window.handleLogin = handleLogin;
 
 function openEmailVerification(email, message) {
+  rememberPendingVerification(email);
+  updateAuthUI();
   switchAuthTab('login');
   document.getElementById('form-login').style.display = 'none';
   const form = document.getElementById('form-email-verification');
