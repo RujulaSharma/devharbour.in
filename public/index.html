@@ -5565,10 +5565,16 @@ requestAnimationFrame(loop);
           </dl>
           <button class="dh-cert-submit-btn" type="button" id="btn-download-mycert-pdf" onclick="downloadMyCertificatePdf()">Download PDF</button>
           <div class="dh-ii-share" aria-label="Share your certificate">
-            <a id="mycert-linkedin" target="_blank" rel="noopener noreferrer">Share on LinkedIn ↗</a>
+            <a id="mycert-linkedin" target="_blank" rel="noopener noreferrer" onclick="copyCertificateLinkedInCaption()">Share on LinkedIn ↗</a>
+            <button type="button" onclick="copyCertificateLinkedInCaption()">Copy LinkedIn caption</button>
             <button type="button" onclick="shareMyCertificate(false)">Copy verification link</button>
             <button type="button" id="mycert-share" onclick="shareMyCertificate(true)" hidden>More sharing options</button>
           </div>
+          <details id="mycert-linkedin-caption-panel">
+            <summary>LinkedIn caption</summary>
+            <textarea id="mycert-linkedin-caption" aria-label="Suggested LinkedIn caption" rows="6" readonly style="width:100%"></textarea>
+            <p>Paste the caption in LinkedIn. To tag the team, type @ and select each profile.</p>
+          </details>
         </div>
         <div class="dh-ii-actions">
           <a id="mycert-verify-link" hidden>Verify this certificate</a>
@@ -11228,6 +11234,8 @@ async function loadMyCertificateView(openSignIn = false) {
   sample.hidden = false;
   $cert('mycert-envelope').hidden = false;
   $cert('mycert-linkedin').removeAttribute('href');
+  $cert('mycert-linkedin-caption').value = '';
+  $cert('mycert-linkedin-caption-panel').open = false;
   blank.hidden = false;
   $cert('mycert-heading').textContent = 'Claim your certificate';
   $cert('mycert-recipient-name').textContent = '';
@@ -11279,6 +11287,7 @@ async function loadMyCertificateView(openSignIn = false) {
     const shareUrl = new URL('https://www.linkedin.com/sharing/share-offsite/');
     shareUrl.searchParams.set('url', link.href);
     $cert('mycert-linkedin').href = shareUrl.href;
+    $cert('mycert-linkedin-caption').value = certificateLinkedInCaption(link.href);
     $cert('mycert-share').hidden = typeof navigator.share !== 'function';
     try {
       await drawMyCertificate(cert, blank, canvas, request.signal);
@@ -11295,6 +11304,34 @@ async function loadMyCertificateView(openSignIn = false) {
     if (!request.signal.aborted) message.textContent = 'The certificate preview could not be loaded. Please try again.';
   } finally {
     if (myCertificateRequest === request) claimForm.removeAttribute('aria-busy');
+  }
+}
+
+function certificateLinkedInCaption(verificationUrl) {
+  return [
+    'I’m excited to share that I earned a Certificate of Participation for Innovative India 2026, hosted by Dev Harbour!',
+    'Thank you to the Dev Harbour team for creating a space to explore new ideas, build solutions, and learn alongside other participants.',
+    'Follow Dev Harbour for upcoming hackathons, opportunities, and updates.\nhttps://www.linkedin.com/company/devharbour/',
+    'A special thank-you to the team:',
+    'Rujula Sharma\nhttps://www.linkedin.com/in/rujula-sharma-ba8a63427',
+    'Parth Gidde\nhttps://www.linkedin.com/in/parth-0a8335412',
+    'Dhairya Sharma\nhttps://www.linkedin.com/in/dhairya-sharma-150874419',
+    'Verify my certificate: ' + verificationUrl,
+    '#InnovativeIndia #DevHarbour #Hackathon'
+  ].join('\n\n');
+}
+
+async function copyCertificateLinkedInCaption() {
+  const caption = $cert('mycert-linkedin-caption');
+  if (!caption.value) return;
+  $cert('mycert-linkedin-caption-panel').open = true;
+  try {
+    await navigator.clipboard.writeText(caption.value);
+    toast('Caption copied. Paste it into your LinkedIn post.');
+  } catch {
+    caption.focus();
+    caption.select();
+    toast('Copy the selected caption and paste it into LinkedIn.');
   }
 }
 
