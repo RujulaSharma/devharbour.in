@@ -1043,9 +1043,8 @@ html[data-theme="dark"] .fc-chip i {
 .lb-search-input{width:100%;box-sizing:border-box;padding:9px 14px 9px 36px;border-radius:12px;border:1px solid var(--line);background:var(--soft);color:var(--ink);font-size:13px;font-family:inherit;outline:none;transition:border-color .2s,box-shadow .2s}
 .lb-search-input:focus{border-color:var(--ink);box-shadow:0 0 0 2px rgba(120,110,170,.2)}
 .lb-search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:.5;pointer-events:none;display:flex;align-items:center}
-.practice-overview{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1.3fr) minmax(0,.95fr);gap:16px;align-items:start}
+.practice-overview{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:16px;align-items:start}
 .practice-overview > .c{min-width:0}
-@media(max-width:1300px){.practice-overview{grid-template-columns:repeat(2,minmax(0,1fr))}.practice-overview .xp-guide{grid-column:1/-1}}
 @media(max-width:760px){.practice-overview{grid-template-columns:minmax(0,1fr)}}
 .xp-guide{position:relative;overflow:hidden;padding:clamp(16px,2vw,24px);background:radial-gradient(ellipse at 90% 0%,color-mix(in srgb,var(--card) 73%,#a97de0),var(--card) 58%)}
 .xp-guide h3{margin:0 0 4px;font-size:1.2rem}
@@ -1054,18 +1053,10 @@ html[data-theme="dark"] .fc-chip i {
 .xp-guide ul{list-style:none;padding:0;display:grid;gap:8px;margin:16px 0}
 .xp-guide li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;padding:9px;border:1px solid var(--line);border-radius:10px;background:var(--card);font-size:.82rem}
 .xp-guide li strong{color:var(--acc,#6547ac);white-space:nowrap}
-.xp-guide-prize{border-top:1px solid var(--line);margin-top:15px;padding-top:14px}
 .xp-guide .bt{margin-top:9px;padding:8px 12px;font-size:.8rem;cursor:pointer}
 .lb-standing-stats{display:flex;flex-wrap:wrap;gap:6px 12px}
-#lb-practice-user-bar .lb-user-banner{display:grid}
 .lb-crystal{display:inline-block;width:.85em;height:.95em;vertical-align:-.06em;margin-inline-end:.28em;clip-path:polygon(30% 0,70% 0,100% 35%,50% 100%,0 35%);background:linear-gradient(135deg,#f4d8ff 7%,#a976e1 49%,#644098 52%,#b596e9)}
 .lb-rank-gem{width:22px;height:25px;font-size:1rem}
-.lb-demo{margin:14px 0 0;border:1px solid var(--line);border-radius:13px;background:var(--card);padding:12px}
-.lb-demo summary{cursor:pointer;font-weight:750}
-.lb-demo p{margin:8px 0;color:var(--mut);font-size:.8rem}
-.lb-demo ol{margin:0;padding-inline-start:24px}
-.lb-demo li{padding:5px 0}
-.lb-demo li span{float:inline-end;font-size:.8rem;font-weight:700;color:var(--mut)}
 .lb-user-banner{margin:10px 0 14px;padding:10px 14px;border-radius:14px;background:var(--soft);border:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;font-weight:600}
 .lb-user-banner b{color:var(--ink)}
 .lb-empty{text-align:center;padding:28px 16px;color:var(--mut);font-size:13px}
@@ -3924,7 +3915,7 @@ body{padding-top:var(--site-nav-height)}
 #site-navbar .nav-account summary{border:1px solid var(--line);background:var(--soft)}
 #site-navbar .nav-account .av{width:23px;height:23px;color:white;font-size:12px;font-weight:800}
 .nav-account-xp{color:var(--accent,#7c5cff);font-weight:800;white-space:nowrap}
-#pg,#practice-challenges,#practice-leaderboard,#community-discussion,
+#pg,#practice-challenges,#community-discussion,
 #community-teammates,#community-mentorship,#ws-panel-scratchpad,#ws-panel-overview{scroll-margin-top:calc(var(--site-nav-height) + 12px)}
 .sitemap-shell{max-width:1100px;margin:0 auto;padding:14px 0}
 .sitemap-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
@@ -4342,7 +4333,6 @@ html[data-theme="dark"] .dh-submit-btn{color:#0b0b0b}
       <li><a href="/#challenge"><span class="nav-option-title">Daily Challenge</span><span class="nav-option-description">Try today's featured challenge.</span></a></li>
       <li><div class="nav-option-planned"><span class="nav-option-title">Interview Preparation</span><span class="nav-option-description">Technical questions and mock interviews.</span><span class="nav-option-status">Coming soon</span></div></li>
       <li><div class="nav-option-planned"><span class="nav-option-title">My Submissions</span><span class="nav-option-description">Review your solutions and results.</span><span class="nav-option-status">Coming soon</span></div></li>
-      <li><a href="/practice#practice-leaderboard" data-page="practice"><span class="nav-option-title">Practice Leaderboard</span><span class="nav-option-description">Compare your ranking with other developers.</span></a></li>
     </ul>
   </details>
   <details class="nav-dropdown" name="site-navbar-menu">
@@ -4381,7 +4371,7 @@ html[data-theme="dark"] .dh-submit-btn{color:#0b0b0b}
       <li><a href="/comm#community-mentorship" data-page="comm"><span class="nav-option-title">Mentorship</span><span class="nav-option-description">Find the community's mentorship channel.</span></a></li>
     </ul>
   </details>
-  <a class="nav-link" href="/practice#practice-leaderboard" data-page="practice">Leaderboard</a>
+  <a class="nav-link" href="/#leaderboard">Leaderboard</a>
   <a class="nav-link" href="/home" data-page="home">Dashboard</a>
 </div><div class="site-nav-actions">
   <button type="button" class="ci" id="sb" aria-label="Search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button><button type="button" class="ci" data-t="No notifications yet" aria-label="Notifications"><svg class="i" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"/></svg></button>
@@ -4858,7 +4848,7 @@ requestAnimationFrame(loop);
 </section>
 
 <section class="view" id="v-practice">
-  <!-- 1. Challenges List & Leaderboard -->
+  <!-- 1. Challenges and XP guide -->
   <div id="dh-practice-list-wrap">
     <div class="practice-overview">
       <div class="c">
@@ -4866,24 +4856,7 @@ requestAnimationFrame(loop);
         <div class="fl" id="cf"></div>
         <input class="srch" style="background:var(--soft)" id="cq" placeholder="Search challenges…" aria-label="Search challenges">
         <div id="cl"></div>
-        <p class="mut" style="margin-top:12px">Run coding samples in your browser. Use the XP guide to find activities that count toward your ranking.</p>
-      </div>
-      <div class="c k">
-        <div class="h" id="practice-leaderboard"><h3>Leaderboard</h3><span class="tag">Live</span></div>
-        <p class="mut" style="font-size:.85rem;margin:0 0 10px">Keep an activity streak by earning XP on consecutive days. The top three eligible performers each month receive the <strong>Certificate of Consistency</strong> after review.</p>
-        <div class="fl" id="lt"></div>
-        <div class="lb-search-wrap" style="margin:8px 0 10px;">
-          <span class="lb-search-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
-          <input class="lb-search-input" id="lb-practice-search" type="search" placeholder="Search rankings…" aria-label="Search rankings">
-        </div>
-        <div id="lb-practice-user-bar"></div>
-        <p id="lb-practice-streak" class="mut" style="font-size:.82rem;margin:0 0 10px" hidden></p>
-        <div id="lb"></div>
-        <details class="lb-demo">
-          <summary><span class="lb-crystal" aria-hidden="true"></span> Demo leaderboard</summary>
-          <p>Fictional profiles and sample XP. Demo scores are excluded from certificate eligibility.</p>
-          <ol id="lb-demo-rows"></ol>
-        </details>
+        <p class="mut" style="margin-top:12px">Run coding samples in your browser. Use the XP guide to find activities that earn XP.</p>
       </div>
       <aside class="c xp-guide" aria-labelledby="xp-guide-title">
         <h3 id="xp-guide-title"><span class="lb-crystal" aria-hidden="true"></span> How to earn XP</h3>
@@ -4893,15 +4866,8 @@ requestAnimationFrame(loop);
           <li><span>50-minute focus session</span><strong>+30 XP</strong></li>
           <li><span>60-minute focus session</span><strong>+36 XP</strong></li>
           <li><span>Complete a Workspace assignment</span><strong>+10 XP</strong></li>
-          <li><span>Refer a friend who verifies a new account</span><strong>+20 XP</strong></li>
         </ul>
-        <p>Earn credit for one focus session, one assignment, and one verified referral per day. Only the first completed focus session earns XP that day.</p>
-        <button class="bt d" type="button" onclick="copyStudyReferralLink()">Copy my referral link</button>
-        <p id="xp-referral-status" role="status" hidden></p>
-        <div class="xp-guide-prize">
-          <h4>Monthly prize</h4>
-          <p>The top three eligible developers receive the <strong>Certificate of Consistency</strong> after review. Standings close at the end of each calendar month in India time.</p>
-        </div>
+        <p>Earn credit for your first completed focus session and first completed assignment each day.</p>
       </aside>
     </div>
   </div>
@@ -6133,7 +6099,7 @@ sitemapToggle.addEventListener('click', () => {
 function scrollToNavSection(view) {
   if (!location.hash) return;
   const target = location.hash.slice(1);
-  if (view === 'practice' && ['practice-challenges', 'practice-leaderboard'].includes(target)) {
+  if (view === 'practice' && target === 'practice-challenges') {
     closePracticeStudio();
   }
   if (view === 'work' && ['ws-panel-scratchpad', 'ws-panel-overview'].includes(target)) {
@@ -7180,25 +7146,15 @@ function safeHttpLink(value) {
 /* ===== REAL DYNAMIC LEADERBOARD CONTROLLER ===== */
 const LB_TIMEFRAMES = ['Weekly', 'Monthly', 'All-time'];
 const leaderboardCrystal = '<span class="lb-crystal" aria-hidden="true"></span>';
-const demoLeaderboard = [
-  ['Aarav Mehta', 1800], ['Diya Iyer', 1710], ['Ishaan Bhat', 1640],
-  ['Ananya Nair', 1530], ['Rohan Kulkarni', 1450], ['Meera Sethi', 1315],
-  ['Vihaan Rao', 1260], ['Tara Menon', 1130], ['Arjun Bansal', 1020],
-  ['Kavya Deshpande', 915], ['Neil Sharma', 780], ['Sana Patel', 690]
-];
-$('lb-demo-rows').innerHTML = demoLeaderboard.map(([name, xp]) =>
-  `<li>${esc(name)} <span>${xp.toLocaleString('en-IN')} XP</span></li>`).join('');
 let currentLeaderboardTimeframe = 'Monthly';
 let currentLeaderboardList = [];
 let leaderboardState = 'loading';
-let currentLeaderboardStreak = null;
 let myLeaderboardStanding = null;
 let myLeaderboardTotal = null;
 let myLeaderboardMove = null;
 let leaderboardViewerId = null;
 let leaderboardRequest;
 let lbLandingFilter = '';
-let lbPracticeFilter = '';
 let activeModalDev = null;
 
 function getCurrentUser() {
@@ -7322,11 +7278,6 @@ function renderAllLeaderboardViews() {
     ).join('');
   }
 
-  const lt = $('lt');
-  if (lt) {
-    pills(lt, LB_TIMEFRAMES, currentLeaderboardTimeframe, tf => rl(tf));
-  }
-
   // 2. Filter list for Landing Page
   const filteredLanding = currentLeaderboardList.filter(u => {
     if (!lbLandingFilter) return true;
@@ -7403,10 +7354,9 @@ function renderAllLeaderboardViews() {
     }
   }
 
-  // 4. User Standing Banner (#lb-user-standing & #lb-practice-user-bar)
+  // 4. User Standing Banner (#lb-user-standing)
   const myUser = getCurrentUser();
   const stEl = $('lb-user-standing');
-  const pStEl = $('lb-practice-user-bar');
   let bannerHtml = '';
 
   if (myUser) {
@@ -7430,48 +7380,6 @@ function renderAllLeaderboardViews() {
     </div>`;
   }
   if (stEl) stEl.innerHTML = bannerHtml;
-  if (pStEl) pStEl.innerHTML = bannerHtml;
-
-  const personalStreak = $('lb-practice-streak');
-  if (personalStreak) {
-    personalStreak.hidden = !myUser || currentLeaderboardStreak === null;
-    if (!personalStreak.hidden) {
-      personalStreak.textContent = 'Your activity streak: ' + currentLeaderboardStreak + (currentLeaderboardStreak === 1 ? ' day' : ' days');
-    }
-  }
-
-  // 5. Practice View Leaderboard (#lb)
-  const lbContainer = $('lb');
-  if (lbContainer) {
-    const filteredPractice = currentLeaderboardList.filter(u => {
-      if (!lbPracticeFilter) return true;
-      const n = (u.fullName || '').toLowerCase();
-      const un = (u.username || '').toLowerCase();
-      return n.includes(lbPracticeFilter) || un.includes(lbPracticeFilter);
-    });
-    if (filteredPractice.length === 0) {
-      lbContainer.innerHTML = `<p class="mut" style="padding:20px 0;text-align:center;">${leaderboardEmptyMessage(lbPracticeFilter)}</p>`;
-    } else {
-      lbContainer.innerHTML = filteredPractice.map((u, i) => {
-        const isMe = myUser && (u.userId === myUser.id || u.username === myUser.username || (u.id && u.id === myUser.id));
-        const name = u.fullName || u.username || 'Developer';
-        const uName = u.username ? `@${u.username}` : '';
-        const initial = (name || 'D')[0].toUpperCase();
-        const solvedCount = u.challengesSolved != null ? u.challengesSolved : (u.solved || 0);
-        const solvedText = `${solvedCount} solved`;
-        const streak = u.streakDays ?? 0;
-        const devKey = u.userId || u.username || name;
-        const xp = (u.xp || u.allTimeXp || u.totalXp || 0).toLocaleString();
-        return `<div class="lr${isMe ? ' is-me' : ''}" style="cursor:pointer;" data-developer="${esc(devKey)}" onclick="openDeveloperModal(this.dataset.developer)">
-          <b>${u.rank || (i + 1)}</b>
-          <span class="a" title="${esc(name)}">${esc(initial)}</span>
-          <span><b>${esc(name)}</b> ${uName ? `<small class="mut">${esc(uName)}</small>` : ''}<br><em>${solvedText}</em> <small class="lb-streak" title="Current activity streak">${streak}d</small></span>
-          <span>${xp} XP</span>
-        </div>`;
-      }).join('');
-    }
-  }
-
   // 6. Community Section (#zlb & #zav)
   const zav = $('zav');
   const zlb = $('zlb');
@@ -7517,7 +7425,7 @@ async function rl(k) {
   const sameView = timeframe === currentLeaderboardTimeframe && viewerId === leaderboardViewerId;
   const previousRank = sameView ? myLeaderboardStanding?.rank : null;
   if (!sameView) {
-    myLeaderboardStanding = myLeaderboardTotal = myLeaderboardMove = currentLeaderboardStreak = null;
+    myLeaderboardStanding = myLeaderboardTotal = myLeaderboardMove = null;
   }
   leaderboardViewerId = viewerId;
   if (timeframe !== currentLeaderboardTimeframe || !currentLeaderboardList.length) {
@@ -7535,7 +7443,6 @@ async function rl(k) {
     if (!Array.isArray(data.rankings)) throw new Error('Invalid rankings response');
     if (request.signal.aborted) return;
     currentLeaderboardList = data.rankings;
-    currentLeaderboardStreak = data.currentUserStreak ?? null;
     myLeaderboardStanding = data.currentUserRank ?? null;
     myLeaderboardTotal = data.currentUserTotalXp ?? null;
     myLeaderboardMove = previousRank && myLeaderboardStanding ? previousRank - myLeaderboardStanding.rank : null;
@@ -7543,7 +7450,7 @@ async function rl(k) {
   } catch {
     if (request.signal.aborted) return;
     currentLeaderboardList = [];
-    currentLeaderboardStreak = myLeaderboardStanding = myLeaderboardTotal = myLeaderboardMove = null;
+    myLeaderboardStanding = myLeaderboardTotal = myLeaderboardMove = null;
     leaderboardState = 'error';
   }
   renderAllLeaderboardViews();
@@ -7557,13 +7464,6 @@ setTimeout(() => {
   if (sInput) {
     sInput.addEventListener('input', e => {
       lbLandingFilter = e.target.value.trim().toLowerCase();
-      renderAllLeaderboardViews();
-    });
-  }
-  const psInput = $('lb-practice-search');
-  if (psInput) {
-    psInput.addEventListener('input', e => {
-      lbPracticeFilter = e.target.value.trim().toLowerCase();
       renderAllLeaderboardViews();
     });
   }
@@ -7678,31 +7578,6 @@ function pendingStudyReferral() {
     history.replaceState(history.state, '', url.pathname + url.search + url.hash);
   } catch {}
 })();
-
-async function copyStudyReferralLink() {
-  if (!currentUser) {
-    openAuthModal('login');
-    return;
-  }
-  const status = document.getElementById('xp-referral-status');
-  status.hidden = false;
-  try {
-    const response = await fetch('/api/auth/referral-link', { headers: getAuthHeaders(), cache: 'no-store' });
-    const result = await response.json();
-    if (!response.ok || !result.code) throw new Error('Referral link is unavailable');
-    const link = new URL('/', location.origin);
-    link.searchParams.set('ref', result.code);
-    try {
-      await navigator.clipboard.writeText(link.href);
-      status.textContent = 'Referral link copied.';
-    } catch {
-      status.textContent = link.href;
-      status.style.overflowWrap = 'anywhere';
-    }
-  } catch {
-    status.textContent = 'Could not load your referral link. Try again.';
-  }
-}
 
 function showStudyReward(reward) {
   if (!reward?.awarded || !currentUser) return;
@@ -11942,7 +11817,7 @@ function submitContactForm() {
   const h = (window.location.hash || '').replace(/^#\/?/, '').replace(/^v-/, '');
 
   const route = p || h;
-  if (!p && ['challenge', 'events'].includes(h)) {
+  if (!p && ['challenge', 'events', 'leaderboard'].includes(h)) {
     requestAnimationFrame(() => jump('#' + h));
     return;
   }
