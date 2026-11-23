@@ -11078,7 +11078,7 @@ function openCertificateLogin() {
   openAuthModal('signup');
   document.getElementById('dh-auth-modal').classList.add('certificate-login');
   document.getElementById('dh-auth-title').textContent = 'Continue with Google';
-  document.getElementById('dh-auth-subtitle').textContent = 'Use your registered Gmail address to sign in or create your Dev Harbour account.';
+  document.getElementById('dh-auth-subtitle').textContent = 'Choose ' + certificateClaimEmail + ' in the Google account picker. If another account is shown, select Use another account.';
 }
 
 async function shareMyCertificate(nativeShare) {
@@ -11125,9 +11125,10 @@ async function loadMyCertificateView(openSignIn = false) {
   }
   const auth = getAuthHeaders();
   claimForm.hidden = false;
-  if (!certificateClaimEmail || !auth.Authorization) {
+  const signedInEmail = currentUser?.email?.trim().toLowerCase();
+  if (!certificateClaimEmail || !auth.Authorization || signedInEmail !== certificateClaimEmail) {
     message.textContent = certificateClaimEmail
-      ? 'Confirm your registration email with Google.'
+      ? 'Confirm that you own the registration email you entered.'
       : 'Enter the email address you used to register for Innovative India.';
     if (certificateClaimEmail) requestCertificateOwnership(openSignIn);
     return;
@@ -11526,6 +11527,8 @@ window.onGoogleCredentialResponse = async function(response) {
     toast('No Google credentials returned. Please try again.');
     return;
   }
+  const certificateModal = document.getElementById('dh-auth-modal');
+  const expectedEmail = certificateModal.matches('.open.certificate-login') ? certificateClaimEmail : '';
   try {
     toast('Authenticating with Google...');
     const res = await fetch('/api/auth/google', {
@@ -11535,6 +11538,12 @@ window.onGoogleCredentialResponse = async function(response) {
     });
     const data = await res.json();
     if (res.ok && data.user) {
+      if (expectedEmail && data.user.email?.trim().toLowerCase() !== expectedEmail) {
+        const instruction = 'That Google account does not match the registration email. Choose ' + expectedEmail + ' to continue.';
+        document.getElementById('dh-auth-subtitle').textContent = instruction;
+        document.getElementById('mycert-message').textContent = instruction;
+        return;
+      }
       currentUser = data.user;
       const t = data.token;
       localStorage.setItem('dh_token', t);
