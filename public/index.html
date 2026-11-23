@@ -7803,6 +7803,19 @@ function handleSignup(e) {
 }
 window.handleSignup = handleSignup;
 
+let loginChallengeId = '';
+function restartPasswordLogin() {
+  loginChallengeId = '';
+  document.getElementById('li-credentials').hidden = false;
+  document.getElementById('li-code-box').hidden = true;
+  document.getElementById('li-user').disabled = false;
+  document.getElementById('li-pass').disabled = false;
+  document.getElementById('li-code').disabled = true;
+  document.getElementById('li-code').value = '';
+  document.getElementById('li-submit').textContent = 'Sign in';
+  document.getElementById('li-msg').textContent = '';
+}
+
 function handleLogin(e) {
   e.preventDefault();
   const rawLogin = document.getElementById('li-user').value.trim();
@@ -7813,17 +7826,33 @@ function handleLogin(e) {
   msg.className = 'dh-status-msg';
   msg.textContent = 'Signing in…';
 
-  fetch('/api/auth/login', {
+  const submit = document.getElementById('li-submit');
+  submit.disabled = true;
+  const challenge = loginChallengeId;
+  fetch(challenge ? '/api/auth/login/verify' : '/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ login: loginVal, password: pass })
+    body: JSON.stringify(challenge ? { challengeId: challenge, code: document.getElementById('li-code').value } : { login: loginVal, password: pass })
   })
     .then(async (r) => {
       const data = await r.json().catch(() => ({}));
       return { ok: r.ok, status: r.status, data };
     })
     .then(({ ok, data }) => {
-      if (ok && data.user && data.token) {
+      if (ok && data.requiresLoginCode && data.challengeId) {
+        loginChallengeId = data.challengeId;
+        document.getElementById('li-pass').value = '';
+        document.getElementById('li-credentials').hidden = true;
+        document.getElementById('li-user').disabled = true;
+        document.getElementById('li-pass').disabled = true;
+        document.getElementById('li-code-box').hidden = false;
+        const codeInput = document.getElementById('li-code');
+        codeInput.disabled = false;
+        submit.textContent = 'Verify code';
+        msg.textContent = 'Check your email for the six-digit sign-in code.';
+        codeInput.focus();
+      } else if (ok && data.user && data.token) {
+        restartPasswordLogin();
         localStorage.setItem('dh_token', data.token);
         localStorage.setItem('dh-auth-token', data.token);
         currentUser = data.user;
@@ -7839,8 +7868,9 @@ function handleLogin(e) {
     })
     .catch(() => {
       msg.className = 'dh-status-msg error';
-      msg.textContent = 'Invalid username or password.';
-    });
+      msg.textContent = 'Sign in is temporarily unavailable.';
+    })
+    .finally(() => { submit.disabled = false; });
 }
 window.handleLogin = handleLogin;
 
@@ -10298,6 +10328,7 @@ new MutationObserver(()=>{P.querySelectorAll('span').forEach(up);R.querySelector
 
     <!-- SIGN IN FORM (Default) -->
     <form id="form-login" onsubmit="handleLogin(event)">
+      <div id="li-credentials">
       <div class="dh-field">
         <label>Email or Username</label>
         <input type="text" id="li-user" required placeholder="" autocomplete="username">
@@ -10305,6 +10336,14 @@ new MutationObserver(()=>{P.querySelectorAll('span').forEach(up);R.querySelector
       <div class="dh-field">
         <label>Password</label>
         <input type="password" id="li-pass" required placeholder="••••••••" autocomplete="current-password">
+      </div>
+      </div>
+      <div id="li-code-box" hidden>
+        <div class="dh-field">
+          <label for="li-code">Email sign-in code</label>
+          <input id="li-code" type="text" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required disabled>
+        </div>
+        <button type="button" class="dh-tab-btn" onclick="restartPasswordLogin()">Start again or request a new code</button>
       </div>
       <button type="submit" class="dh-submit-btn" id="li-submit">Sign In →</button>
       <button type="button" class="dh-tab-btn" onclick="openPasswordReset()">Forgot password?</button>

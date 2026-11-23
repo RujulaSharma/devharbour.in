@@ -101,11 +101,11 @@ async function sendVerificationOtpEmail({ email, code, challengeId, purpose = 'v
   const cleanTo = canonicalEmail(email);
   const title = purpose === 'password_reset'
     ? 'Dev Harbour — Password Reset Code'
-    : 'Dev Harbour — Email Verification Code';
+    : purpose === 'login' ? 'Dev Harbour — Sign-in Code' : 'Dev Harbour — Email Verification Code';
 
   const actionText = purpose === 'password_reset'
     ? 'reset your account password'
-    : 'verify your Dev Harbour developer account and access your credentials';
+    : purpose === 'login' ? 'finish signing in' : 'verify your Dev Harbour developer account and access your credentials';
 
   const text = `Your Dev Harbour verification code is: ${code}
 

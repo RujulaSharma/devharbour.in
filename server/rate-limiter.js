@@ -161,5 +161,6 @@ function rateLimit({ windowMs = 60000, max = 15, message = 'Too many requests. P
 
 module.exports = {
   rateLimit,
+  getRateLimitRedis: () => isRedisReady ? redisClient : null,
   isRedisActive: () => isRedisReady
 };

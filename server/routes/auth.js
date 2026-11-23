@@ -6,6 +6,7 @@ const { hashPassword, verifyPassword, validateEmail, validateUsername, validateP
 const { generateOtp, hashOtp, verifyOtpHash, sendVerificationOtpEmail } = require('../email');
 const { rateLimit } = require('../rate-limiter');
 const eventBus = require('../events');
+const { sendLoginCode, consumeLoginCode } = require('../login-code');
 
 // POST /api/auth/signup
 router.post('/signup', rateLimit({ windowMs: 60000, max: 10 }), async (req, res) => {
@@ -136,35 +137,64 @@ router.post('/login', rateLimit({ windowMs: 60000, max: 15 }), async (req, res) 
       });
     }
 
-    const { token, expiresAt } = await db.createSession(user.id);
-    const totalXp = await db.getUserTotalXp(user.id);
-    const streak = await db.updateStreak(user.id);
-
-    res.json({
-      message: 'Welcome back to Dev Harbour!',
-      token,
-      expiresAt,
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        fullName: user.full_name,
-        role: user.role,
-        avatarUrl: user.avatar_url,
-        bio: user.bio,
-        location: user.location || '',
-        githubUrl: user.github_url,
-        portfolioUrl: user.portfolio_url,
-        streakDays: streak,
-        emailVerified: true,
-        totalXp: totalXp || 0,
-        level: db.calculateLevel(totalXp || 0)
-      }
-    });
+    if (process.env.LOGIN_EMAIL_OTP === 'true') {
+      const challengeId = await sendLoginCode(user);
+      return res.status(202).json({ requiresLoginCode: true, challengeId });
+    }
+    return await finishPasswordLogin(user, res);
   } catch (err) {
-    res.status(500).json({ error: 'Sign in failed.' });
+    res.status(err.status === 429 ? 429 : 503).json({ error: err.status === 429 ? err.message : 'Sign in is temporarily unavailable.' });
   }
 });
+
+router.post('/login/verify', rateLimit({ windowMs: 60000, max: 15 }), async (req, res) => {
+  if (process.env.LOGIN_EMAIL_OTP !== 'true') return res.sendStatus(404);
+  const { challengeId, code } = req.body || {};
+  if (typeof challengeId !== 'string' || !/^[0-9a-f-]{36}$/.test(challengeId) ||
+      typeof code !== 'string' || !/^[0-9]{6}$/.test(code)) {
+    return res.status(400).json({ error: 'Enter the six-digit sign-in code.' });
+  }
+  try {
+    const user = await consumeLoginCode(challengeId, code, async id => {
+      const account = await db.getUserById(id);
+      return account && await db.getUserByEmail(account.email);
+    });
+    if (!user || !(await db.isEmailVerified(user.id))) {
+      return res.status(401).json({ error: 'Incorrect or expired code. Try again or request a new code.' });
+    }
+    return await finishPasswordLogin(user, res);
+  } catch {
+    return res.status(503).json({ error: 'Sign in is temporarily unavailable.' });
+  }
+});
+
+async function finishPasswordLogin(user, res) {
+  const { token, expiresAt } = await db.createSession(user.id);
+  const totalXp = await db.getUserTotalXp(user.id);
+  const streak = await db.updateStreak(user.id);
+
+  res.json({
+    message: 'Welcome back to Dev Harbour!',
+    token,
+    expiresAt,
+    user: {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      fullName: user.full_name,
+      role: user.role,
+      avatarUrl: user.avatar_url,
+      bio: user.bio,
+      location: user.location || '',
+      githubUrl: user.github_url,
+      portfolioUrl: user.portfolio_url,
+      streakDays: streak,
+      emailVerified: true,
+      totalXp: totalXp || 0,
+      level: db.calculateLevel(totalXp || 0)
+    }
+  });
+}
 
 // POST /api/auth/google (Continue with Google — Cryptographically Verified)
 router.post('/google', rateLimit({ windowMs: 60000, max: 10 }), async (req, res) => {

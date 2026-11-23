@@ -195,3 +195,15 @@ The replacement standalone downloads contain no attendee register. Earlier Git r
 | **7. Leaderboard Calculation** | ✔ PASSED | All-time, Weekly, Monthly rankings derived from authoritative XP ledger |
 | **8. Featured Projects** | ✔ PASSED | Creation, URL validation, unique upvoting, bookmarking, authorization enforcement |
 | **9. User Settings** | ✔ PASSED | Light, Dark, and Mercury theme account synchronization |
+
+
+### Password login email codes on Cloudflare and Render
+
+Cloudflare Pages forwards auth requests to Render. Configure a verified Resend sender with
+`RESEND_API_KEY`, `EMAIL_FROM`, and `EMAIL_VERIFICATION_SECRET` in Render, and configure
+a persistent Redis 6+ connection with `REDIS_URL`. Use a sending-only key. Once staging
+delivery and password-plus-code login have been verified, set `LOGIN_EMAIL_OTP=true` in Render.
+The application stores login-code challenges in Redis. No Supabase migrations are required.
+Existing sessions and Continue with Google continue to work. Signup verification and account
+recovery remain separate email-based flows. Set the flag to false to restore the previous
+password-login behavior if email or Redis delivery fails during rollout.
