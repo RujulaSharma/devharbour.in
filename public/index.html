@@ -4175,17 +4175,21 @@ html[data-theme="dark"] .dh-submit-btn{color:#0b0b0b}
 .dh-ii-preview,.dh-ii-card{min-width:0;border:1px solid var(--line);border-radius:18px;background:var(--surface,var(--card,#f8f6ff));padding:clamp(12px,2vw,22px)}
 .dh-ii-preview{margin:0}
 .dh-ii-art{position:relative;overflow:hidden;border-radius:10px;border:1px solid var(--line);background:#f8f3fc}
-.dh-ii-envelope{position:absolute;inset:37% 0 0;display:grid;place-items:center;isolation:isolate;box-shadow:0 -3px 18px #3b23501a}
+.dh-ii-envelope{position:absolute;inset:39% 0 0;display:grid;place-items:center;isolation:isolate;box-shadow:0 -4px 18px #3b235028}
 .dh-ii-envelope::before,.dh-ii-envelope::after,.dh-ii-envelope-flap{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none}
-.dh-ii-envelope::before{background:#dbc8f0}
-.dh-ii-envelope::after{background:linear-gradient(155deg,#eee1fb,#d9c3ef);clip-path:polygon(0 100%,50% 27%,100% 100%)}
-.dh-ii-envelope-flap{background:linear-gradient(166deg,#f7efff,#dfcbf2);clip-path:polygon(0 0,100% 0,50% 66%);filter:drop-shadow(0 2px 3px #4e336531)}
+.dh-ii-envelope::before{background:linear-gradient(125deg,#c9a8e2,#e0c9f2 45%,#bfa0dd)}
+.dh-ii-envelope::after{background:linear-gradient(160deg,#f2e6fb 18%,#e3cff2 68%,#d9c1ed);clip-path:polygon(0 100%,46% 29%,50% 26%,54% 29%,100% 100%)}
+.dh-ii-envelope-flap{background:linear-gradient(170deg,#faf2ff,#e9d8f6 53%,#caa9e5);clip-path:polygon(0 0,100% 0,55% 60%,52% 64%,48% 64%,45% 60%);box-shadow:inset 0 1px 0 #fff9}
 .dh-ii-certificate-shimmer{position:absolute;inset:0;pointer-events:none;opacity:0;background:linear-gradient(106deg,transparent 34%,#fff2c8a0 49%,transparent 64%)}
-.dh-ii-envelope-seal{display:grid;place-items:center;gap:8px;margin-top:9%;color:#42285e;font-size:clamp(.72rem,2vw,.88rem);font-weight:750}
-.dh-ii-envelope-seal svg{box-sizing:content-box;padding:clamp(8px,1.8vw,13px);border-radius:50%;background:#fdf9ff;border:1px solid #b69acc;box-shadow:0 3px 12px #4e33652b}
-.dh-ii-preview-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin:0 0 12px;padding:0 2px}
+.dh-ii-envelope-seal{display:grid;place-items:center;gap:7px;margin-top:7%;color:#3e2357;font-size:clamp(.72rem,2vw,.88rem);font-weight:750;letter-spacing:.015em}
+.dh-ii-envelope-seal svg{box-sizing:content-box;padding:clamp(8px,1.8vw,13px);border-radius:50%;background:radial-gradient(circle at 35% 25%,#fff9ff,#e0c5f3 78%);border:1px solid #b795d0;box-shadow:inset 0 0 0 3px #f8eaff,inset 0 0 0 4px #c7a7dd,0 3px 9px #4e336538}
+.dh-ii-preview-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:0 0 12px;padding:0 2px}
 .dh-ii-preview-head strong{font-size:.95rem}
-.dh-ii-preview-head span{color:var(--mut);font-size:.8rem}
+.dh-ii-registrations{display:inline-flex;align-items:center;gap:7px;padding:5px 10px;border:1px solid #46896942;border-radius:999px;color:var(--ink);background:color-mix(in srgb,var(--card,#fff) 89%,#71c497);font-size:.76rem;font-weight:700;white-space:nowrap}
+.dh-ii-registration-dot{width:7px;height:7px;border-radius:50%;background:#31966b;box-shadow:0 0 0 3px #31966b25;animation:dh-ii-registration-pulse 2.4s ease-out infinite}
+@keyframes dh-ii-registration-pulse{0%,72%,100%{box-shadow:0 0 0 3px #31966b25}40%{box-shadow:0 0 0 6px #31966b00}}
+@media(prefers-reduced-motion:reduce){.dh-ii-registration-dot{animation:none}}
+.dh-ii-preview figcaption{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
 #dh-auth-modal.certificate-login .dh-auth-divider,#dh-auth-modal.certificate-login .dh-tabs,#dh-auth-modal.certificate-login form{display:none!important}
 .dh-ii-share{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:14px}
 .dh-ii-share button{width:auto;margin:0;font:inherit;color:inherit;cursor:pointer}
@@ -5418,7 +5422,7 @@ requestAnimationFrame(loop);
       <figure class="dh-ii-preview" aria-labelledby="mycert-preview-title">
         <div class="dh-ii-preview-head">
           <strong id="mycert-preview-title">Certificate preview</strong>
-          <span id="mycert-sample">Sample template</span>
+          <span class="dh-ii-registrations"><span class="dh-ii-registration-dot" aria-hidden="true"></span>2,600 registrations</span>
         </div>
         <div class="dh-ii-art">
           <img id="mycert-blank" src="/assets/innovative_india_certificate.webp?v=lavender-black-marks" width="1080" height="720" alt="Blank Innovative India participation certificate in light lavender">
@@ -5432,7 +5436,7 @@ requestAnimationFrame(loop);
             </div>
           </div>
         </div>
-        <figcaption>Sponsored by Adaption AI</figcaption>
+        <figcaption><span>Sponsored by Adaption AI</span><span id="mycert-sample">Sample template</span></figcaption>
       </figure>
     </div>
   </div>
