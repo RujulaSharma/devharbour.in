@@ -129,13 +129,13 @@ async function getUserByUsername(username) {
   return res.rows[0] || null;
 }
 
-async function createUser({ email, username, fullName, passwordHash, salt, role = 'student', location = '', bio = '', avatarUrl = '' }) {
+async function createUser({ email, username, fullName, certificateName, passwordHash, salt, role = 'student', location = '', bio = '', avatarUrl = '' }) {
   const id = 'usr-' + crypto.randomUUID().slice(0, 8);
   const now = new Date().toISOString();
   await query(`
-    INSERT INTO users (id, email, username, full_name, password_hash, salt, role, location, bio, created_at, updated_at, avatar_url)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12);
-  `, [id, email.toLowerCase().trim(), username.toLowerCase().trim(), fullName.trim(), passwordHash, salt, role, location, bio, now, now, avatarUrl || '']);
+    INSERT INTO users (id, email, username, full_name, password_hash, salt, role, location, bio, created_at, updated_at, avatar_url, certificate_name)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);
+  `, [id, email.toLowerCase().trim(), username.toLowerCase().trim(), fullName.trim(), passwordHash, salt, role, location, bio, now, now, avatarUrl || '', certificateName === undefined ? fullName : certificateName]);
 
   await query(`
     INSERT INTO user_settings (user_id, theme, email_notifications, profile_public, updated_at)
@@ -194,16 +194,16 @@ async function updateStreak(userId) {
 }
 
 // ================= SESSIONS =================
-async function createSession(userId) {
+async function createSession(userId, googleVerifiedEmail = null) {
   const id = crypto.randomUUID();
   const token = crypto.randomBytes(32).toString('hex');
   const expiryDays = parseInt(process.env.TOKEN_EXPIRY_DAYS || '7', 10);
   const expiresAt = new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000).toISOString();
 
   await query(`
-    INSERT INTO sessions (id, user_id, token, expires_at, created_at)
-    VALUES ($1, $2, $3, $4, NOW());
-  `, [id, userId, token, expiresAt]);
+    INSERT INTO sessions (id, user_id, token, expires_at, created_at, google_verified_email)
+    VALUES ($1, $2, $3, $4, NOW(), $5);
+  `, [id, userId, token, expiresAt, googleVerifiedEmail]);
 
   return { token, expiresAt };
 }
@@ -211,7 +211,7 @@ async function createSession(userId) {
 async function getSession(token) {
   if (!token) return null;
   const res = await query(`
-    SELECT s.id, s.user_id, s.expires_at, u.role, u.username, u.email
+    SELECT s.id, s.user_id, s.google_verified_email, s.expires_at, u.role, u.username, u.email
     FROM sessions s
     JOIN users u ON s.user_id = u.id
     WHERE s.token = $1 AND s.expires_at::timestamp > NOW()
@@ -476,11 +476,30 @@ async function getUserSubmissions(userId, challengeId) {
 // ================= PROJECTS =================
 async function getOrcathonProjects() {
   const { rows } = await query(`
-    SELECT name, summary, category, demo_url AS demo, repository_url AS repository
-    FROM public.orcathon_projects
+    SELECT id, name, summary, category, demo_url AS demo, repository_url AS repository,
+      (SELECT count(*)::int FROM public.orcathon_gallery_votes v WHERE v.project_id = p.id) AS gallery_votes
+    FROM public.orcathon_projects p
     ORDER BY lower(name), id;
   `);
   return rows;
+}
+
+async function toggleGalleryVote(userId, projectId) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', ['gallery:' + projectId]);
+    const removed = await client.query('DELETE FROM public.orcathon_gallery_votes WHERE project_id = $1 AND user_id = $2', [projectId, userId]);
+    if (!removed.rowCount) await client.query('INSERT INTO public.orcathon_gallery_votes(project_id, user_id) VALUES ($1, $2)', [projectId, userId]);
+    const result = await client.query('SELECT count(*)::int AS count FROM public.orcathon_gallery_votes WHERE project_id = $1', [projectId]);
+    await client.query('COMMIT');
+    return { voted: !removed.rowCount, votesCount: result.rows[0].count };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 async function getProjects({ category, search, status = 'approved' } = {}) {
@@ -508,7 +527,7 @@ async function getProjects({ category, search, status = 'approved' } = {}) {
   const res = await query(q, params);
   return res.rows.map(r => ({
     ...r,
-    techStack: JSON.parse(r.tech_stack_json || '[]')
+    techStack: (Array.isArray(r.tech_stack_json) ? r.tech_stack_json : JSON.parse(r.tech_stack_json || '[]'))
   }));
 }
 
@@ -521,7 +540,7 @@ async function getProjectById(id) {
   `, [id]);
   const p = res.rows[0];
   if (!p) return null;
-  return { ...p, techStack: JSON.parse(p.tech_stack_json || '[]') };
+  return { ...p, techStack: Array.isArray(p.tech_stack_json) ? p.tech_stack_json : JSON.parse(p.tech_stack_json || '[]') };
 }
 
 async function createProject({ userId, title, description, category, techStack, repoUrl, demoUrl }) {
@@ -928,7 +947,26 @@ async function getIssuedCertificateByEmailOrName(email, name, eventSlug = 'orca-
   return null;
 }
 
-async function issueCertificate({ participantId, recipientName, recipientEmail, recipientOrganisation, eventSlug = 'orca-coders-orcathon-2026', certificateType = 'Participation', issueDate = 'October 25, 2026', status = 'Valid' }) {
+async function getNextInnovativeIndiaCredentialId() {
+  try {
+    const res = await query(`
+      SELECT credential_id FROM issued_certificates
+      WHERE event_slug = 'innovative-india-2026' AND credential_id LIKE 'IN-26-%'
+      ORDER BY credential_id DESC LIMIT 1;
+    `);
+    let nextNum = 1;
+    if (res.rows && res.rows[0] && res.rows[0].credential_id) {
+      const parts = res.rows[0].credential_id.split('-');
+      const num = parseInt(parts[2], 10);
+      if (!isNaN(num)) nextNum = num + 1;
+    }
+    return `IN-26-${String(nextNum).padStart(7, '0')}`;
+  } catch (e) {
+    return 'IN-26-0000479';
+  }
+}
+
+async function issueCertificate({ credentialId, participantId, recipientName, recipientEmail, recipientOrganisation, eventSlug = 'orca-coders-orcathon-2026', certificateType = 'Participation', issueDate, status = 'Valid' }) {
   if (recipientEmail) {
     const existing = await getIssuedCertificateByEmail(recipientEmail, eventSlug);
     if (existing) return existing;
@@ -937,17 +975,25 @@ async function issueCertificate({ participantId, recipientName, recipientEmail, 
     if (existing) return existing;
   }
 
-  const num = String(participantId || '1').padStart(4, '0');
-  let hash = 0;
-  const str = recipientEmail.toLowerCase().trim() + '-' + num;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) - hash) + str.charCodeAt(i);
-    hash |= 0;
+  let finalCredId = credentialId;
+  if (!finalCredId) {
+    if (eventSlug === 'innovative-india-2026') {
+      finalCredId = await getNextInnovativeIndiaCredentialId();
+    } else {
+      const num = String(participantId || '1').padStart(4, '0');
+      let hash = 0;
+      const str = (recipientEmail || '').toLowerCase().trim() + '-' + num;
+      for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0;
+      }
+      const hex = Math.abs(hash).toString(16).toUpperCase().padStart(4, '0').slice(-4);
+      finalCredId = `DH-ORCA-2026-${num}-${hex}`;
+    }
   }
-  const hex = Math.abs(hash).toString(16).toUpperCase().padStart(4, '0').slice(-4);
-  const credentialId = `DH-ORCA-2026-${num}-${hex}`;
 
   const pId = participantId ? String(participantId).trim() : null;
+  const finalIssueDate = eventSlug === 'innovative-india-2026' ? (issueDate || 'February 2026') : (issueDate || 'October 25, 2026');
 
   const res = await query(`
     INSERT INTO issued_certificates (
@@ -956,7 +1002,7 @@ async function issueCertificate({ participantId, recipientName, recipientEmail, 
     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
     ON CONFLICT (credential_id) DO UPDATE SET status = EXCLUDED.status
     RETURNING *;
-  `, [credentialId, eventSlug, pId, recipientName.trim(), recipientEmail.toLowerCase().trim(), (recipientOrganisation || 'Participant').trim(), certificateType, issueDate, status]);
+  `, [finalCredId, eventSlug, pId, recipientName.trim(), (recipientEmail || '').toLowerCase().trim(), (recipientOrganisation || 'Participant').trim(), certificateType || 'Participation', finalIssueDate, status]);
 
   return res.rows[0];
 }
@@ -1074,10 +1120,14 @@ async function recordFailedOtpAttempt(userId, challengeId) {
 
 async function completeEmailVerification(userId, challengeId) {
   const result = await query(`
-    UPDATE email_verifications
-    SET state = 'verified', verified_at = NOW(), code_hash = NULL, expires_at = NULL
-    WHERE user_id = $1 AND challenge_id = $2 AND state = 'pending'
-      AND code_hash IS NOT NULL AND expires_at::timestamptz > NOW()
+    WITH verified AS (
+      UPDATE email_verifications SET state = 'verified', verified_at = NOW(), code_hash = NULL, expires_at = NULL
+      WHERE user_id = $1 AND challenge_id = $2 AND state = 'pending'
+        AND code_hash IS NOT NULL AND expires_at::timestamptz > NOW()
+      RETURNING user_id
+    ), revoked AS (
+      DELETE FROM sessions WHERE user_id IN (SELECT user_id FROM verified)
+    ) SELECT user_id FROM verified
   `, [userId, challengeId]);
   return result.rowCount === 1;
 }
@@ -1177,6 +1227,7 @@ module.exports = {
   getUserSubmissions,
   getProjects,
   getOrcathonProjects,
+  toggleGalleryVote,
   getProjectById,
   createProject,
   updateProject,
@@ -1209,6 +1260,7 @@ module.exports = {
   getIssuedCertificateById,
   getIssuedCertificateByEmail,
   getIssuedCertificateByEmailOrName,
+  getNextInnovativeIndiaCredentialId,
   issueCertificate,
   insertParticipant,
   countParticipants,

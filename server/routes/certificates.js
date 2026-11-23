@@ -12,6 +12,7 @@ const path = require('path');
 const db = require('../db');
 const { requireAuth } = require('../auth');
 const { rateLimit } = require('../rate-limiter');
+const { myCertificate, verifyCertificate } = require('../innovative_certificates');
 
 /**
  * Mask email address to protect participant privacy in public endpoints
@@ -25,6 +26,13 @@ function maskEmail(email) {
   return `${prefix}${'*'.repeat(Math.max(2, user.length - 3))}${suffix}@${domain}`;
 }
 
+router.get('/my-certificate', myCertificate('details'));
+router.get('/download/my-certificate', myCertificate('download'));
+router.get('/preview/my-certificate', myCertificate('preview'));
+router.get('/download/:credentialId(IN-26-.*)', myCertificate('download'));
+router.get('/innovative-india/verify/:credentialId', rateLimit({ windowMs: 60000, max: 60 }),
+  (req, res) => verifyCertificate(req, res, req.params.credentialId));
+
 /**
  * GET /api/certificates/my-certificates
  * Authenticated user endpoint to view all credentials registered to their verified email.
@@ -33,7 +41,7 @@ function maskEmail(email) {
 router.get(['/my-certificates', '/me'], requireAuth, async (req, res) => {
   try {
     const userEmail = req.user.email.toLowerCase();
-    const certs = await db.getUserCertificates(userEmail);
+    const certs = (await db.getUserCertificates(userEmail) || []).filter(cert => cert.event_slug !== 'innovative-india-2026');
 
     return res.json({
       success: true,
@@ -87,6 +95,8 @@ router.get('/download/:credentialId', requireAuth, async (req, res) => {
       });
     }
 
+    if (cert.event_slug === 'innovative-india-2026') return res.status(404).json({ error: 'Certificate not found.' });
+
     return res.json({
       success: true,
       database: 'Supabase PostgreSQL',
@@ -113,36 +123,17 @@ router.get('/download/:credentialId', requireAuth, async (req, res) => {
 /**
  * POST /api/certificates/claim
  * Validates participant registration against authoritative event registry and issues/retrieves credential.
- * Supports lookup by email, candidate name, or both via Supabase PostgreSQL.
- * If authenticated, automatically matches verified user account without requiring any OTP.
+ * Matches the exact email on the verified server session.
  */
-router.post('/claim', rateLimit({ windowMs: 60000, max: 30 }), async (req, res) => {
+router.post('/claim', requireAuth, rateLimit({ windowMs: 60000, max: 30 }), async (req, res) => {
   try {
-    let { email, name, eventSlug = 'orca-coders-orcathon-2026' } = req.body || {};
-
-    // Auto-populate from authenticated user if present
-    if (req.user) {
-      email = email || req.user.email;
-      name = name || req.user.full_name || req.user.username;
+    const eventSlug = 'orca-coders-orcathon-2026';
+    if (req.body?.eventSlug && req.body.eventSlug !== eventSlug) return res.status(403).json({ error: 'Use My Certificate for Innovative India.' });
+    const cleanEmail = req.user.email.trim().toLowerCase();
+    if (req.body?.email && String(req.body.email).trim().toLowerCase() !== cleanEmail) {
+      return res.status(403).json({ error: 'You may only claim your own certificate.' });
     }
-
-    let cleanEmail = (email || '').trim().toLowerCase();
-    const cleanName = (name || '').trim();
-
-    // Prevent authenticated user from claiming another user's certificate
-    if (req.user && req.user.role !== 'admin' && cleanEmail && cleanEmail !== req.user.email.toLowerCase()) {
-      return res.status(403).json({
-        error: 'Access denied: You may only claim certificates associated with your verified account email.'
-      });
-    }
-
-    if (!cleanEmail && !cleanName) {
-      return res.status(400).json({ error: 'Please enter your registered email address or name.' });
-    }
-
-    // 1. Check if credential already exists
-    let existingCert = await db.getIssuedCertificateByEmailOrName(cleanEmail, cleanName, eventSlug);
-
+    const existingCert = await db.getIssuedCertificateByEmail(cleanEmail, eventSlug);
     if (existingCert) {
       const isOwner = req.user?.emailVerified && req.user.email.toLowerCase() === (existingCert.recipient_email || '').toLowerCase();
       const safeEmail = isOwner ? existingCert.recipient_email : maskEmail(existingCert.recipient_email);
@@ -169,11 +160,11 @@ router.post('/claim', rateLimit({ windowMs: 60000, max: 30 }), async (req, res) 
     }
 
     // 2. Validate against participant database
-    const participant = await db.findParticipantByEmailOrName(cleanEmail, cleanName, eventSlug);
+    const participant = await db.findParticipantByEmail(cleanEmail, eventSlug);
 
     if (!participant) {
       return res.status(404).json({
-        error: `No registration found for "${email || name}" in ORCATHON 2026. Please check for typos or enter the email or name registered on Unstop.`
+        error: 'No eligible registration found for your account.'
       });
     }
 
@@ -184,7 +175,7 @@ router.post('/claim', rateLimit({ windowMs: 60000, max: 30 }), async (req, res) 
     }
 
     // Determine canonical name and email
-    const recipientName = participant.candidate_name || cleanName;
+    const recipientName = participant.candidate_name;
     const recipientOrg = participant.candidate_organisation || '';
     const recipientEmail = participant.candidate_email || cleanEmail;
 
@@ -240,6 +231,8 @@ router.get('/verify/:credentialId', rateLimit({ windowMs: 60000, max: 60 }), asy
       return res.status(400).json({ error: 'Valid credential ID is required.' });
     }
 
+    if (/^IN-26-/i.test(credentialId.trim())) return verifyCertificate(req, res, credentialId);
+
     const cert = await db.getIssuedCertificateById(credentialId.trim());
 
     if (!cert) {
@@ -249,9 +242,11 @@ router.get('/verify/:credentialId', rateLimit({ windowMs: 60000, max: 60 }), asy
       });
     }
 
+    if (cert.event_slug === 'innovative-india-2026') return res.status(404).json({ verified: false, error: 'Credential ID not found.' });
+
     return res.json({
-      verified: true,
-      database: 'Supabase PostgreSQL',
+      verified: String(cert.status).toLowerCase() === 'valid',
+      database: 'Authoritative Credential Registry',
       credential: {
         credential_id: cert.credential_id,
         recipient_name: cert.recipient_name,
@@ -259,9 +254,10 @@ router.get('/verify/:credentialId', rateLimit({ windowMs: 60000, max: 60 }), asy
         recipient_organisation: cert.recipient_organisation || 'Participant',
         event_name: 'ORCA CODERS: ORCATHON 2026',
         event_slug: cert.event_slug,
-        certificate_type: cert.certificate_type,
+        certificate_type: cert.certificate_type || 'Participation',
         issue_date: cert.issue_date,
         status: cert.status,
+        issuer: 'Dev Harbour Registry',
         issued_at: cert.created_at
       }
     });

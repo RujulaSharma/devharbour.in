@@ -55,8 +55,10 @@ storage/
 private/
 public/certificates/*.pdf
 public/certificates/*.zip
+public/auth_helper.html
 
 # Private database exports and participant manifests
 server/devharbour.sql
 output/certificates_manifest.csv
 output/certificates_manifest.json
+supabase/.temp/

@@ -342,6 +342,9 @@ CREATE TABLE IF NOT EXISTS certificate_otps (
 -- ====================================================================
 -- ROW LEVEL SECURITY (RLS) FOR SUPABASE
 -- ====================================================================
+ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE certificate_otps ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.users, public.sessions, public.user_settings, public.lesson_progress, public.submissions, public.xp_ledger, public.user_achievements, public.workspace_tasks, public.workspace_notes, public.workspace_assignments, public.workspace_snippets, public.workspace_bookmarks, public.event_participants, public.issued_certificates, public.certificate_otps, public.project_votes, public.project_bookmarks FROM anon, authenticated;
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE courses ENABLE ROW LEVEL SECURITY;
@@ -363,29 +366,12 @@ ALTER TABLE workspace_bookmarks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE event_participants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE issued_certificates ENABLE ROW LEVEL SECURITY;
 
--- Public read policies for catalog, projects & certificates
+-- Public catalog views
 CREATE POLICY "Public can view courses" ON courses FOR SELECT USING (true);
 CREATE POLICY "Public can view lessons" ON lessons FOR SELECT USING (true);
-CREATE POLICY "Public can view challenges" ON challenges FOR SELECT USING (true);
+REVOKE ALL ON public.challenges FROM anon, authenticated;
 CREATE POLICY "Public can view achievements" ON achievements FOR SELECT USING (true);
 CREATE POLICY "Public can view approved projects" ON projects FOR SELECT USING (status = 'approved');
-CREATE POLICY "Public can verify issued certificates" ON issued_certificates FOR SELECT USING (true);
-CREATE POLICY "Public can view basic profiles" ON users FOR SELECT USING (true);
-CREATE POLICY "Public can view event participants" ON event_participants FOR SELECT USING (true);
-
--- Service role / all-access policy for backend execution
-CREATE POLICY "Service role full access on users" ON users FOR ALL USING (true);
-CREATE POLICY "Service role full access on sessions" ON sessions FOR ALL USING (true);
-CREATE POLICY "Service role full access on settings" ON user_settings FOR ALL USING (true);
-CREATE POLICY "Service role full access on progress" ON lesson_progress FOR ALL USING (true);
-CREATE POLICY "Service role full access on submissions" ON submissions FOR ALL USING (true);
-CREATE POLICY "Service role full access on xp" ON xp_ledger FOR ALL USING (true);
-CREATE POLICY "Service role full access on user_achievements" ON user_achievements FOR ALL USING (true);
-CREATE POLICY "Service role full access on projects" ON projects FOR ALL USING (true);
-CREATE POLICY "Service role full access on certificates" ON issued_certificates FOR ALL USING (true);
-CREATE POLICY "Service role full access on participants" ON event_participants FOR ALL USING (true);
-CREATE POLICY "Service role full access on workspace_tasks" ON workspace_tasks FOR ALL USING (true);
-CREATE POLICY "Service role full access on workspace_notes" ON workspace_notes FOR ALL USING (true);
 """
 
 # Write schema.sql

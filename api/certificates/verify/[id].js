@@ -2,6 +2,7 @@
 // Powered by Supabase PostgreSQL single source of truth
 
 const db = require('../../../server/db');
+const { verifyCertificate } = require('../../../server/innovative_certificates');
 
 function maskEmail(email) {
   if (!email || typeof email !== 'string' || !email.includes('@')) return '';
@@ -26,6 +27,8 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'Valid credential ID is required.' });
   }
 
+  if (/^IN-26-/i.test(String(id).trim())) return verifyCertificate(req, res, id);
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed.' });
   try {
     const cert = await db.getIssuedCertificateById(String(id).trim());
 
@@ -36,9 +39,11 @@ module.exports = async (req, res) => {
       });
     }
 
+    if (cert.event_slug === 'innovative-india-2026') return res.status(404).json({ verified: false, error: 'Credential ID not found.' });
+
     return res.json({
-      verified: true,
-      database: 'Supabase PostgreSQL',
+      verified: String(cert.status).toLowerCase() === 'valid',
+      database: 'Authoritative Credential Registry',
       credential: {
         credential_id: cert.credential_id,
         recipient_name: cert.recipient_name,
@@ -46,9 +51,10 @@ module.exports = async (req, res) => {
         recipient_organisation: cert.recipient_organisation || 'Participant',
         event_name: 'ORCA CODERS: ORCATHON 2026',
         event_slug: cert.event_slug,
-        certificate_type: cert.certificate_type,
+        certificate_type: cert.certificate_type || 'Participation',
         issue_date: cert.issue_date,
         status: cert.status,
+        issuer: 'Dev Harbour Registry',
         issued_at: cert.created_at
       }
     });

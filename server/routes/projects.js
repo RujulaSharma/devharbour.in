@@ -39,7 +39,8 @@ router.get('/orcathon', async (_req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const project = await db.getProjectById(req.params.id);
-    if (!project) {
+    const ownsProject = req.user && project && (project.user_id ?? project.userId) === req.user.id;
+    if (!project || (project.status !== 'approved' && !ownsProject && !['admin', 'moderator'].includes(req.user?.role))) {
       return res.status(404).json({ error: 'Project not found.' });
     }
 
@@ -185,34 +186,20 @@ router.post('/:id/vote', requireAuth, async (req, res) => {
       const cleanParam = req.params.id.toLowerCase().replace(/^prj-/, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
       project = (all || []).find(p => p.id === req.params.id || p.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') === cleanParam);
     }
-    if (!project) {
-      const cleanParam = req.params.id.toLowerCase().replace(/^prj-/, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-      try {
-        const orcList = await db.getOrcathonProjects();
-        const found = (orcList || []).find(p =>
-          (p.id && p.id === req.params.id) ||
-          (p.name && p.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') === cleanParam)
-        );
-        if (found) {
-          project = await db.createProject({
-            userId: req.user.id,
-            title: found.name,
-            description: found.summary || found.name,
-            category: found.category || 'Other',
-            techStack: ['ORCATHON 2026', found.category || 'Build'],
-            repoUrl: found.repository || 'https://devharbour.in',
-            demoUrl: found.demo || ''
-          });
-        }
-      } catch (err) {
-        // Fallback for offline or non-DB environments
+    let vote;
+    if (project?.status === 'approved') {
+      vote = await db.toggleProjectVote(req.user.id, project.id);
+    } else if (!project) {
+      const slug = value => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const target = req.params.id.replace(/^prj-/, '');
+      const gallery = (await db.getOrcathonProjects()).find(row => row.id === target || slug(row.name) === target);
+      if (gallery) {
+        project = { id: gallery.id, title: gallery.name };
+        vote = await db.toggleGalleryVote(req.user.id, gallery.id);
       }
     }
-    if (!project) {
-      return res.status(404).json({ error: 'Project not found.' });
-    }
-
-    const { voted, votesCount } = await db.toggleProjectVote(req.user.id, project.id);
+    if (!vote) return res.status(404).json({ error: 'Published project not found.' });
+    const { voted, votesCount } = vote;
     const likerName = req.user.username || req.user.full_name || 'A developer';
 
     eventBus.broadcast({
@@ -243,6 +230,7 @@ router.post('/:id/bookmark', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Project not found.' });
     }
 
+    if (project.status !== 'approved' && (project.user_id ?? project.userId) !== req.user.id) return res.status(404).json({ error: 'Project not found.' });
     const result = await db.toggleProjectBookmark(req.user.id, project.id);
     res.json({
       message: result.bookmarked ? 'Saved to your bookmarks.' : 'Bookmark removed.',

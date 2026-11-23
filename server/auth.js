@@ -33,23 +33,22 @@ function validatePassword(password) {
 // Strip credentials and sensitive internal fields before returning user data
 function sanitizeUser(user, extras = {}) {
   if (!user) return null;
-  const { password_hash, salt, code_hash, ...safe } = user;
+  const { password_hash, salt, code_hash, certificate_name, ...safe } = user;
   return {
     ...safe,
     ...extras
   };
 }
 
+function getAuthToken(req) {
+  const authHeader = req.headers.authorization;
+  if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) return authHeader.slice(7);
+  return typeof req.headers['x-auth-token'] === 'string' ? req.headers['x-auth-token'] : null;
+}
+
 // Authentication Middleware: populates req.user if valid token provided
 async function authMiddleware(req, res, next) {
-  let token = null;
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    token = authHeader.substring(7);
-  } else if (req.headers['x-auth-token']) {
-    token = req.headers['x-auth-token'];
-  }
-
+  const token = getAuthToken(req);
   if (token) {
     try {
       const session = await db.getSession(token);
@@ -109,6 +108,7 @@ module.exports = {
   validateUsername,
   validatePassword,
   sanitizeUser,
+  getAuthToken,
   authMiddleware,
   requireAuth,
   requireRole

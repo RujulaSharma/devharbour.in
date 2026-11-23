@@ -19,69 +19,23 @@ test('Certificates API Suite', async (t) => {
     }
   });
 
-  await t.test('GET /api/certificates/stats returns registry status and participant count', async () => {
-    const res = await fetch(`${baseUrl}/api/certificates/stats`);
-    assert.equal(res.status, 200);
-    const body = await res.json();
-    assert.equal(body.event, 'ORCA CODERS: ORCATHON 2026');
-    assert.equal(typeof body.totalParticipants, 'number');
-    assert.ok(body.totalParticipants >= 690);
-  });
-
-  await t.test('POST /api/certificates/claim successfully issues certificate for registered participant by name alone', async () => {
-    const res = await fetch(`${baseUrl}/api/certificates/claim`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Poornika R' })
-    });
-    assert.ok(res.status === 200 || res.status === 201);
-    const body = await res.json();
-    assert.equal(body.success, true);
-    assert.equal(body.credential.recipient_name, 'Poornika R');
-    assert.ok(body.credential.credential_id.startsWith('DH-ORCA-2026-'));
-  });
-
-  await t.test('POST /api/certificates/claim rejects empty input', async () => {
-    const res = await fetch(`${baseUrl}/api/certificates/claim`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: '', name: '' })
-    });
-    assert.equal(res.status, 400);
-    const body = await res.json();
-    assert.ok(body.error.includes('Please enter'));
-  });
-
-  await t.test('POST /api/certificates/claim successfully issues certificate for registered participant', async () => {
-    const res = await fetch(`${baseUrl}/api/certificates/claim`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'poornika0406@gmail.com', name: 'Poornika R' })
-    });
-    assert.ok(res.status === 200 || res.status === 201);
-    const body = await res.json();
-    assert.equal(body.success, true);
-    assert.equal(body.credential.recipient_name, 'Poornika R');
-    assert.ok(body.credential.credential_id.startsWith('DH-ORCA-2026-'));
-  });
-
-  await t.test('GET /api/certificates/verify/:id returns authentic credential record', async () => {
-    // Check Poornika's credential
-    const claimRes = await fetch(`${baseUrl}/api/certificates/claim`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'poornika0406@gmail.com' })
-    });
-    const claimBody = await claimRes.json();
-    const credId = claimBody.credential.credential_id;
-
-    const verifyRes = await fetch(`${baseUrl}/api/certificates/verify/${credId}`);
-    assert.equal(verifyRes.status, 200);
-    const verifyBody = await verifyRes.json();
-    assert.equal(verifyBody.verified, true);
-    assert.equal(verifyBody.credential.credential_id, credId);
-    assert.equal(verifyBody.credential.recipient_name, 'Poornika R');
-    assert.equal(verifyBody.credential.status, 'Valid');
+  await t.test('claim uses the verified owner and public verification respects revocation', async () => {
+    const db = require('../server/db');
+    const email = 'owner.' + Date.now() + '@example.test';
+    const user = await db.createUser({ email, username: 'claim_' + Date.now(), fullName: 'Fixture Owner', salt: 'test', passwordHash: 'test' });
+    await db.insertParticipant({ candidateName: 'Fixture Owner', candidateEmail: email });
+    await db.markEmailVerified(user.id);
+    const { token } = await db.createSession(user.id);
+    const claim = headers => fetch(baseUrl + '/api/certificates/claim', { method: 'POST', headers });
+    assert.equal((await claim({})).status, 401);
+    const result = await claim({ Authorization: 'Bearer ' + token });
+    assert.equal(result.status, 201);
+    const { credential } = await result.json();
+    assert.equal(credential.recipient_email, email);
+    const verify = () => fetch(baseUrl + '/api/certificates/verify/' + credential.credential_id).then(r => r.json());
+    assert.equal((await verify()).verified, true);
+    db.db.prepare("UPDATE issued_certificates SET status = 'Revoked' WHERE credential_id = ?").run(credential.credential_id);
+    assert.equal((await verify()).verified, false);
   });
 
   await t.test('GET /api/certificates/verify/:id returns 404 for invalid credential ID', async () => {

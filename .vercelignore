@@ -1,0 +1,11 @@
+private/
+public/auth_helper.html
+server/data/*participants*
+output/
+tmp/
+*.sqlite*
+storage/
+.env*
+!.env.example
+node_modules/
+.git/

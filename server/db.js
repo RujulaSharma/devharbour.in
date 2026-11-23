@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Dev Harbour - Authoritative Database & Data Layer
  * Uses Node v24 built-in DatabaseSync for persistent relational storage.
  */
@@ -51,6 +51,7 @@ function initSchema() {
       email TEXT UNIQUE NOT NULL COLLATE NOCASE,
       username TEXT UNIQUE NOT NULL COLLATE NOCASE,
       full_name TEXT NOT NULL,
+      certificate_name TEXT,
       password_hash TEXT NOT NULL,
       salt TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'student' CHECK (role IN ('student', 'moderator', 'admin')),
@@ -67,6 +68,15 @@ function initSchema() {
 
     CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+  `);
+
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN certificate_name TEXT;");
+  } catch (colErr) {
+    // Column already exists
+  }
+
+  db.exec(`
 
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY,
@@ -338,6 +348,24 @@ function initSchema() {
     );
     CREATE INDEX IF NOT EXISTS idx_email_verif_email ON email_verifications(email);
   `);
+  if (!db.prepare('PRAGMA table_info(sessions)').all().some(column => column.name === 'google_verified_email')) {
+    db.exec('ALTER TABLE sessions ADD COLUMN google_verified_email TEXT');
+  }
+  if (!db.prepare('PRAGMA table_info(issued_certificates)').all().some(column => column.name === 'owner_user_id')) {
+    db.exec('ALTER TABLE issued_certificates ADD COLUMN owner_user_id TEXT');
+  }
+  if (!db.prepare('PRAGMA table_info(event_participants)').all().some(column => column.name === 'certificate_credential_id')) {
+    db.exec('ALTER TABLE event_participants ADD COLUMN certificate_credential_id TEXT');
+  }
+  db.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS innovative_india_certificate_owner
+      ON issued_certificates(owner_user_id) WHERE event_slug = 'innovative-india-2026' AND owner_user_id IS NOT NULL;
+    CREATE UNIQUE INDEX IF NOT EXISTS innovative_india_certificate_participant
+      ON issued_certificates(participant_id) WHERE event_slug = 'innovative-india-2026' AND owner_user_id IS NOT NULL;
+    CREATE TRIGGER IF NOT EXISTS preserve_certificate_name BEFORE UPDATE OF certificate_name ON users
+    WHEN OLD.certificate_name IS NOT NULL AND NEW.certificate_name IS NOT OLD.certificate_name
+    BEGIN SELECT RAISE(ABORT, 'The original certificate name is immutable'); END;
+  `);
 }
 
 // Seed Initial Data (Courses, Lessons, Challenges, Achievements, Sample Projects)
@@ -419,11 +447,28 @@ function seedDatabase() {
     }
   }
 
+  // Invalidate only unchanged demo passwords and their sessions in older SQLite installs.
+  const demoIds = ['usr-admin-parth', 'usr-ayesha', 'usr-kabir', 'usr-mei', 'usr-nora'];
+  for (const id of demoIds) {
+    const seeded = db.prepare('SELECT salt, password_hash FROM users WHERE id = ?').get(id);
+    if (!seeded || crypto.scryptSync('Password123!', seeded.salt, 64).toString('hex') !== seeded.password_hash) continue;
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      const updated = db.prepare('UPDATE users SET password_hash = ? WHERE id = ? AND password_hash = ?')
+        .run(crypto.randomBytes(64).toString('hex'), id, seeded.password_hash);
+      if (updated.changes) db.prepare('DELETE FROM sessions WHERE user_id = ?').run(id);
+      db.exec('COMMIT');
+    } catch (error) {
+      db.exec('ROLLBACK');
+      throw error;
+    }
+  }
+
   // 5. Seed Initial Admin & Sample Profiles if none exist
   const usersCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
   if (usersCount === 0) {
     const demoSalt = crypto.randomBytes(16).toString('hex');
-    const demoHash = crypto.scryptSync('Password123!', demoSalt, 64).toString('hex');
+    const demoHash = crypto.scryptSync(crypto.randomBytes(32), demoSalt, 64).toString('hex');
 
     // Admin user: Parth
     const adminId = 'usr-admin-parth';
@@ -596,6 +641,8 @@ function seedDatabase() {
       );
     }
   }
+
+
 }
 
 // Level computation from XP thresholds:
@@ -617,7 +664,7 @@ function calculateLevel(xp) {
 
 // User Helpers
 function getUserById(id) {
-  return db.prepare('SELECT id, email, username, full_name, role, avatar_url, bio, location, github_url, portfolio_url, streak_days, last_active_date, created_at FROM users WHERE id = ?').get(id);
+  return db.prepare('SELECT id, email, username, full_name, certificate_name, role, avatar_url, bio, location, github_url, portfolio_url, streak_days, last_active_date, created_at FROM users WHERE id = ?').get(id);
 }
 
 function getUserByEmail(email) {
@@ -628,12 +675,13 @@ function getUserByUsername(username) {
   return db.prepare('SELECT * FROM users WHERE username = ?').get(username.trim().toLowerCase());
 }
 
-function createUser({ email, username, fullName, passwordHash, salt, role = 'student', location = '', bio = '', avatarUrl = '' }) {
+function createUser({ email, username, fullName, certificateName, passwordHash, salt, role = 'student', location = '', bio = '', avatarUrl = '' }) {
   const id = 'usr-' + crypto.randomUUID().slice(0, 8);
+  const certName = certificateName === undefined ? fullName : certificateName;
   db.prepare(`
-    INSERT INTO users (id, email, username, full_name, password_hash, salt, role, location, bio, avatar_url)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, email.trim().toLowerCase(), username.trim().toLowerCase(), fullName.trim(), passwordHash, salt, role, (location || '').trim(), (bio || '').trim(), avatarUrl || '');
+    INSERT INTO users (id, email, username, full_name, certificate_name, password_hash, salt, role, location, bio, avatar_url)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, email.trim().toLowerCase(), username.trim().toLowerCase(), fullName.trim(), certName, passwordHash, salt, role, (location || '').trim(), (bio || '').trim(), avatarUrl || '');
 
   db.prepare(`
     INSERT INTO user_settings (user_id, theme) VALUES (?, 'light')
@@ -653,7 +701,7 @@ function updateUserProfile(userId, { fullName, bio, githubUrl, portfolioUrl, loc
         avatar_url = COALESCE(?, avatar_url),
         updated_at = datetime('now')
     WHERE id = ?
-  `).run(fullName, bio, githubUrl, portfolioUrl, location, avatarUrl, userId);
+  `).run(fullName ?? null, bio ?? null, githubUrl ?? null, portfolioUrl ?? null, location ?? null, avatarUrl ?? null, userId);
 
   return getUserById(userId);
 }
@@ -683,16 +731,16 @@ function updateStreak(userId) {
 }
 
 // Session Helpers
-function createSession(userId) {
+function createSession(userId, googleVerifiedEmail = null) {
   const id = crypto.randomUUID();
   const token = crypto.randomBytes(32).toString('hex');
   const expiryDays = parseInt(process.env.TOKEN_EXPIRY_DAYS || '7', 10);
   const expiresAt = new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000).toISOString();
 
   db.prepare(`
-    INSERT INTO sessions (id, user_id, token, expires_at)
-    VALUES (?, ?, ?, ?)
-  `).run(id, userId, token, expiresAt);
+    INSERT INTO sessions (id, user_id, token, expires_at, google_verified_email)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(id, userId, token, expiresAt, googleVerifiedEmail);
 
   return { token, expiresAt };
 }
@@ -700,7 +748,7 @@ function createSession(userId) {
 function getSession(token) {
   if (!token) return null;
   const session = db.prepare(`
-    SELECT s.id, s.user_id, s.expires_at, u.role, u.username, u.email
+    SELECT s.id, s.user_id, s.google_verified_email, s.expires_at, u.role, u.username, u.email
     FROM sessions s
     JOIN users u ON s.user_id = u.id
     WHERE s.token = ? AND datetime(s.expires_at) > datetime('now')
@@ -1451,20 +1499,48 @@ function generateUniqueCredentialId(participantId, email) {
   return 'DH-ORCA-2026-' + num + '-' + hex;
 }
 
-function issueCertificate({ participantId, recipientName, recipientEmail, recipientOrganisation, eventSlug = 'orca-coders-orcathon-2026', certificateType = 'Participation', issueDate = 'October 25, 2026', status = 'Valid' }) {
-  const cleanEmail = recipientEmail.trim().toLowerCase();
+function getNextInnovativeIndiaCredentialId() {
+  try {
+    const row = db.prepare(`
+      SELECT credential_id FROM issued_certificates
+      WHERE event_slug = 'innovative-india-2026' AND credential_id LIKE 'IN-26-%'
+      ORDER BY credential_id DESC LIMIT 1
+    `).get();
+    let nextNum = 1;
+    if (row && row.credential_id) {
+      const parts = row.credential_id.split('-');
+      const num = parseInt(parts[2], 10);
+      if (!isNaN(num)) nextNum = num + 1;
+    }
+    return `IN-26-${String(nextNum).padStart(7, '0')}`;
+  } catch (e) {
+    return 'IN-26-0000479';
+  }
+}
+
+function issueCertificate({ credentialId, participantId, recipientName, recipientEmail, recipientOrganisation, eventSlug = 'orca-coders-orcathon-2026', certificateType = 'Participation', issueDate, status = 'Valid' }) {
+  const cleanEmail = (recipientEmail || '').trim().toLowerCase();
   const existing = getIssuedCertificateByEmail(cleanEmail, eventSlug);
   if (existing) return existing;
 
-  const credentialId = generateUniqueCredentialId(participantId, cleanEmail);
+  let credId = credentialId;
+  if (!credId) {
+    if (eventSlug === 'innovative-india-2026') {
+      credId = getNextInnovativeIndiaCredentialId();
+    } else {
+      credId = generateUniqueCredentialId(participantId, cleanEmail);
+    }
+  }
+
+  const finalIssueDate = eventSlug === 'innovative-india-2026' ? (issueDate || 'February 2026') : (issueDate || 'October 25, 2026');
 
   db.prepare(`
     INSERT INTO issued_certificates (
       credential_id, event_slug, participant_id, recipient_name, recipient_email, recipient_organisation, certificate_type, issue_date, status
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(credentialId, eventSlug, participantId || null, recipientName.trim(), cleanEmail, (recipientOrganisation || '').trim(), certificateType, issueDate, status || 'Valid');
+  `).run(credId, eventSlug, participantId || null, recipientName.trim(), cleanEmail, (recipientOrganisation || '').trim(), certificateType || 'Participation', finalIssueDate, status || 'Valid');
 
-  return getIssuedCertificateById(credentialId);
+  return getIssuedCertificateById(credId);
 }
 
 function insertParticipant(candidate) {
@@ -1612,6 +1688,7 @@ function recordFailedOtpAttempt(userId, challengeId) {
 
 function completeEmailVerification(userId, challengeId) {
   if (!db) return false;
+  db.exec('BEGIN IMMEDIATE');
   try {
     const res = db.prepare(`
       UPDATE email_verifications
@@ -1619,9 +1696,12 @@ function completeEmailVerification(userId, challengeId) {
       WHERE user_id = ? AND challenge_id = ? AND state = 'pending'
         AND code_hash IS NOT NULL AND datetime(expires_at) > datetime('now')
     `).run(userId, challengeId);
+    if (res.changes) db.prepare('DELETE FROM sessions WHERE user_id = ?').run(userId);
+    db.exec('COMMIT');
     return res.changes === 1;
-  } catch {
-    return false;
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
   }
 }
 
@@ -1692,7 +1772,7 @@ function getOrcathonProjects() {
     return db.prepare(`
       SELECT id, title as name, description as summary, category, repo_url as repository, demo_url as demo
       FROM projects
-      WHERE category = 'ORCATHON' OR category = 'ORCATHON 2026' OR tech_stack_json LIKE '%ORCATHON%'
+      WHERE status = 'approved' AND (category = 'ORCATHON' OR category = 'ORCATHON 2026' OR tech_stack_json LIKE '%ORCATHON%')
     `).all();
   } catch {
     return [];
@@ -1713,21 +1793,24 @@ function isPostgres() {
 
 function delegate(fnName, sqliteFn) {
   return async function(...args) {
-    if (isPostgres()) {
-      if (typeof pgDb[fnName] === 'function') {
-        try {
-          return await pgDb[fnName](...args);
-        } catch (pgErr) {
-          // Fall back gracefully to SQLite if PostgreSQL pool fails or is unreachable
-          return sqliteFn(...args);
-        }
-      }
+    if (process.env.NODE_ENV !== 'test' && (process.env.DB_PROVIDER === 'postgresql' || process.env.VERCEL)) {
+      if (!pgDb?.pool || typeof pgDb[fnName] !== 'function') throw new Error('Persistent database unavailable.');
+      return pgDb[fnName](...args);
     }
     return sqliteFn(...args);
   };
 }
 
+function getCertificateDatabase() {
+  if (process.env.NODE_ENV !== 'test' && (process.env.VERCEL || process.env.DB_PROVIDER === 'postgresql')) {
+    if (!pgDb?.pool) throw new Error('Persistent certificate database unavailable');
+    return pgDb;
+  }
+  return { getSession, getUserById, isEmailVerified, sqlite: db };
+}
+
 const exported = {
+  getCertificateDatabase,
   get db() { return db; },
   get pool() { return pgDb ? pgDb.pool : null; },
   isPostgres,
@@ -1756,6 +1839,7 @@ const exported = {
   recordSubmission: delegate('recordSubmission', recordSubmission),
   getUserSubmissions: delegate('getUserSubmissions', getUserSubmissions),
   getProjects: delegate('getProjects', getProjects),
+  toggleGalleryVote: delegate('toggleGalleryVote', toggleProjectVote),
   getOrcathonProjects: delegate('getOrcathonProjects', getOrcathonProjects),
   getProjectById: delegate('getProjectById', getProjectById),
   createProject: delegate('createProject', createProject),
@@ -1790,6 +1874,7 @@ const exported = {
   getIssuedCertificateById: delegate('getIssuedCertificateById', getIssuedCertificateById),
   getIssuedCertificateByEmail: delegate('getIssuedCertificateByEmail', getIssuedCertificateByEmail),
   getIssuedCertificateByEmailOrName: delegate('getIssuedCertificateByEmailOrName', getIssuedCertificateByEmailOrName),
+  getNextInnovativeIndiaCredentialId: delegate('getNextInnovativeIndiaCredentialId', getNextInnovativeIndiaCredentialId),
   issueCertificate: delegate('issueCertificate', issueCertificate),
   insertParticipant: delegate('insertParticipant', insertParticipant),
   countParticipants: delegate('countParticipants', countParticipants),

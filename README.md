@@ -126,6 +126,62 @@ The application automatically creates and seeds `devharbour.sqlite` on first boo
 
 ---
 
+## Innovative India certificate deployment
+
+The certificate pages are `/my-certificate` and `/verify-certificate`. Issuance reuses Dev Harbour's existing sessions and requires a Google-authenticated session with an @gmail.com address that matches the private event register. Public verification exposes the ID, event, issuer, issue date, and validity. The server overlays the name and ID as text on the redrawn vector master. To rebuild that master, run `scripts/draw_innovative_india_certificate.py` in a Python environment with ReportLab, pypdf, NumPy, and OpenCV. The supplied blank PDF remains the reference for the logos, seal, and signature.
+
+### Prepare Supabase
+
+1. Open the SQL Editor for the Supabase project used by this Vercel app. In a staging database first, run [the Innovative India migration](supabase/migrations/20261123074832_innovative_india_certificates.sql). Then apply [the access-control migration](supabase/migrations/20261123083623_harden_web_access.sql). Apply both to production in that order before deploying. Authentication in production uses the shared PostgreSQL rate counters.
+2. Keep the participant register on an authorized machine in `server/data/innovative_india_participants.json`, which Git ignores. Its format is an array of objects with `name`, `email`, and an optional `credential_id`. Keep existing IDs when preparing the register. Validate it locally with:
+
+   ```sh
+   node scripts/seed_innovative_india.js server/data/innovative_india_participants.json
+   ```
+
+3. Set `DATABASE_URL` securely in the operator environment for the target database, confirm the project, and rerun the command with `--apply`. The importer preserves reservations and stops on conflicting assignments. It records eligibility and reserved IDs without issuing downloadable certificates.
+4. For legacy accounts, populate a missing `users.certificate_name` only from trusted, original signup records matched to the account ID. The editable profile and the event roster do not establish the original signup name. Eligible users without an authoritative name are directed to support.
+
+### Configure and deploy through GitHub and Vercel
+
+1. In Vercel, select the existing project connected to `RujulaSharma/devharbour.in`. Verify that the production branch is `main`, the root is the repository root, and the Node.js version is 24.x. Keep the build command and output directory from `vercel.json`.
+2. In **Settings → Environment Variables**, set the following for Production. Use separate database and email credentials when testing Preview.
+
+   | Variable | Value |
+   | --- | --- |
+   | `DB_PROVIDER` | `postgresql` |
+   | `DATABASE_URL` | Server-side Supabase pooler URL for the existing app database, using TLS and a role authorized to read app sessions and write certificates |
+   | `APP_BASE_URL` | `https://devharbour.in` |
+   | `EMAIL_VERIFICATION_SECRET` | Existing private secret, at least 32 random characters |
+   | `RESEND_API_KEY` and `EMAIL_FROM` | Active Resend key and a verified sender for email signups |
+   | `GOOGLE_CLIENT_ID` | Required Google OAuth web client ID. Add the exact site origin to its authorized JavaScript origins |
+
+   Keep any existing Supabase or other application variables used by the rest of the site. The certificate flow does not require a new Supabase Auth integration or a browser service-role key.
+3. From the local checkout, create a branch, stage the reviewed source, migration, blank template, font and download assets, and commit. Keep the private register, generated PDFs, and environment files out of the commit. Run:
+
+   ```sh
+   git switch -c codex/innovative-india-certificates
+   npm ci
+   npm run build
+   npm test
+   git add -- .gitignore README.md index.html package.json package-lock.json vercel.json
+   git add -- api/certificates/download.js api/certificates/my-certificate.js "api/certificates/verify/[id].js"
+   git add -- server/auth.js server/certificate_generator.js server/db.js server/db-postgres.js server/email.js server/innovative_certificates.js server/routes/auth.js server/routes/certificates.js
+   git add -- assets/innovative_india_certificate.pdf assets/innovative_india_vector.pdf assets/fonts/GreatVibes-Regular.ttf assets/fonts/GreatVibes-OFL.txt assets/fonts/NotoSansDevanagari.ttf assets/fonts/NotoSansDevanagari-OFL.txt
+   git add -- public/index.html public/devharbour_certificate_preview.html public/assets/eb-garamond-bold.ttf public/assets/innovative_india_certificate.webp public/assets/noto-sans-devanagari.ttf
+   git add -- public/downloads/devharbour_standalone.html public/downloads/devharbour_standalone.zip scripts/build_standalone.js scripts/seed_innovative_india.js
+   git add -- scripts/draw_innovative_india_certificate.py
+   git add -- supabase/migrations/20261123074832_innovative_india_certificates.sql tests/certificates_innovative_india.test.js tests/google_auth.test.js tests/security_and_remediation.test.js
+   git diff --cached --name-only
+   git commit -m "feat: redesign Innovative India certificates"
+   git push -u origin codex/innovative-india-certificates
+   ```
+
+4. Open a pull request into `main`. Use the Vercel Preview deployment with a staging participant to verify sign-in, PDF download, and public verification. After the production migration and private import are complete, merge the pull request to trigger the production deployment.
+5. On production, check `/my-certificate`, verify an authorized test credential at `/verify-certificate`, and open that PDF on Android. If the older HTML download was cached by a CDN, clear that cached copy.
+
+The replacement standalone downloads contain no attendee register. Earlier Git revisions and deployments may still contain the original shared register and require separate removal. Keep local auth helpers out of deployments, including deployments made directly from a working folder.
+
 ## 🧪 Verified Automated Test Results
 
 | Test Suite | Status | Coverage |

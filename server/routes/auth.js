@@ -10,6 +10,9 @@ const eventBus = require('../events');
 // POST /api/auth/signup
 router.post('/signup', rateLimit({ windowMs: 60000, max: 10 }), async (req, res) => {
   try {
+    if ((process.env.NODE_ENV === 'production' || process.env.VERCEL) && !process.env.EMAIL_VERIFICATION_SECRET) {
+      return res.status(503).json({ error: 'Registration is temporarily unavailable.' });
+    }
     const { email, username, fullName, password, location, bio } = req.body;
 
     if (!validateEmail(email)) {
@@ -18,8 +21,8 @@ router.post('/signup', rateLimit({ windowMs: 60000, max: 10 }), async (req, res)
     if (!validateUsername(username)) {
       return res.status(400).json({ error: 'Username must be 3-30 characters (letters, numbers, underscores, hyphens).' });
     }
-    if (!fullName || typeof fullName !== 'string' || fullName.trim().length < 2) {
-      return res.status(400).json({ error: 'Full name is required (minimum 2 characters).' });
+    if (typeof fullName !== 'string' || fullName.trim().length < 2 || [...fullName].length > 160 || /[\u0000-\u001f\u007f]/.test(fullName)) {
+      return res.status(400).json({ error: 'Full name must be 2–160 characters on one line.' });
     }
     if (!validatePassword(password)) {
       return res.status(400).json({ error: 'Password must be at least 8 characters long.' });
@@ -40,6 +43,7 @@ router.post('/signup', rateLimit({ windowMs: 60000, max: 10 }), async (req, res)
       email,
       username,
       fullName,
+      certificateName: fullName,
       passwordHash: hash,
       salt,
       role: 'student',
@@ -94,6 +98,7 @@ router.post('/signup', rateLimit({ windowMs: 60000, max: 10 }), async (req, res)
       })
     });
   } catch (err) {
+    console.error('[SIGNUP CATCH ERROR]:', err);
     res.status(500).json({ error: 'Registration failed.' });
   }
 });
@@ -114,6 +119,9 @@ router.post('/login', rateLimit({ windowMs: 60000, max: 15 }), async (req, res) 
       return res.status(401).json({ error: 'Invalid credentials. Please verify your email/username and password.' });
     }
 
+    if (['usr-admin-parth', 'usr-ayesha', 'usr-kabir', 'usr-mei', 'usr-nora'].includes(user.id) && password === 'Password123!') {
+      return res.status(401).json({ error: 'Use account recovery to set a personal password.' });
+    }
     const valid = verifyPassword(password, user.salt, user.password_hash);
     if (!valid) {
       return res.status(401).json({ error: 'Invalid credentials. Please verify your email/username and password.' });
@@ -185,33 +193,44 @@ router.post('/google', rateLimit({ windowMs: 60000, max: 10 }), async (req, res)
   }
 
   // Verify issuer
-  if (googleUser.iss && googleUser.iss !== 'accounts.google.com' && googleUser.iss !== 'https://accounts.google.com') {
+  if (!googleUser || googleUser.iss !== 'accounts.google.com' && googleUser.iss !== 'https://accounts.google.com') {
     return res.status(401).json({ error: 'Invalid Google token issuer.' });
   }
 
   // Verify expiration
   const now = Math.floor(Date.now() / 1000);
-  if (googleUser.exp && parseInt(googleUser.exp, 10) < now) {
+  if (!Number.isFinite(Number(googleUser.exp)) || Number(googleUser.exp) <= now) {
     return res.status(401).json({ error: 'Google credential token has expired.' });
   }
 
-  if (!googleUser || !googleUser.email || (googleUser.email_verified !== true && googleUser.email_verified !== 'true')) {
+  if (!googleUser.sub || !validateEmail(googleUser.email) || (googleUser.email_verified !== true && googleUser.email_verified !== 'true')) {
     return res.status(401).json({ error: 'Google account email must be verified.' });
   }
 
   const configuredClientId = process.env.GOOGLE_CLIENT_ID;
-  if (configuredClientId && googleUser.aud && googleUser.aud !== configuredClientId) {
+  if (!configuredClientId) return res.status(503).json({ error: 'Google sign-in is temporarily unavailable.' });
+  if (googleUser.aud !== configuredClientId) {
     return res.status(401).json({ error: 'Google client ID mismatch.' });
   }
 
   const email = googleUser.email.toLowerCase().trim();
-  const name = (googleUser.name || googleUser.given_name || email.split('@')[0]).trim();
+  const name = googleUser.name || googleUser.given_name || email.split('@')[0];
   const avatarUrl = googleUser.picture || '';
   const googleSub = googleUser.sub || '';
 
   try {
     let user = await db.getUserByEmail(email);
 
+    const googleOwnsEmail = email.endsWith('@gmail.com') || Boolean(googleUser.hd);
+    if (user?.salt?.startsWith('google:') && user.salt !== 'google:' + googleSub) {
+      return res.status(403).json({ error: 'Use the Google account originally linked to this account.' });
+    }
+    if (!googleOwnsEmail && user?.salt !== 'google:' + googleSub) {
+      return res.status(403).json({ error: 'Use email signup or sign in with your verified Gmail or Google Workspace account.' });
+    }
+    if (user && !user.salt?.startsWith('google:') && !(await db.isEmailVerified(user.id))) {
+      return res.status(403).json({ error: 'Finish verifying your existing signup or use password recovery before linking Google.' });
+    }
     if (!user) {
       let baseUser = (email.split('@')[0] || 'dev').replace(/[^a-zA-Z0-9_]/g, '').slice(0, 20);
       if (baseUser.length < 3) baseUser = 'user_' + baseUser;
@@ -221,11 +240,12 @@ router.post('/google', rateLimit({ windowMs: 60000, max: 10 }), async (req, res)
         username = `${baseUser}${counter++}`;
       }
 
-      const { salt, hash } = hashPassword('google_oauth_' + (googleSub || crypto.randomUUID()));
+      const { salt, hash } = hashPassword(crypto.randomBytes(32).toString('hex'));
       user = await db.createUser({
         email,
         username,
-        fullName: name && name.length >= 2 ? name : username,
+        fullName: name.trim().length >= 2 ? name : username,
+        certificateName: typeof googleUser.name === 'string' && googleUser.name.trim().length >= 2 ? googleUser.name : null,
         passwordHash: hash,
         salt: googleSub ? `google:${googleSub}` : salt,
         role: 'student',
@@ -248,7 +268,7 @@ router.post('/google', rateLimit({ windowMs: 60000, max: 10 }), async (req, res)
 
     await db.markEmailVerified(user.id);
 
-    const { token, expiresAt } = await db.createSession(user.id);
+    const { token, expiresAt } = await db.createSession(user.id, email);
     const totalXp = await db.getUserTotalXp(user.id);
     const streak = await db.updateStreak(user.id);
 

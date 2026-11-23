@@ -1,3 +1,8 @@
+process.env.NODE_ENV = 'test';
+process.env.DB_PATH = ':memory:';
+const app = require('../server/index');
+const db = require('../server/db');
+let port;
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
@@ -6,8 +11,8 @@ const http = require('node:http');
 function request(method, path, body = null, headers = {}) {
   return new Promise((resolve, reject) => {
     const options = {
-      hostname: 'localhost',
-      port: 3000,
+      hostname: '127.0.0.1',
+      port,
       path,
       method,
       headers: {
@@ -33,6 +38,10 @@ function request(method, path, body = null, headers = {}) {
 }
 
 test('Workspace API Endpoints Suite', async (t) => {
+  const server = app.listen(0, '127.0.0.1');
+  await new Promise(resolve => server.once('listening', resolve));
+  port = server.address().port;
+  t.after(() => server.close());
   // 1. Create a test user and obtain auth token
   const testEmail = `wstest_${Date.now()}@example.com`;
   const testUser = `wstest_${Date.now().toString(36)}`;
@@ -45,6 +54,7 @@ test('Workspace API Endpoints Suite', async (t) => {
   });
 
   assert.equal(signupRes.status, 201, 'User signup should return 201');
+  await db.markEmailVerified(signupRes.body.user.id);
   const token = signupRes.body.token;
   assert.ok(token, 'Signup should provide a JWT token');
   const authHeaders = { 'Authorization': `Bearer ${token}` };

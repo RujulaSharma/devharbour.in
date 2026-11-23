@@ -8,6 +8,7 @@
 process.env.NODE_ENV = 'test';
 process.env.PORT = '3399';
 process.env.GOOGLE_CLIENT_ID = 'test-google-client-id.apps.googleusercontent.com';
+process.env.APP_BASE_URL = 'http://localhost:3399';
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -93,6 +94,7 @@ test('3. Google Auth Rejects Invalid Token Issuer', async () => {
     aud: 'test-google-client-id.apps.googleusercontent.com',
     sub: 'attacker_123',
     email: 'attacker@devharbour.in',
+    hd: 'devharbour.in',
     email_verified: true,
     exp: String(Math.floor(Date.now() / 1000) + 3600)
   };
@@ -112,6 +114,7 @@ test('4. Google Auth Rejects Expired Token', async () => {
     aud: 'test-google-client-id.apps.googleusercontent.com',
     sub: 'expired_sub_123',
     email: 'expired@devharbour.in',
+    hd: 'devharbour.in',
     email_verified: true,
     exp: String(Math.floor(Date.now() / 1000) - 300) // Expired 5 minutes ago
   };
@@ -154,6 +157,7 @@ test('6. First-time Google User Signup & Automatic Email Verification', async ()
     aud: 'test-google-client-id.apps.googleusercontent.com',
     sub,
     email,
+    hd: 'devharbour.in',
     email_verified: true,
     name: 'Ada Lovelace Google',
     picture: avatarUrl,
@@ -192,6 +196,7 @@ test('7. Existing User Google Login & Profile Picture Sync', async () => {
   });
   assert.equal(signup.status, 201);
   const existingUserId = signup.data.user.id;
+  await db.markEmailVerified(existingUserId);
 
   // Now, log in with Google using that same verified email
   const token = 'token_existing_' + Date.now();
@@ -203,6 +208,7 @@ test('7. Existing User Google Login & Profile Picture Sync', async () => {
     aud: 'test-google-client-id.apps.googleusercontent.com',
     sub,
     email,
+    hd: 'devharbour.in',
     email_verified: true,
     name: 'Existing Developer',
     picture: avatarUrl,
@@ -235,6 +241,7 @@ test('8. Google-Authenticated User Direct Certificate Access (Zero Extra OTP)', 
     aud: 'test-google-client-id.apps.googleusercontent.com',
     sub,
     email,
+    hd: 'devharbour.in',
     email_verified: true,
     name: 'Certificate Earner',
     exp: String(Math.floor(Date.now() / 1000) + 3600)
@@ -280,6 +287,34 @@ test('8. Google-Authenticated User Direct Certificate Access (Zero Extra OTP)', 
   assert.equal(downloadRes.status, 200);
   assert.equal(downloadRes.data.success, true);
   assert.equal(downloadRes.data.credential.credential_id, cert.credential_id);
+});
+
+test('Only the registered Gmail session unlocks Innovative India, including on a later Google login', async () => {
+  const stamp = Date.now();
+  const signIn = async email => {
+    const credential = 'certificate-' + email;
+    mockGoogleResponses[credential] = {
+      iss: 'https://accounts.google.com', aud: process.env.GOOGLE_CLIENT_ID,
+      sub: 'subject-' + email, email, hd: email.split('@')[1], email_verified: true, name: 'Original Participant',
+      exp: Math.floor(Date.now() / 1000) + 600
+    };
+    const result = await api('/auth/google', { method: 'POST', body: { credential } });
+    assert.equal(result.status, 200);
+    return { Authorization: 'Bearer ' + result.data.token };
+  };
+  const gmail = 'certificate.' + stamp + '@gmail.com';
+  const other = 'certificate.' + stamp + '@example.test';
+  for (const email of [gmail, other]) {
+    await db.insertParticipant({ eventSlug: 'innovative-india-2026', candidateName: 'Participant', candidateEmail: email });
+  }
+  const locked = await api('/certificates/my-certificate', { headers: await signIn(other) });
+  assert.equal(locked.status, 403);
+  assert.equal(locked.data.requiresGoogle, true);
+  const first = await api('/certificates/my-certificate', { headers: await signIn(gmail) });
+  const next = await api('/certificates/my-certificate', { headers: await signIn(gmail) });
+  assert.equal(first.status, 200);
+  assert.equal(first.data.credential.recipient_name, 'Original Participant');
+  assert.equal(next.data.credential.credential_id, first.data.credential.credential_id);
 });
 
 test('9. Frontend HTML Google Identity Services & FedCM Integration Verification', () => {

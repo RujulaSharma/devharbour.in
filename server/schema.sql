@@ -213,4 +213,5 @@ CREATE POLICY "Users can update their own projects" ON projects FOR UPDATE USING
 CREATE POLICY "Users can delete their own projects" ON projects FOR DELETE USING (auth.uid() = user_id);
 
 -- Public can view basic user profiles
-CREATE POLICY "Public view of profiles" ON users FOR SELECT USING (true);
+ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON users, sessions FROM anon, authenticated;

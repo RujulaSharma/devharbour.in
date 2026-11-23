@@ -11,6 +11,14 @@
       "destination": "/api/certificates/claim.js"
     },
     {
+      "source": "/api/certificates/my-certificate",
+      "destination": "/api/certificates/my-certificate.js"
+    },
+    {
+      "source": "/api/certificates/download/my-certificate",
+      "destination": "/api/certificates/download.js"
+    },
+    {
       "source": "/api/certificates/stats",
       "destination": "/api/certificates/stats.js"
     },
@@ -63,5 +71,13 @@
       ]
     }
   ],
-  "outputDirectory": "public"
+  "outputDirectory": "public",
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "assets/{innovative_india_vector.pdf,fonts/EBGaramond-Bold-Static.ttf,fonts/NotoSansDevanagari.ttf}"
+    },
+    "api/certificates/download.js": {
+      "includeFiles": "assets/{innovative_india_vector.pdf,fonts/EBGaramond-Bold-Static.ttf,fonts/NotoSansDevanagari.ttf}"
+    }
+  }
 }

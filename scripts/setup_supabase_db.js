@@ -14,8 +14,8 @@ const ca = fs.readFileSync(path.join(__dirname, '../security/certs/supabase-root
 
 async function setup() {
   const client = new Client({
-    connectionString,
-    ssl: { rejectUnauthorized: false }
+    connectionString: connectionUrl.href,
+    ssl: { ca: [...require('node:tls').rootCertificates, ca], rejectUnauthorized: true }
   });
 
   console.log('Connecting to Supabase PostgreSQL ...');

@@ -7,6 +7,7 @@
 
 process.env.NODE_ENV = 'test';
 process.env.PORT = '3199';
+process.env.EMAIL_VERIFICATION_SECRET = 'test_secret_key_1234567890abcdef';
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -51,7 +52,14 @@ test('1. Security Headers Enforcement', async () => {
   assert.equal(res.headers.get('referrer-policy'), 'strict-origin-when-cross-origin');
 });
 
-test('2. Google OAuth ATO Vulnerability Remediation', async () => {
+test('2. Google OAuth ATO Vulnerability Remediation', async t => {
+  const fetchHttp = globalThis.fetch;
+  t.mock.method(globalThis, 'fetch', (url, options) => {
+    if (String(url).startsWith('https://oauth2.googleapis.com/tokeninfo')) {
+      return Promise.resolve(new Response(JSON.stringify({ error: 'invalid_token' }), { status: 400 }));
+    }
+    return fetchHttp(url, options);
+  });
   // Test A: Attempting Google login with spoofed email and no credential token MUST be rejected
   const resSpoofed = await api('/auth/google', {
     method: 'POST',
@@ -201,21 +209,15 @@ test('6. Complete End-to-End OTP Verification & Password Reset Flow', async () =
   assert.equal(newLoginRes.data.user.email, email);
 });
 
-test('7. Certificate PII Protection & Email Masking', async () => {
-  // Query Poornika's credential by name alone
+test('7. Anonymous certificate claims are denied', async () => {
+  const name = 'Certificate Privacy Fixture';
+  const email = 'certificate.privacy.fixture@example.test';
+  await db.insertParticipant({ candidateName: name, candidateEmail: email });
   const claimRes = await api('/certificates/claim', {
     method: 'POST',
-    body: { name: 'Poornika R' }
+    body: { name }
   });
-  assert.ok(claimRes.status === 200 || claimRes.status === 201);
-  assert.ok(claimRes.data.credential.recipient_email.includes('*'), 'Claiming by name alone must mask email');
-  assert.ok(!claimRes.data.credential.recipient_email.includes('poornika0406'), 'Claiming by name alone must not leak full email');
-
-  const credId = claimRes.data.credential.credential_id;
-  const verifyRes = await api(`/certificates/verify/${credId}`);
-  assert.equal(verifyRes.status, 200);
-  assert.ok(verifyRes.data.credential.recipient_email.includes('*'), 'Verification endpoint must mask email');
-  assert.ok(!verifyRes.data.credential.recipient_email.includes('poornika0406'), 'Verification endpoint must not leak full email');
+  assert.equal(claimRes.status, 401);
 });
 
 test('8. Complete Removal of Bulk PDF Bundle & Obsolete Endpoint Elimination', async () => {
@@ -337,8 +339,9 @@ test('10. Certificate Ownership Authorization: Users Cannot Access Others Privat
   const u1Name = `owner_${Date.now().toString().slice(-6)}`;
   const u1Signup = await api('/auth/signup', {
     method: 'POST',
-    body: { email: u1Email, username: u1Name, fullName: 'Owner User', password: 'Password123!' }
+    body: { email: u1Email, username: u1Name, fullName: 'Owner User', password: 'Password123!', role: 'admin' }
   });
+  assert.equal((await db.getUserById(u1Signup.data.user.id)).role, 'student');
   await db.markEmailVerified(u1Signup.data.user.id);
   const u1Login = await api('/auth/login', { method: 'POST', body: { login: u1Email, password: 'Password123!' } });
   const u1Token = u1Login.data.token;
@@ -387,4 +390,31 @@ test('10. Certificate Ownership Authorization: Users Cannot Access Others Privat
     body: { email: u1Email }
   });
   assert.equal(stolenClaim.status, 403);
+});
+
+test('A private project stays visible to its owner and hidden from visitors', async () => {
+  const stamp = Date.now();
+  const user = await db.createUser({ email: stamp + '@example.test', username: 'owner' + stamp, fullName: 'Project Owner', salt: 'fixture', passwordHash: 'fixture' });
+  await db.markEmailVerified(user.id);
+  const session = await db.createSession(user.id);
+  const project = await db.createProject({ userId: user.id, title: 'Pending project', description: 'A private project fixture', category: 'Web', repoUrl: 'https://example.test' });
+  db.db.prepare("UPDATE projects SET status = 'pending' WHERE id = ?").run(project.id);
+  assert.equal((await api('/projects/' + project.id)).status, 404);
+  assert.equal((await api('/projects/' + project.id, { headers: { Authorization: 'Bearer ' + session.token } })).status, 200);
+});
+
+test('Project controls keep participant titles in escaped data attributes', () => {
+  const fs = require('node:fs');
+  const vm = require('node:vm');
+  const html = fs.readFileSync(require.resolve('../public/index.html'), 'utf8');
+  const esc = html.slice(html.indexOf('function esc(s)'), html.indexOf('window.esc = esc;'));
+  const card = html.slice(html.indexOf('function renderOrcathonCard('), html.indexOf('function rp()', html.indexOf('function renderOrcathonCard(')));
+  const project = { name: 'Ada’s "R&D" project', category: 'Other', summary: 'Notes <draft>', demo: '', repository: '' };
+  const result = vm.runInNewContext(esc + card + '\nrenderOrcathonCard(project)', {
+    project, orcathonThumbnailThemes: { Other: ['#000', '#fff', ''] },
+    safeHttpLink: () => '', getProjectLikes: () => 0, isProjectLiked: () => false
+  });
+  assert.ok(result.includes('R&amp;D&quot; project'));
+  assert.ok(result.includes('Notes &lt;draft&gt;'));
+  assert.ok(result.includes('openProjectModal(this.dataset.project)'));
 });

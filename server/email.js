@@ -5,6 +5,13 @@
 
 const crypto = require('node:crypto');
 
+function getOtpSecret() {
+  if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+    return process.env.EMAIL_VERIFICATION_SECRET || '';
+  }
+  return process.env.EMAIL_VERIFICATION_SECRET || 'devharbour-default-verification-secret';
+}
+
 function isConfigured(env = process.env) {
   const apiKey = env.RESEND_API_KEY || '';
   const from = env.EMAIL_FROM || '';
@@ -27,7 +34,7 @@ function generateOtp() {
  * Compute HMAC-SHA256 hash of OTP with secret key
  * The plaintext OTP is NEVER stored in the database.
  */
-function hashOtp(identifier, challengeId, otp, secret = process.env.EMAIL_VERIFICATION_SECRET) {
+function hashOtp(identifier, challengeId, otp, secret = getOtpSecret()) {
   if (!secret) throw new Error('EMAIL_VERIFICATION_SECRET is not configured.');
   return crypto.createHmac('sha256', secret)
     .update(JSON.stringify([String(identifier).trim(), challengeId, String(otp).trim()]))
@@ -37,7 +44,7 @@ function hashOtp(identifier, challengeId, otp, secret = process.env.EMAIL_VERIFI
 /**
  * Timing-safe comparison of OTP hashes to prevent timing attacks
  */
-function verifyOtpHash(storedHash, identifier, challengeId, inputOtp, secret = process.env.EMAIL_VERIFICATION_SECRET) {
+function verifyOtpHash(storedHash, identifier, challengeId, inputOtp, secret = getOtpSecret()) {
   if (!storedHash || !inputOtp) return false;
   const computed = hashOtp(identifier, challengeId, inputOtp, secret);
   try {

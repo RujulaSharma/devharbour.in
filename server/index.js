@@ -87,6 +87,7 @@ app.get('/api/health', (req, res) => {
 
 // Serve Frontend Static Assets
 const publicDir = path.join(__dirname, '..', 'public');
+app.get('/auth_helper.html', (_req, res) => res.sendStatus(404));
 app.use(express.static(publicDir));
 
 // Public config endpoint — exposes only non-secret environment values needed by the browser

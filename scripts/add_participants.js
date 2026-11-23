@@ -1,6 +1,6 @@
 /**
  * Dev Harbour — Add New Participants & Credentials
- * Adds Suyash Sudhir Sonkamble and Aftab Shah to:
+ * Imports the operator-provided private register into:
  * 1. Local SQLite (event_participants & issued_certificates)
  * 2. Fallback JSON (server/data/orcathon_participants.json)
  * 3. Live Supabase PostgreSQL database
@@ -13,26 +13,12 @@ const fs = require('fs');
 const path = require('path');
 const { Client } = require('pg');
 
-const newCandidates = [
-  {
-    id: '694',
-    name: 'Suyash Sudhir Sonkamble',
-    email: 'suyashsonkambledpvn@gmail.com',
-    org: 'Participant',
-    team: 'SOLO',
-    mobile: '',
-    location: 'India'
-  },
-  {
-    id: '695',
-    name: 'Aftab Shah',
-    email: 'rajguruaftabshah@gmail.com',
-    org: 'Participant',
-    team: 'SOLO',
-    mobile: '',
-    location: 'India'
-  }
-];
+const input = process.argv[2];
+if (!input) throw new Error('Pass the path to a private JSON array of participant records.');
+const newCandidates = JSON.parse(fs.readFileSync(input, 'utf8'));
+if (!Array.isArray(newCandidates) || !newCandidates.every(c => c && c.id && typeof c.name === 'string' && typeof c.email === 'string')) {
+  throw new Error('Each participant must have an ID, name and email.');
+}
 
 function generateCredentialId(participantId, email) {
   const num = String(participantId || '1').padStart(4, '0');
@@ -164,7 +150,7 @@ async function main() {
     console.log(`  [Manifest] Updated certificates_manifest.csv`);
   }
 
-  console.log('\n✅ Successfully added Suyash Sudhir Sonkamble and Aftab Shah across all databases and APIs!');
+  console.log('Participant import complete.');
 }
 
 main().catch(err => {

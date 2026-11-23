@@ -191,7 +191,8 @@ router.post('/bookmarks', requireAuth, async (req, res) => {
     if (!title || typeof title !== 'string' || !title.trim() || title.trim().length > 150) {
       return res.status(400).json({ error: 'Title is required (maximum 150 characters).' });
     }
-    if (!url || !isValidHttpUrl(url)) {
+    const internalView = typeof url === 'string' && /^#v-[a-z][a-z0-9-]*$/.test(url);
+    if (!internalView && !isValidHttpUrl(url)) {
       return res.status(400).json({ error: 'A valid HTTP/HTTPS URL is required.' });
     }
     const bookmark = await db.addWorkspaceBookmark(req.user.id, {

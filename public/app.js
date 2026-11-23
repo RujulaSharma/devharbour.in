@@ -556,8 +556,8 @@
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px;">
           <div>
             <span class="tag" style="background:var(--blk);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;">Level ${s.level} · Student</span>
-            <h3 style="margin-top:8px">${p.fullName || p.username}</h3>
-            <p class="desc" style="margin-bottom:0">@${p.username}</p>
+            <h3 style="margin-top:8px">${escapeHtml(p.fullName || p.username)}</h3>
+            <p class="desc" style="margin-bottom:0">@${escapeHtml(p.username)}</p>
           </div>
           <button class="dh-btn" style="width:auto; padding:6px 16px; margin:0; font-size:12px; background:var(--soft); color:var(--ink);" id="dh-btn-logout">Logout</button>
         </div>
@@ -595,8 +595,8 @@
             <div class="dh-badge-item">
               <div class="dh-badge-icon">✦</div>
               <div>
-                <b style="font-size:13.5px; display:block;">${a.title}</b>
-                <span style="font-size:12px; color:var(--mut);">${a.description} (+${a.xpReward} XP)</span>
+                <b style="font-size:13.5px; display:block;">${escapeHtml(a.title)}</b>
+                <span style="font-size:12px; color:var(--mut);">${escapeHtml(a.description)} (+${a.xpReward} XP)</span>
               </div>
             </div>
           `).join('') : '<p class="mut" style="font-size:13px">Solve challenges and complete reading lessons to unlock platform badges!</p>'}
@@ -685,12 +685,12 @@
       const lessons = detailData.lessons || [];
 
       modalContent.innerHTML = `
-        <span class="tag" style="background:var(--soft);color:var(--blk);font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;">${course.provider} · ${course.level}</span>
-        <h3 style="margin-top:10px">${course.title}</h3>
-        <p class="desc">${course.description}</p>
+        <span class="tag" style="background:var(--soft);color:var(--blk);font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;">${escapeHtml(course.provider)} · ${escapeHtml(course.level)}</span>
+        <h3 style="margin-top:10px">${escapeHtml(course.title)}</h3>
+        <p class="desc">${escapeHtml(course.description)}</p>
         <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
           <a href="${course.officialUrl}" target="_blank" rel="noopener noreferrer" class="dh-course-link">
-            Open Official Course ↗ (${course.provider})
+            Open Official Course ↗ (${escapeHtml(course.provider)})
           </a>
         </div>
         <h4 style="font-size:15px; font-weight:700; margin-bottom:10px;">Interactive Lessons & Reading:</h4>
@@ -698,7 +698,7 @@
           ${lessons.map((l, i) => `
             <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg); padding:10px 14px; border-radius:12px; border:1px solid var(--line);">
               <div>
-                <b style="font-size:13.5px; display:block;">${l.title}</b>
+                <b style="font-size:13.5px; display:block;">${escapeHtml(l.title)}</b>
                 <span style="font-size:12px; color:var(--mut);">${l.readingTimeMinutes || 10} min read · +${l.xpReward || 25} XP</span>
               </div>
               <button class="dh-btn" style="width:auto; padding:6px 16px; margin:0; font-size:12px;" onclick="window.DH_ReadLesson('${course.id}', '${l.id}')">Read Lesson</button>
@@ -719,9 +719,9 @@
 
       modalContent.innerHTML = `
         <span class="tag" style="background:var(--soft);color:var(--blk);font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;">Lesson · +${l.xpReward || 25} XP</span>
-        <h3 style="margin-top:10px">${l.title}</h3>
+        <h3 style="margin-top:10px">${escapeHtml(l.title)}</h3>
         <div class="dh-read-content">
-          ${l.contentHtml || l.content}
+          ${escapeHtml(l.contentHtml || l.content)}
         </div>
         <button class="dh-btn" id="dh-finish-lesson">Complete Lesson (+${l.xpReward || 25} XP)</button>
       `;
