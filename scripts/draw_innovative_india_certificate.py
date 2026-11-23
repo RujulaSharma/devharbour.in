@@ -51,12 +51,16 @@ def mark(page, reference, bounds, palette, luminance):
     scale = reference.shape[1] / W
     left, top, right, bottom = (round(v * scale) for v in bounds)
     crop = reference[top:bottom, left:right]
-    rgb = crop.astype(np.int32)
-    colors = np.array([[int(c[i:i+2], 16) for i in (1, 3, 5)] for c in palette])
-    regions = ((rgb[:, :, None, :] - colors[None, None, :, :]) ** 2).sum(axis=3).argmin(axis=2)
     ink = cv2.cvtColor(crop, cv2.COLOR_RGB2GRAY) < luminance
-    for index, color in enumerate(palette):
-        mask = ((regions == index) & ink).astype(np.uint8)
+    if len(palette) == 1:
+        masks = [ink]
+    else:
+        rgb = crop.astype(np.int32)
+        colors = np.array([[int(c[i:i+2], 16) for i in (1, 3, 5)] for c in palette])
+        regions = ((rgb[:, :, None, :] - colors[None, None, :, :]) ** 2).sum(axis=3).argmin(axis=2)
+        masks = [(regions == index) & ink for index in range(len(palette))]
+    for color, region in zip(palette, masks):
+        mask = region.astype(np.uint8)
         outlines, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         paths = []
         for outline in outlines:
@@ -131,11 +135,11 @@ def main():
     page.scale(1080 / W, 1080 / W)
 
     backdrop(page)
-    mark(page, reference, (477, 51, 680, 98), ("#092B57", "#009CDC"), 196)
+    mark(page, reference, (477, 51, 680, 98), ("#000000",), 196)
     line(page, 701, 45, 701, 101, width=1.7)
     label(page, "Sponsored By", 839, 49, 17, "GaramondBold")
-    mark(page, reference, (732, 54, 782, 98), ("#063BB1", "#0083DF", "#00B7E7"), 209)
-    mark(page, reference, (783, 54, 952, 98), ("#10254F",), 185)
+    mark(page, reference, (732, 54, 782, 98), ("#000000",), 209)
+    mark(page, reference, (783, 54, 952, 98), ("#000000",), 185)
 
     label(page, "PRESENTS", 700, 135, 16, "Helvetica-Bold", tracking=6.5)
     label(page, "Innovative India", 700, 183, 51, "Times-BoldItalic", color="#513A70")
