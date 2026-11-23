@@ -4021,6 +4021,19 @@ html[data-theme="dark"] .hack-footer a span{color:var(--ink)}
 #intro.hero-opening::after{content:"";position:fixed;z-index:15;left:var(--x,50%);top:var(--y,50%);width:50px;height:50px;pointer-events:none;border:2px solid #9978ee;border-radius:50%;box-shadow:0 0 40px 12px #cbb9ff,inset 0 0 24px #cfbfff;animation:hero-entry-ripple .48s ease-out both}
 @keyframes hero-entry-ripple{from{transform:translate(-50%,-50%) scale(.3);opacity:1}to{transform:translate(-50%,-50%) scale(13);opacity:0}}
 @media(prefers-reduced-motion:reduce){#intro.hero-opening::after{display:none}}
+
+.site-music{position:fixed;right:max(12px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));z-index:107;color:var(--ink)}
+.site-music summary,.site-music button{cursor:pointer;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink);font:inherit;font-size:13px;font-weight:700}
+.site-music summary{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 12px;list-style:none;box-shadow:0 8px 20px #25204428}
+.site-music summary::-webkit-details-marker{display:none}
+.site-music summary svg{width:16px;height:16px}
+.site-music-panel{position:absolute;right:0;bottom:calc(100% + 8px);width:min(260px,calc(100vw - 24px));padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--card);box-shadow:0 10px 30px #25204430}
+.site-music-panel p{margin:0 0 10px;line-height:1.35}
+.site-music-actions{display:flex;gap:8px;flex-wrap:wrap}
+.site-music button{min-height:44px;padding:0 12px;background:var(--soft)}
+.site-music :focus-visible{outline:2px solid currentColor;outline-offset:2px}
+#site-music-error{margin:8px 0 0;font-size:12px}
+@media(max-width:760px){.site-music{bottom:calc(76px + env(safe-area-inset-bottom,0px))}}
 </style>
 <style id="dh-winner-cards">
 /* ===== Hero winner cards (added layer) ===== */
@@ -11872,6 +11885,57 @@ window.addEventListener('popstate', function() {
     show(p, true, false);
   }
 });
+</script>
+
+
+<details class="site-music">
+  <summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18V5l11-2v13"/><ellipse cx="6" cy="18" rx="3" ry="2"/><ellipse cx="17" cy="16" rx="3" ry="2"/></svg> Music</summary>
+  <div class="site-music-panel">
+    <p><strong>I Really Want to Stay at Your House</strong><br><small>Rosa Walton &amp; Hallie Coggins</small></p>
+    <div class="site-music-actions">
+      <button type="button" id="site-music-play">Play</button>
+      <button type="button" id="site-music-mute" aria-pressed="false">Mute</button>
+    </div>
+    <p id="site-music-error" role="status" hidden></p>
+  </div>
+  <audio id="site-music-audio" preload="none" loop></audio>
+</details>
+<script>
+(() => {
+  const audio = document.getElementById('site-music-audio');
+  const play = document.getElementById('site-music-play');
+  const mute = document.getElementById('site-music-mute');
+  const error = document.getElementById('site-music-error');
+  const source = '/assets/stay-at-your-house.mp3';
+  audio.volume = 0.45;
+  const syncPlayback = () => { play.textContent = audio.paused ? 'Play' : 'Pause'; };
+  audio.addEventListener('play', syncPlayback);
+  audio.addEventListener('pause', syncPlayback);
+  play.addEventListener('click', async () => {
+    if (!audio.paused) {
+      audio.pause();
+      return;
+    }
+    error.hidden = true;
+    if (!audio.getAttribute('src')) {
+      audio.src = location.protocol === 'file:' ? 'https://devharbour.in' + source : source;
+    }
+    try { await audio.play(); }
+    catch (reason) {
+      if (reason.name === 'AbortError') return;
+      error.textContent = 'Music is unavailable. Try again.';
+      error.hidden = false;
+      audio.removeAttribute('src');
+      audio.load();
+      syncPlayback();
+    }
+  });
+  mute.addEventListener('click', () => {
+    audio.muted = !audio.muted;
+    mute.textContent = audio.muted ? 'Unmute' : 'Mute';
+    mute.setAttribute('aria-pressed', String(audio.muted));
+  });
+})();
 </script>
 
 </body>
