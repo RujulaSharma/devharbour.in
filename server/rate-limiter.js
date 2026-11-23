@@ -23,16 +23,19 @@ if (Redis && process.env.REDIS_URL) {
       connectTimeout: 2000,
       lazyConnect: true,
       enableOfflineQueue: false,
-      retryStrategy: () => null // Don't loop endlessly if local redis is not running
+      retryStrategy: attempt => Math.min(250 * attempt, 5000)
     });
 
-    redisClient.on('connect', () => {
+    redisClient.on('ready', () => {
       isRedisReady = true;
       console.log('⚡ Connected to Redis for distributed rate limiting.');
     });
 
-    redisClient.on('error', (err) => {
+    redisClient.on('close', () => {
       isRedisReady = false;
+    });
+
+    redisClient.on('error', () => {
       // Suppress unhandled error log on local dev where Redis might not be running
     });
 
@@ -131,7 +134,6 @@ function rateLimit({ windowMs = 60000, max = 15, message = 'Too many requests. P
         return next();
       } catch (redisErr) {
         // Fall back to memoryStore below
-        isRedisReady = false;
       }
     }
 
@@ -161,6 +163,6 @@ function rateLimit({ windowMs = 60000, max = 15, message = 'Too many requests. P
 
 module.exports = {
   rateLimit,
-  getRateLimitRedis: () => isRedisReady ? redisClient : null,
+  getRateLimitRedis: () => redisClient?.status === 'ready' ? redisClient : null,
   isRedisActive: () => isRedisReady
 };

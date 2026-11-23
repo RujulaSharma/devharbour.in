@@ -84,19 +84,19 @@ def line(page, x0, top0, x1, top1, color=NAVY, width=1.6):
 
 
 def backdrop(page):
-    page.setFillColor(HexColor("#FDFCFD"))
+    page.setFillColor(HexColor("#FEFCFF"))
     page.rect(0, 0, W, H, fill=1, stroke=0)
     for color, points in [
-        ("#F5F6FA", [(1180, 0), (1400, 0), (1400, 270), (1170, 485), (1240, 295), (1350, 105)]),
-        ("#F8F8FC", [(1254, 0), (1400, 0), (1400, 133), (1138, 349), (1236, 178)]),
-        ("#F0F3F9", [(1400, 392), (1400, 625), (1135, 933), (982, 933), (1263, 574)]),
-        ("#F5F7FB", [(0, 642), (173, 507), (236, 520), (58, 740), (0, 793)]),
-        ("#F0F4FA", [(0, 843), (90, 772), (141, 785), (32, 933), (0, 933)]),
-        ("#F7F8FC", [(117, 914), (467, 672), (162, 933), (100, 933)]),
+        ("#F2EBFA", [(1180, 0), (1400, 0), (1400, 270), (1170, 485), (1240, 295), (1350, 105)]),
+        ("#F8F3FC", [(1254, 0), (1400, 0), (1400, 133), (1138, 349), (1236, 178)]),
+        ("#EEE4F8", [(1400, 392), (1400, 625), (1135, 933), (982, 933), (1263, 574)]),
+        ("#F6EEFC", [(0, 642), (173, 507), (236, 520), (58, 740), (0, 793)]),
+        ("#EFE5F9", [(0, 843), (90, 772), (141, 785), (32, 933), (0, 933)]),
+        ("#F8F3FC", [(117, 914), (467, 672), (162, 933), (100, 933)]),
     ]:
         draw_paths(page, [(points[0], points[1:])], color)
 
-    bright = ("#0D90DA", "#1888D0", "#2AA1E8", "#57B7EE")
+    bright = ("#A88ACD", "#B096D7", "#C0A7E3", "#D3C0EF")
     for i in range(25):
         d = i * 9
         draw_paths(page, [((-55 + d, -13), [
@@ -138,9 +138,9 @@ def main():
     mark(page, reference, (783, 54, 952, 98), ("#10254F",), 185)
 
     label(page, "PRESENTS", 700, 135, 16, "Helvetica-Bold", tracking=6.5)
-    label(page, "Innovative India", 700, 183, 51, "Times-BoldItalic", color="#0A3269")
+    label(page, "Innovative India", 700, 183, 51, "Times-BoldItalic", color="#513A70")
     draw_paths(page, [((879, 121), [(882, 132, 883, 135, 896, 138), (884, 141, 882, 144, 879, 155),
-                                   (876, 145, 874, 142, 863, 139), (874, 136, 877, 132, 879, 121)])], "#08427C")
+                                   (876, 145, 874, 142, 863, 139), (874, 136, 877, 132, 879, 121)])], "#77569A")
     for color, start, end in [("#F9DDBA", 580, 762), ("#FF9510", 653, 846), ("#299928", 740, 882)]:
         draw_paths(page, [((start, 208), [(start + 65, 195, end - 21, 191, end, 194),
                                           (end - 46, 198, start + 63, 215, start, 208)])], color)
@@ -148,11 +148,11 @@ def main():
     page.saveState()
     page.translate(703, 0)
     page.scale(1.28, 1)
-    label(page, "Certificate", 0, 382, 195, "Calligraphy", color="#082F68")
+    label(page, "Certificate", 0, 382, 195, "Calligraphy", color="#493267")
     page.restoreState()
     draw_paths(page, [((205, 296), [(278, 249, 317, 273, 377, 270)]),
                       ((1016, 294), [(1097, 306, 1157, 301, 1193, 267)])],
-               "#103C74", stroke=True, width=1.4)
+               "#765A97", stroke=True, width=1.4)
     label(page, "OF PARTICIPATION", 923, 422, 26, "Helvetica-Bold", tracking=6.5)
     label(page, "proudly presented to", 700, 478, 21, tracking=5.1)
     line(page, 294, 556, 1106, 556)
@@ -167,7 +167,7 @@ def main():
     mark(page, reference, (621, 672, 780, 820), ("#0C3163", "#6B84AA", "#A5B5CA", "#D3DCE7", "#E8EDF3"), 239)
     line(page, 842, 704, 842, 784)
     label(page, "Credential ID", 1022, 720, 26, "GaramondBold")
-    page.setStrokeColor(HexColor("#315581"))
+    page.setStrokeColor(HexColor("#8165A2"))
     page.setLineWidth(1.5)
     page.roundRect(898, y(777), 248, 40, 20, stroke=1, fill=0)
 

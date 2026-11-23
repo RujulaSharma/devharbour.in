@@ -87,7 +87,7 @@ async function sendEmail({ to, subject, html, text, challengeId }) {
 
   if (!response.ok) {
     const errText = await response.text().catch(() => '');
-    throw new Error(`Resend API error (${response.status}): ${errText}`);
+    throw Object.assign(new Error(`Resend API error (${response.status}): ${errText}`), { providerStatus: response.status });
   }
 
   const data = await response.json();

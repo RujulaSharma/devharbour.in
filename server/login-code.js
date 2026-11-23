@@ -15,12 +15,16 @@ function passwordVersion(user) {
 
 async function sendLoginCode(user) {
   const redis = getRateLimitRedis();
-  if (!redis || !isConfigured()) throw unavailable();
-  const cooldown = await redis.set('auth:login-cooldown:' + user.id, '1', 'EX', 60, 'NX');
+  if (!redis || !isConfigured()) {
+    console.error('[LOGIN CODE]', redis ? 'Resend configuration is incomplete' : 'Redis is not ready');
+    throw unavailable();
+  }
+  const id = crypto.randomUUID();
+  const cooldownKey = 'auth:login-cooldown:' + user.id;
+  const cooldown = await redis.set(cooldownKey, id, 'EX', 60, 'NX');
   if (!cooldown) {
     throw Object.assign(new Error('Wait one minute before requesting a new code.'), { status: 429 });
   }
-  const id = crypto.randomUUID();
   const code = generateOtp();
   const key = challengePrefix + id;
   await redis.set(key, JSON.stringify({
@@ -31,8 +35,12 @@ async function sendLoginCode(user) {
   }), 'EX', lifetimeSeconds);
   try {
     await sendVerificationOtpEmail({ email: user.email, code, challengeId: id, purpose: 'login' });
-  } catch {
-    await redis.del(key);
+  } catch (error) {
+    console.error('[LOGIN CODE] Resend rejected or timed out on delivery', error.providerStatus || error.name);
+    await redis.eval(`
+      redis.call('DEL', KEYS[1])
+      if redis.call('GET', KEYS[2]) == ARGV[1] then redis.call('DEL', KEYS[2]) end
+    `, 2, key, cooldownKey, id);
     throw unavailable();
   }
   return id;

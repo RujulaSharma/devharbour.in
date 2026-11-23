@@ -143,6 +143,7 @@ router.post('/login', rateLimit({ windowMs: 60000, max: 15 }), async (req, res) 
     }
     return await finishPasswordLogin(user, res);
   } catch (err) {
+    if (err.status !== 429) console.error('[PASSWORD LOGIN]', err.code || err.name);
     res.status(err.status === 429 ? 429 : 503).json({ error: err.status === 429 ? err.message : 'Sign in is temporarily unavailable.' });
   }
 });
@@ -163,7 +164,8 @@ router.post('/login/verify', rateLimit({ windowMs: 60000, max: 15 }), async (req
       return res.status(401).json({ error: 'Incorrect or expired code. Try again or request a new code.' });
     }
     return await finishPasswordLogin(user, res);
-  } catch {
+  } catch (error) {
+    console.error('[LOGIN CODE VERIFY]', error.code || error.name);
     return res.status(503).json({ error: 'Sign in is temporarily unavailable.' });
   }
 });
