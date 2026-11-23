@@ -13,12 +13,12 @@ router.post('/focus/start', requireAuth, rateLimit({ max: 12 }), (req, res) => {
 });
 
 router.post('/focus/complete', requireAuth, rateLimit({ max: 12 }), async (req, res) => {
-  const completedAt = canClaimFocus(req.body?.token, req.user.id, process.env.EMAIL_VERIFICATION_SECRET);
-  if (!completedAt) {
+  const focus = canClaimFocus(req.body?.token, req.user.id, process.env.EMAIL_VERIFICATION_SECRET);
+  if (!focus) {
     return res.status(400).json({ error: 'Complete a signed-in focus session before claiming XP.' });
   }
   try {
-    const reward = await db.awardXp(req.user.id, 15, 'streak_bonus', 'focus:' + indiaDay(completedAt), 'Completed a study timer session');
+    const reward = await db.awardXp(req.user.id, focus.points, 'streak_bonus', 'focus:' + indiaDay(focus.completedAt), 'Completed a study timer session');
     return res.json({ reward });
   } catch {
     return res.status(503).json({ error: 'Study XP is temporarily unavailable.' });

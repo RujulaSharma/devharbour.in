@@ -1042,6 +1042,21 @@ html[data-theme="dark"] .fc-chip i {
 .lb-search-input{width:100%;box-sizing:border-box;padding:9px 14px 9px 36px;border-radius:12px;border:1px solid var(--line);background:var(--soft);color:var(--ink);font-size:13px;font-family:inherit;outline:none;transition:border-color .2s,box-shadow .2s}
 .lb-search-input:focus{border-color:var(--ink);box-shadow:0 0 0 2px rgba(120,110,170,.2)}
 .lb-search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:.5;pointer-events:none;display:flex;align-items:center}
+.practice-overview{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1.3fr) minmax(0,.95fr);gap:16px;align-items:start}
+.practice-overview > .c{min-width:0}
+@media(max-width:1300px){.practice-overview{grid-template-columns:repeat(2,minmax(0,1fr))}.practice-overview .xp-guide{grid-column:1/-1}}
+@media(max-width:760px){.practice-overview{grid-template-columns:minmax(0,1fr)}}
+.xp-guide{position:relative;overflow:hidden;padding:clamp(16px,2vw,24px);background:radial-gradient(ellipse at 90% 0%,color-mix(in srgb,var(--card) 73%,#a97de0),var(--card) 58%)}
+.xp-guide h3{margin:0 0 4px;font-size:1.2rem}
+.xp-guide h4{margin:0 0 5px;font-size:.96rem}
+.xp-guide p{color:var(--mut);font-size:.82rem;line-height:1.5}
+.xp-guide ul{list-style:none;padding:0;display:grid;gap:8px;margin:16px 0}
+.xp-guide li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;padding:9px;border:1px solid var(--line);border-radius:10px;background:var(--card);font-size:.82rem}
+.xp-guide li strong{color:var(--acc,#6547ac);white-space:nowrap}
+.xp-guide-prize{border-top:1px solid var(--line);margin-top:15px;padding-top:14px}
+.xp-guide .bt{margin-top:9px;padding:8px 12px;font-size:.8rem;cursor:pointer}
+.lb-standing-stats{display:flex;flex-wrap:wrap;gap:6px 12px}
+#lb-practice-user-bar .lb-user-banner{display:grid}
 .lb-crystal{display:inline-block;width:.85em;height:.95em;vertical-align:-.06em;margin-inline-end:.28em;clip-path:polygon(30% 0,70% 0,100% 35%,50% 100%,0 35%);background:linear-gradient(135deg,#f4d8ff 7%,#a976e1 49%,#644098 52%,#b596e9)}
 .lb-rank-gem{width:22px;height:25px;font-size:1rem}
 .lb-demo{margin:14px 0 0;border:1px solid var(--line);border-radius:13px;background:var(--card);padding:12px}
@@ -4447,7 +4462,7 @@ requestAnimationFrame(loop);
 </div>
 <div id="lb-user-standing"></div>
 <div class="pod" id="lpod"></div><div id="lrows"></div>
-<div class="lbf"><p class="zn">Rankings use XP recorded by Dev Harbour. Keep an activity streak by earning XP on consecutive days. Top eligible performers each calendar month may earn the <strong>Certificate of Consistency</strong> after review.</p><button class="zb" type="button" data-go="practice">Join the leaderboard</button></div></div></section>
+<div class="lbf"><p class="zn">Rankings use XP recorded by Dev Harbour. Keep an activity streak by earning XP on consecutive days. The top three eligible performers each month receive the <strong>Certificate of Consistency</strong> after review.</p><button class="zb" type="button" data-go="practice">Join the leaderboard</button></div></div></section>
 <section class="zs" id="learning"><h2 class="zh">Curiosity, with direction.</h2><div class="zq" id="zpath" data-st></div><p class="zn" style="margin-top:34px">Every path is free, start to finish.</p></section>
 <!-- 5 DEVELOPER PROFILES -->
 <section class="zs" id="profiles"><h2 class="zh">People building what’s next.</h2><div class="zpr" id="zprof" data-st></div><p class="zn" style="margin-top:34px">Featured student developers building and shipping on Dev Harbour.</p></section>
@@ -4785,17 +4800,17 @@ requestAnimationFrame(loop);
 <section class="view" id="v-practice">
   <!-- 1. Challenges List & Leaderboard -->
   <div id="dh-practice-list-wrap">
-    <div class="g">
-      <div class="c s8">
+    <div class="practice-overview">
+      <div class="c">
         <div class="h" id="practice-challenges"><h3>Popular Coding Challenges</h3></div>
         <div class="fl" id="cf"></div>
         <input class="srch" style="background:var(--soft)" id="cq" placeholder="Search challenges…" aria-label="Search challenges">
         <div id="cl"></div>
-        <p class="mut" style="margin-top:12px">Practice algorithm challenges right in your browser. Solve & pass tests to earn +50 XP on the live leaderboard.</p>
+        <p class="mut" style="margin-top:12px">Run coding samples in your browser. Use the XP guide to find activities that count toward your ranking.</p>
       </div>
-      <div class="c k s4">
+      <div class="c k">
         <div class="h" id="practice-leaderboard"><h3>Leaderboard</h3><span class="tag">Live</span></div>
-        <p class="mut" style="font-size:.85rem;margin:0 0 10px">Keep an activity streak by earning XP on consecutive days. Top eligible performers each calendar month may earn the <strong>Certificate of Consistency</strong> after review.</p>
+        <p class="mut" style="font-size:.85rem;margin:0 0 10px">Keep an activity streak by earning XP on consecutive days. The top three eligible performers each month receive the <strong>Certificate of Consistency</strong> after review.</p>
         <div class="fl" id="lt"></div>
         <div class="lb-search-wrap" style="margin:8px 0 10px;">
           <span class="lb-search-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
@@ -4810,6 +4825,24 @@ requestAnimationFrame(loop);
           <ol id="lb-demo-rows"></ol>
         </details>
       </div>
+      <aside class="c xp-guide" aria-labelledby="xp-guide-title">
+        <h3 id="xp-guide-title"><span class="lb-crystal" aria-hidden="true"></span> How to earn XP</h3>
+        <p>Complete activities while signed in. Daily rewards reset at midnight India time.</p>
+        <ul>
+          <li><span>25-minute focus session</span><strong>+15 XP</strong></li>
+          <li><span>50-minute focus session</span><strong>+30 XP</strong></li>
+          <li><span>60-minute focus session</span><strong>+36 XP</strong></li>
+          <li><span>Complete a Workspace assignment</span><strong>+10 XP</strong></li>
+          <li><span>Refer a friend who verifies a new account</span><strong>+20 XP</strong></li>
+        </ul>
+        <p>Earn credit for one focus session, one assignment, and one verified referral per day. Only the first completed focus session earns XP that day.</p>
+        <button class="bt d" type="button" onclick="copyStudyReferralLink()">Copy my referral link</button>
+        <p id="xp-referral-status" role="status" hidden></p>
+        <div class="xp-guide-prize">
+          <h4>Monthly prize</h4>
+          <p>The top three eligible developers receive the <strong>Certificate of Consistency</strong> after review. Standings close at the end of each calendar month in India time.</p>
+        </div>
+      </aside>
     </div>
   </div>
 
@@ -4882,7 +4915,7 @@ requestAnimationFrame(loop);
         <p class="mut">Minimalist aesthetic flip clock engineered for deep work and Pomodoro sprints.</p>
       </div>
 
-      <p class="mut">Earn 15 XP for your first completed 25, 50, or 60 minute focus session each day while signed in.</p>
+      <p class="mut">Earn 15, 30, or 36 XP for your first completed 25-, 50-, or 60-minute focus session each day while signed in.</p>
     <div class="dh-timer-tabs" role="tablist">
         <button class="dh-timer-tab on" id="dh-mode-clock-btn" type="button" role="tab" aria-selected="true">
           <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -7060,6 +7093,10 @@ let currentLeaderboardTimeframe = 'Weekly';
 let currentLeaderboardList = [];
 let leaderboardState = 'loading';
 let currentLeaderboardStreak = null;
+let myLeaderboardStanding = null;
+let myLeaderboardTotal = null;
+let myLeaderboardMove = null;
+let leaderboardViewerId = null;
 let leaderboardRequest;
 let lbLandingFilter = '';
 let lbPracticeFilter = '';
@@ -7274,33 +7311,19 @@ function renderAllLeaderboardViews() {
   let bannerHtml = '';
 
   if (myUser) {
-    const myIdx = currentLeaderboardList.findIndex(u => 
-      (u.userId && u.userId === myUser.id) ||
-      (u.username && u.username === myUser.username) ||
-      (u.id && u.id === myUser.id)
-    );
-    if (myIdx >= 0) {
-      const myRank = currentLeaderboardList[myIdx].rank || (myIdx + 1);
-      const myXp = currentLeaderboardList[myIdx].xp || myUser.totalXp || 0;
-      let aheadText = '';
-      if (myIdx > 0) {
-        const aheadDev = currentLeaderboardList[myIdx - 1];
-        const diff = ((aheadDev.xp || 0) - myXp) + 1;
-        aheadText = `<span><b>+${diff > 0 ? diff.toLocaleString() : 50} XP</b> to overtake #${myRank - 1} (${esc(aheadDev.fullName || aheadDev.username)})</span>`;
-      } else {
-        aheadText = `<span style="color:var(--sv);font-weight:700;">${leaderboardCrystal} You are holding the #1 position!</span>`;
-      }
-      bannerHtml = `<div class="lb-user-banner">
-        <span>${leaderboardCrystal} <b>Your Rank:</b> #${myRank} · ${(myXp || 0).toLocaleString()} XP</span>
-        ${aheadText}
-      </div>`;
-    } else {
-      const userXp = myUser.totalXp || myUser.xp || 0;
-      bannerHtml = `<div class="lb-user-banner">
-        <span>${leaderboardCrystal} <b>${esc(myUser.fullName || myUser.username)}</b>: You have ${(userXp).toLocaleString()} XP</span>
-        <span>Earn XP from focused study and completed work.</span>
-      </div>`;
-    }
+    const myTotal = myLeaderboardTotal ?? myUser.totalXp ?? 0;
+    const rankText = myLeaderboardStanding ? '#' + myLeaderboardStanding.rank : 'Unranked';
+    const movement = myLeaderboardMove > 0 ? 'Up ' + myLeaderboardMove
+      : myLeaderboardMove < 0 ? 'Down ' + Math.abs(myLeaderboardMove) : '';
+    const periodLabel = currentLeaderboardTimeframe === 'All-time' ? 'All-time' : currentLeaderboardTimeframe;
+    bannerHtml = `<div class="lb-user-banner" role="status">
+      <span>${leaderboardCrystal}<b>${esc(myUser.fullName || myUser.username)}</b></span>
+      <span class="lb-standing-stats">
+        <span><b>${myTotal.toLocaleString('en-IN')} XP</b> total</span>
+        <span><b>${rankText}</b> · ${periodLabel}${movement ? ' · ' + movement : ''}</span>
+        ${myLeaderboardStanding ? '<span>' + myLeaderboardStanding.xp.toLocaleString('en-IN') + ' XP in period</span>' : ''}
+      </span>
+    </div>`;
   } else {
     bannerHtml = `<div class="lb-user-banner">
       <span>${leaderboardCrystal} Join Dev Harbour to solve coding challenges, earn XP &amp; climb the live leaderboard.</span>
@@ -7385,10 +7408,17 @@ function leaderboardEmptyMessage(search) {
 }
 
 async function rl(k) {
+  const viewerId = getCurrentUser()?.id || null;
   const timeframe = LB_TIMEFRAMES.includes(k) ? k : currentLeaderboardTimeframe;
   leaderboardRequest?.abort();
   const request = new AbortController();
   leaderboardRequest = request;
+  const sameView = timeframe === currentLeaderboardTimeframe && viewerId === leaderboardViewerId;
+  const previousRank = sameView ? myLeaderboardStanding?.rank : null;
+  if (!sameView) {
+    myLeaderboardStanding = myLeaderboardTotal = myLeaderboardMove = currentLeaderboardStreak = null;
+  }
+  leaderboardViewerId = viewerId;
   if (timeframe !== currentLeaderboardTimeframe || !currentLeaderboardList.length) {
     currentLeaderboardList = [];
     leaderboardState = 'loading';
@@ -7405,11 +7435,14 @@ async function rl(k) {
     if (request.signal.aborted) return;
     currentLeaderboardList = data.rankings;
     currentLeaderboardStreak = data.currentUserStreak ?? null;
+    myLeaderboardStanding = data.currentUserRank ?? null;
+    myLeaderboardTotal = data.currentUserTotalXp ?? null;
+    myLeaderboardMove = previousRank && myLeaderboardStanding ? previousRank - myLeaderboardStanding.rank : null;
     leaderboardState = 'ready';
   } catch {
     if (request.signal.aborted) return;
     currentLeaderboardList = [];
-    currentLeaderboardStreak = null;
+    currentLeaderboardStreak = myLeaderboardStanding = myLeaderboardTotal = myLeaderboardMove = null;
     leaderboardState = 'error';
   }
   renderAllLeaderboardViews();
@@ -7524,6 +7557,50 @@ function readPendingVerificationEmail() {
 function rememberPendingVerification(email) {
   try { localStorage.setItem(pendingVerificationKey, email.trim().toLowerCase()); }
   catch {}
+}
+
+const studyReferralKey = 'dh_pending_referral';
+
+function pendingStudyReferral() {
+  try { return localStorage.getItem(studyReferralKey) || undefined; }
+  catch { return undefined; }
+}
+
+(function captureStudyReferral() {
+  if (location.protocol === 'file:') return;
+  const url = new URL(location.href);
+  const code = url.searchParams.get('ref');
+  if (!code || code.length > 160 || !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/.test(code)) return;
+  try {
+    localStorage.setItem(studyReferralKey, code);
+    url.searchParams.delete('ref');
+    history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+  } catch {}
+})();
+
+async function copyStudyReferralLink() {
+  if (!currentUser) {
+    openAuthModal('login');
+    return;
+  }
+  const status = document.getElementById('xp-referral-status');
+  status.hidden = false;
+  try {
+    const response = await fetch('/api/auth/referral-link', { headers: getAuthHeaders(), cache: 'no-store' });
+    const result = await response.json();
+    if (!response.ok || !result.code) throw new Error('Referral link is unavailable');
+    const link = new URL('/', location.origin);
+    link.searchParams.set('ref', result.code);
+    try {
+      await navigator.clipboard.writeText(link.href);
+      status.textContent = 'Referral link copied.';
+    } catch {
+      status.textContent = link.href;
+      status.style.overflowWrap = 'anywhere';
+    }
+  } catch {
+    status.textContent = 'Could not load your referral link. Try again.';
+  }
 }
 
 function showStudyReward(reward) {
@@ -7812,7 +7889,7 @@ async function handleEmailVerification(event, resend = false) {
     const response = await fetch('/api/auth/otp/' + (resend ? 'send' : 'verify'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email.value.trim(), ...(resend ? {} : { otp: document.getElementById('verification-code').value.trim() }) })
+      body: JSON.stringify({ email: email.value.trim(), ...(resend ? {} : { otp: document.getElementById('verification-code').value.trim(), referral: pendingStudyReferral() }) })
     });
     const data = await response.json();
     if (!response.ok) {
@@ -7824,6 +7901,7 @@ async function handleEmailVerification(event, resend = false) {
       return;
     }
     if (!data.token || !data.user) throw new Error('Incomplete verification response');
+    localStorage.removeItem(studyReferralKey);
     currentUser = data.user;
     for (const key of ['dh_token', 'dh-auth-token']) localStorage.setItem(key, data.token);
     for (const key of ['dh_current_user', 'dh-current-user']) localStorage.setItem(key, JSON.stringify(currentUser));
@@ -8051,11 +8129,15 @@ async function checkAuthSession() {
     localStorage.setItem('dh_current_user', JSON.stringify(user));
     localStorage.setItem('dh-current-user', JSON.stringify(user));
     updateAuthUI();
+    if (leaderboardViewerId !== user.id && ['/', '/practice', '/leaderboard'].includes(location.pathname)) rl();
   } catch {
     // Leave the session intact if the connection is briefly unavailable.
     if (isCurrent()) updateAuthUI();
   }
 }
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && ['/', '/practice', '/leaderboard'].includes(location.pathname)) rl();
+});
 window.checkAuthSession = checkAuthSession;
 checkAuthSession();
 
@@ -11075,7 +11157,7 @@ async function verifyCertificateEmail(event) {
   if (submit) submit.disabled = true;
   try {
     const response = await fetch('/api/auth/otp/verify', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, otp })
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, otp, referral: pendingStudyReferral() })
     });
     const result = await response.json();
     if (certificateClaimEmail !== email) return;
@@ -11083,6 +11165,7 @@ async function verifyCertificateEmail(event) {
       message.textContent = result.error || 'Email verification failed.';
       return;
     }
+    localStorage.removeItem(studyReferralKey);
     currentUser = result.user;
     localStorage.setItem('dh_token', result.token);
     localStorage.setItem('dh-auth-token', result.token);
@@ -11603,7 +11686,7 @@ window.onGoogleCredentialResponse = async function(response) {
     const res = await fetch('/api/auth/google', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ credential: response.credential })
+      body: JSON.stringify({ credential: response.credential, referral: pendingStudyReferral() })
     });
     const data = await res.json();
     if (res.ok && data.user) {
@@ -11613,6 +11696,7 @@ window.onGoogleCredentialResponse = async function(response) {
         document.getElementById('mycert-message').textContent = instruction;
         return;
       }
+      localStorage.removeItem(studyReferralKey);
       currentUser = data.user;
       const t = data.token;
       localStorage.setItem('dh_token', t);

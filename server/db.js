@@ -801,16 +801,20 @@ function getXpHistory(userId, limit = 20) {
 }
 
 // Leaderboard Helper (Weekly, Monthly, All-time derived directly from XP Ledger)
-function getLeaderboard(timeframe = 'All-time', limit = 20) {
+function getLeaderboard(timeframe = 'All-time', limit = 20, viewerId = null) {
   let dateFilter = '';
   if (timeframe === 'Weekly') {
     dateFilter = "AND l.created_at >= datetime('now', '-7 days')";
   } else if (timeframe === 'Monthly') {
-    dateFilter = "AND l.created_at >= datetime('now', '-30 days')";
+    dateFilter = "AND l.created_at >= datetime('now', '+330 minutes', 'start of month', '-330 minutes')";
   }
 
   const query = `
+    WITH ranked AS (
     SELECT
+      ROW_NUMBER() OVER (ORDER BY SUM(l.amount) DESC,
+        COUNT(DISTINCT CASE WHEN l.source_type = 'challenge_pass' THEN l.reference_id END) DESC,
+        u.created_at ASC, u.id ASC) AS rank,
       u.id as user_id,
       u.username,
       u.full_name,
@@ -829,13 +833,13 @@ function getLeaderboard(timeframe = 'All-time', limit = 20) {
       AND coalesce(cast(settings.profile_public AS text), '1') IN ('1', 'true')
     GROUP BY u.id
     HAVING SUM(l.amount) > 0
-    ORDER BY total_xp DESC, challenges_solved DESC, u.created_at ASC, u.id ASC
-    LIMIT ?
+    )
+    SELECT * FROM ranked WHERE rank <= ? OR user_id = ? ORDER BY rank
   `;
 
-  const rows = db.prepare(query).all(limit);
-  return rows.map((r, idx) => ({
-    rank: idx + 1,
+  const rows = db.prepare(query).all(limit, viewerId);
+  return rows.map(r => ({
+    rank: r.rank,
     userId: r.user_id,
     username: r.username,
     fullName: r.full_name,

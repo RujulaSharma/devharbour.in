@@ -9,15 +9,15 @@ router.get('/', async (req, res) => {
   const limit = Number.isFinite(requestedLimit) ? Math.min(50, Math.max(5, requestedLimit)) : 20;
   res.setHeader('Cache-Control', 'private, no-store');
   try {
-    const rows = await db.getLeaderboard(timeframe, limit);
     const viewerId = req.user?.emailVerified ? req.user.id : null;
+    const rows = await db.getLeaderboard(timeframe, limit, viewerId);
     const ids = new Set(rows.map(row => row.userId));
     if (viewerId) ids.add(viewerId);
     const streaks = currentActivityStreaks(await db.getLeaderboardActivityDays([...ids]));
     const rankings = rows.map(row => ({ ...row, streakDays: streaks.get(row.userId) || 0 }));
     const currentUserRank = rankings.find(row => row.userId === viewerId) || null;
     const currentUserStreak = viewerId ? (streaks.get(viewerId) || 0) : null;
-    res.json({ timeframe, rankings, currentUserRank, currentUserStreak });
+    res.json({ timeframe, rankings: rankings.filter(row => row.rank <= limit), currentUserRank, currentUserStreak, currentUserTotalXp: viewerId ? req.user.totalXp : null });
   } catch (error) {
     console.error('[LEADERBOARD]', error.code || error.name);
     res.status(503).json({ timeframe, rankings: [], currentUserRank: null, error: 'Leaderboard is temporarily unavailable.' });

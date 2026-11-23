@@ -7,6 +7,7 @@ const { generateOtp, hashOtp, verifyOtpHash, sendVerificationOtpEmail } = requir
 const { rateLimit } = require('../rate-limiter');
 const eventBus = require('../events');
 const { sendLoginCode, consumeLoginCode } = require('../login-code');
+const { referralCode, rewardVerifiedReferral } = require('../referrals');
 
 // POST /api/auth/signup
 router.post('/signup', rateLimit({ windowMs: 60000, max: 10 }), async (req, res) => {
@@ -265,6 +266,7 @@ router.post('/google', rateLimit({ windowMs: 60000, max: 10 }), async (req, res)
 
   try {
     let user = await db.getUserByEmail(email);
+    const isNewSignup = !user;
 
     const googleOwnsEmail = email.endsWith('@gmail.com') || Boolean(googleUser.hd);
     if (user?.salt?.startsWith('google:') && user.salt !== 'google:' + googleSub) {
@@ -312,6 +314,7 @@ router.post('/google', rateLimit({ windowMs: 60000, max: 10 }), async (req, res)
     }
 
     await db.markEmailVerified(user.id);
+    if (isNewSignup) await rewardVerifiedReferral(req.body.referral, user);
 
     const { token, expiresAt } = await db.createSession(user.id, email);
     const totalXp = await db.getUserTotalXp(user.id);
@@ -458,6 +461,13 @@ router.post('/otp/verify', rateLimit({ windowMs: 60000, max: 10 }), async (req, 
       return res.status(400).json({ error: 'Invalid or expired verification code.' });
     }
 
+    const createdAt = user.created_at instanceof Date
+      ? user.created_at.getTime()
+      : Date.parse(String(user.created_at).replace(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})$/, '$1T$2Z'));
+    const accountAge = Date.now() - createdAt;
+    if (!record.verified_at && accountAge >= 0 && accountAge < 7 * 86400000) {
+      await rewardVerifiedReferral(req.body.referral, user);
+    }
     const { token, expiresAt } = await db.createSession(user.id);
     const totalXp = await db.getUserTotalXp(user.id);
     const streak = await db.updateStreak(user.id);
@@ -603,6 +613,13 @@ router.post('/logout', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Logout failed.' });
   }
+});
+
+router.get('/referral-link', requireAuth, (req, res) => {
+  const code = referralCode(req.user.id);
+  if (!code) return res.status(503).json({ error: 'Referral links are temporarily unavailable.' });
+  res.setHeader('Cache-Control', 'private, no-store');
+  return res.json({ code });
 });
 
 // GET /api/auth/me

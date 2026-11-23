@@ -30,6 +30,17 @@ test('leaderboard ranks recorded XP and excludes demo, unverified, and private e
   const { rankings } = await response.json();
   assert.deepEqual(rankings.map(row => [row.userId, row.xp, row.rank]), [[real.id, 25, 1]]);
 
+
+  for (let i = 0; i < 5; i++) {
+    await add('ranked_' + i, 'ranked' + i + '@leaderboard-fixture.invalid', { xp: 50 + i });
+  }
+  const { token } = await db.createSession(real.id);
+  const personal = await (await fetch(url + '&limit=5', { headers: { Authorization: 'Bearer ' + token } })).json();
+  assert.equal(personal.rankings.length, 5);
+  assert.equal(personal.currentUserRank.rank, 6);
+  assert.equal(personal.currentUserTotalXp, 25);
+  assert.ok(!personal.rankings.some(row => row.userId === real.id));
+
   t.mock.method(db, 'getLeaderboard', async () => { throw Error('fixture outage'); });
   const offline = await fetch(url);
   assert.equal(offline.status, 503);

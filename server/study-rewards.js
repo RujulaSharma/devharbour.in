@@ -1,6 +1,6 @@
 const { createHmac, timingSafeEqual } = require('node:crypto');
 
-const focusMinutes = new Set([25, 50, 60]);
+const focusPoints = new Map([[25, 15], [50, 30], [60, 36]]);
 const maxClaimDelay = 2 * 60 * 60 * 1000;
 
 function indiaDay(now) {
@@ -12,7 +12,7 @@ function sign(payload, secret) {
 }
 
 function startFocus(userId, minutes, secret, now = Date.now()) {
-  if (!focusMinutes.has(minutes) || !secret) return null;
+  if (!focusPoints.has(minutes) || !secret) return null;
   const payload = Buffer.from(JSON.stringify([userId, minutes, now])).toString('base64url');
   return payload + '.' + sign(payload, secret);
 }
@@ -24,7 +24,7 @@ function canClaimFocus(token, userId, secret, now = Date.now()) {
   if (!timingSafeEqual(Buffer.from(signature), Buffer.from(sign(payload, secret)))) return false;
   const [owner, minutes, startedAt] = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
   const completedAt = startedAt + minutes * 60 * 1000;
-  return owner === userId && now >= completedAt && now <= completedAt + maxClaimDelay ? completedAt : false;
+  return owner === userId && now >= completedAt && now <= completedAt + maxClaimDelay ? { completedAt, points: focusPoints.get(minutes) } : false;
 }
 
 module.exports = { indiaDay, startFocus, canClaimFocus };

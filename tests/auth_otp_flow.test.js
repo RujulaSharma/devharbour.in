@@ -101,3 +101,23 @@ test('failed delivery leaves a pending account without a session', async () => {
     rejectDelivery = false;
   }
 });
+
+test('a referral earns XP only after verification, once per day', async () => {
+  const inviter = await db.createUser({ username: 'inviter', email: 'inviter@example.test', fullName: 'Inviter', passwordHash: 'fixture', salt: 'fixture' });
+  await db.markEmailVerified(inviter.id);
+  const { token } = await db.createSession(inviter.id);
+  assert.equal((await request('/referral-link', null, null, 'GET')).status, 401);
+  const link = await request('/referral-link', null, token, 'GET');
+  assert.equal(link.status, 200);
+  assert.ok(link.body.code);
+  const checkXp = () => db.db.prepare("SELECT COALESCE(SUM(amount), 0) AS xp FROM xp_ledger WHERE user_id = ? AND reference_id LIKE 'referral:%'").get(inviter.id).xp;
+  for (const attempt of [1, 2]) {
+    const email = 'referred' + attempt + '@example.test';
+    const signup = await request('/signup', { email, username: 'referred' + attempt, fullName: 'Referred User', password: 'UniqueTestPassword!42' });
+    assert.equal(signup.status, 201);
+    assert.equal(checkXp(), attempt === 1 ? 0 : 20);
+    const otp = deliveries.at(-1).text.match(/\b\d{6}\b/)[0];
+    assert.equal((await request('/otp/verify', { email, otp, referral: link.body.code })).status, 200);
+    assert.equal(checkXp(), 20);
+  }
+});

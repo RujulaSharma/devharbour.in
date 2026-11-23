@@ -275,16 +275,20 @@ async function getXpHistory(userId, limit = 10) {
   return res.rows;
 }
 
-async function getLeaderboard(timeframe = 'All-time', limit = 20) {
+async function getLeaderboard(timeframe = 'All-time', limit = 20, viewerId = null) {
   let dateFilter = '';
   if (timeframe === 'Weekly') {
     dateFilter = "AND l.created_at::timestamp >= NOW() - INTERVAL '7 days'";
   } else if (timeframe === 'Monthly') {
-    dateFilter = "AND l.created_at::timestamp >= NOW() - INTERVAL '30 days'";
+    dateFilter = "AND l.created_at::timestamp >= date_trunc('month', now() AT TIME ZONE 'Asia/Kolkata') - interval '330 minutes'";
   }
 
   const res = await query(`
+    WITH ranked AS (
     SELECT
+      (ROW_NUMBER() OVER (ORDER BY SUM(l.amount) DESC,
+        COUNT(DISTINCT CASE WHEN l.source_type = 'challenge_pass' THEN l.reference_id END) DESC,
+        u.created_at ASC, u.id ASC))::int AS rank,
       u.id as "userId",
       u.username,
       u.full_name as "fullName",
@@ -304,12 +308,12 @@ async function getLeaderboard(timeframe = 'All-time', limit = 20) {
       AND lower(u.email) !~ '^(student|reader|coder|builder|intruder|settings|owner|otp_user|cert_user|new_google_user|existing_dev)_[0-9]{13}@devharbour[.]in$'
     GROUP BY u.id, u.username, u.full_name, u.avatar_url, u.streak_days, u.created_at
     HAVING SUM(l.amount) > 0
-    ORDER BY xp DESC, "challengesSolved" DESC, u.created_at ASC, u.id ASC
-    LIMIT $1;
-  `, [limit]);
+    )
+    SELECT * FROM ranked WHERE rank <= $1 OR "userId" = $2 ORDER BY rank;
+  `, [limit, viewerId]);
 
-  return res.rows.map((r, i) => ({
-    rank: i + 1,
+  return res.rows.map(r => ({
+    rank: r.rank,
     userId: r.userId,
     username: r.username,
     fullName: r.fullName || r.username,
