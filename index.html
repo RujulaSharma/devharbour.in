@@ -4542,18 +4542,24 @@ requestAnimationFrame(loop);
 <!-- LEADERBOARD -->
 <section class="zs" id="leaderboard"><h2 class="zh">Climb the leaderboard.</h2>
 <style>
-#leaderboard .lb-prize-preview { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:28px; align-items:center; max-width:1024px; margin:0 auto 30px; padding:clamp(16px,3vw,28px); border:1px solid var(--line,#dcd3ee); border-radius:24px; background:var(--bg,#fff); }
-#leaderboard .lb-prize-preview iframe { display:block; width:100%; aspect-ratio:3/2; border:0; border-radius:12px; }
+#leaderboard .lb-prize-preview { display:grid; container-type:inline-size; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:28px; align-items:center; max-width:1024px; margin:0 auto 30px; padding:clamp(16px,3vw,28px); border:1px solid var(--line,#dcd3ee); border-radius:24px; background:var(--bg,#fff); }
+#leaderboard .lb-toolbar { display:flex; flex-wrap:wrap; justify-content:flex-end; align-items:center; gap:8px; }
+#leaderboard .lb-certificate-toggle { padding:8px 16px; border:1px solid var(--line,#dcd3ee); border-radius:99px; font-weight:700; font-size:13px; color:var(--mut); }
+#leaderboard .lb-certificate-toggle[aria-expanded="true"] { background:var(--ink); color:var(--bg); }
+#leaderboard .lb-prize-preview[hidden] { display:none; }
+#leaderboard .lb-prize-preview { margin-top:18px; }
+#leaderboard .lb-prize-preview iframe { display:block; width:100%; aspect-ratio:3/2; box-sizing:content-box; padding-bottom:0; height:calc((100cqw - 28px) * .36364 + 52px); border:0; border-radius:12px; }
 #leaderboard .lb-prize-list h2 { margin-bottom:12px; }
 #leaderboard .lb-prize-list article { display:grid; grid-template-columns:42px 1fr; gap:10px; margin-block:8px; align-items:baseline; }
 #leaderboard .lb-prize-list .rank { font-weight:700; }
 #leaderboard .lb-prize-list ul { margin:0; padding-inline-start:18px; }
 #leaderboard .lb-prize-list .lead, #leaderboard .lb-prize-list .place, #leaderboard .lb-prize-list .rule { display:none; }
 #leaderboard .lb-prize-list .pnote { margin-top:12px; font-size:.85rem; }
-@media(max-width:700px) { #leaderboard .lb-prize-preview { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:700px) { #leaderboard .lb-prize-preview { grid-template-columns:minmax(0,1fr); } #leaderboard .lb-prize-preview iframe { height:calc(100cqw / 1.5 + 52px); } }
 </style>
-<div class="lb-prize-preview">
-  <iframe src="/assets/consistency-preview.html" title="Sample Certificate of Consistency" loading="lazy" sandbox></iframe>
+<div class="lbx zv"><div class="lbh"><span class="xlg"><img class="xli" data-logo alt="">DEV HARBOUR</span><div class="lb-toolbar"><div class="ltb" id="ltb" role="tablist" aria-label="Leaderboard period"></div><button type="button" class="lb-certificate-toggle" id="lb-certificate-toggle" aria-controls="lb-certificate-panel" aria-expanded="false">Certificate</button></div></div>
+<div class="lb-prize-preview" id="lb-certificate-panel" hidden>
+  <iframe data-src="/assets/consistency-preview.html" title="Sample Certificate of Consistency" sandbox="allow-scripts"></iframe>
   <section class="lb-prize-list" aria-labelledby="prizes-title">
   <h2 id="prizes-title" class="metal">Monthly Leaderboard Prizes</h2>
   <p class="lead eng">TOP THREE EACH MONTH</p>
@@ -4584,7 +4590,6 @@ requestAnimationFrame(loop);
   <p class="pnote eng">Prizes are reviewed and awarded after the monthly standings close.</p>
 </section>
 </div>
-<div class="lbx zv"><div class="lbh"><span class="xlg"><img class="xli" data-logo alt="">DEV HARBOUR</span><div class="ltb" id="ltb" role="tablist"></div></div>
 <div class="lb-search-wrap">
   <span class="lb-search-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
   <input class="lb-search-input" id="lb-search" type="search" placeholder="Search developer or handle…" aria-label="Search leaderboard">
@@ -7542,6 +7547,17 @@ async function rl(k) {
   }
   renderAllLeaderboardViews();
 }
+
+const certificateToggle = $('lb-certificate-toggle');
+const certificatePanel = $('lb-certificate-panel');
+certificateToggle?.addEventListener('click', () => {
+  const open = certificatePanel.hidden;
+  certificateToggle.setAttribute('aria-expanded', String(open));
+  certificatePanel.hidden = !open;
+  const preview = certificatePanel.querySelector('iframe');
+  if (open) preview.src = preview.dataset.src;
+  else preview.removeAttribute('src');
+});
 
 const leaderboardSection = $('leaderboard');
 let leaderboardVisible = false;

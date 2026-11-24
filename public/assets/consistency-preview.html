@@ -143,7 +143,7 @@
     .slab,.back,.shadow,.ctl,.hint{display:none}
     .front{transform:none}
   }
-body{padding:0;min-height:0;background:transparent;display:block}.stage{width:100%;cursor:default}.shadow{display:none}</style>
+body{padding:0;min-height:0;background:transparent;display:block}.stage{width:100%}.shadow{display:none}.ctl{margin-top:6px;padding:0;max-width:100%;gap:6px}.ctl button{padding:6px 10px;font-size:12px}</style>
 </head>
 <body>
 
@@ -210,4 +210,55 @@ body{padding:0;min-height:0;background:transparent;display:block}.stage{width:10
   </div>
 </div>
 
+<div class="ctl"><button type="button" id="flip">Flip card</button> <button type="button" class="alt" id="spin">Auto-rotate</button></div>
+<script>
+(function(){
+  const stage=document.getElementById('stage'), card=document.getElementById('card');
+
+  // thin glass edge (3 outline layers only)
+  [-4,0,4].forEach(z=>{const s=document.createElement('div');s.className='slab';s.style.transform='translateZ('+z+'px)';card.insertBefore(s,card.children[1])});
+
+  let rotY=0,rotX=0,tY=0,hoverX=0,hoverY=0,dragging=false,sx=0,base=0,auto=true,t0=performance.now(),idle=0;
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches)auto=false;
+
+  stage.addEventListener('pointerdown',e=>{
+    if(e.target.closest('[contenteditable]'))return;
+    dragging=true;sx=e.clientX;base=tY;stage.classList.add('drag');stage.setPointerCapture(e.pointerId);
+  });
+  stage.addEventListener('pointermove',e=>{
+    const r=stage.getBoundingClientRect();
+    const px=(e.clientX-r.left)/r.width-.5, py=(e.clientY-r.top)/r.height-.5;
+    hoverY=px*10; hoverX=-py*8;
+    if(dragging)tY=base+(e.clientX-sx)*.45;
+    idle=0;
+  });
+  const end=()=>{if(!dragging)return;dragging=false;stage.classList.remove('drag');tY=Math.round(tY/180)*180};
+  stage.addEventListener('pointerup',end);
+  stage.addEventListener('pointercancel',end);
+  stage.addEventListener('pointerleave',()=>{hoverX=0;hoverY=0});
+
+  document.getElementById('flip').onclick=()=>{tY=Math.round(tY/180)*180+180;idle=0};
+  const sp=document.getElementById('spin');
+  sp.textContent='Auto-rotate: '+(auto?'on':'off');
+  sp.onclick=()=>{auto=!auto;sp.textContent='Auto-rotate: '+(auto?'on':'off')};
+
+  function frame(now){
+    const dt=(now-t0)/1000;t0=now;idle+=dt;
+    let sway=0,bob=0;
+    if(auto&&!dragging){
+      sway=Math.sin(now/1800)*9; bob=Math.sin(now/2300)*3;
+      if(idle>8&&Math.abs(tY%360)<1){tY+=360;idle=0}
+    }
+    rotY+=(tY+hoverY+sway-rotY)*.08;
+    rotX+=(hoverX+bob-rotX)*.08;
+    card.style.transform='rotateX('+rotX.toFixed(2)+'deg) rotateY('+rotY.toFixed(2)+'deg)';
+    const a=rotY*Math.PI/180;
+    card.style.setProperty('--gp',(50+Math.sin(a)*60).toFixed(1)+'%');
+    card.style.setProperty('--go',(.25+Math.abs(Math.sin(a))*.5).toFixed(2));
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(t=>{t0=t;frame(t)});
+
+})();
+</script>
 </body></html>
