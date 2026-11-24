@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Certificate of Consistency – Dev Harbour Monthly Leaderboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Montserrat:wght@400;500;600&family=Pinyon+Script&family=Playfair+Display:ital,wght@1,500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --W:min(92vw,1100px);
+    --R:calc(var(--W)*.036);
+    --chrome:linear-gradient(180deg,#44464c 0%,#0c0c0e 40%,#7d8088 54%,#17181b 70%,#060607 100%);
+    --ink:#2a2b30;
+    --rule:linear-gradient(90deg,transparent,#3a3b41,transparent);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{min-height:100%}
+  body{
+    font-family:'Montserrat',Arial,sans-serif;color:var(--ink);
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:20px;padding:28px 16px 56px;overflow-x:hidden;
+    background:
+      radial-gradient(28vmax 22vmax at 18% 14%,#ffffff 0%,transparent 70%),
+      radial-gradient(26vmax 20vmax at 82% 22%,#8fa0bd 0%,transparent 70%),
+      radial-gradient(30vmax 22vmax at 70% 78%,#6f7a8c 0%,transparent 70%),
+      radial-gradient(24vmax 18vmax at 12% 70%,#c9d2e2 0%,transparent 70%),
+      linear-gradient(135deg,#b9bfca,#e9ecf1 50%,#a2a9b6);
+    background-attachment:fixed;
+  }
+
+  /* ---------- 3D stage ---------- */
+  .stage{perspective:1800px;width:var(--W);aspect-ratio:3/2;touch-action:pan-y;cursor:grab;user-select:none;-webkit-user-select:none}
+  .stage.drag{cursor:grabbing}
+  .card{position:relative;width:100%;height:100%;transform-style:preserve-3d;will-change:transform}
+  .shadow{position:absolute;left:8%;right:8%;bottom:-8%;height:7%;background:radial-gradient(closest-side,rgba(30,34,44,.4),transparent);filter:blur(10px);transform:translateZ(-60px)}
+
+  /* glass edge: faint outlines only, so nothing ghosts through the face */
+  .slab{position:absolute;inset:0;border-radius:var(--R);border:1px solid rgba(255,255,255,.5);background:transparent}
+
+  .face{
+    position:absolute;inset:0;border-radius:var(--R);overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+    background:linear-gradient(135deg,rgba(255,255,255,.34) 0%,rgba(255,255,255,.08) 38%,rgba(255,255,255,.14) 62%,rgba(255,255,255,.3) 100%);
+    -webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);
+    border:1.5px solid rgba(255,255,255,.8);
+    box-shadow:inset 0 0 0 calc(var(--W)*.005) rgba(255,255,255,.28),inset 0 0 calc(var(--W)*.05) rgba(255,255,255,.45),0 calc(var(--W)*.02) calc(var(--W)*.05) rgba(40,48,66,.22);
+  }
+  .front{transform:translateZ(6px)}
+  .back{transform:rotateY(180deg) translateZ(6px)}
+  .face::after{
+    content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+    background:linear-gradient(115deg,transparent calc(var(--gp,50%) - 14%),rgba(255,255,255,.9) var(--gp,50%),transparent calc(var(--gp,50%) + 14%));
+    opacity:var(--go,.3);mix-blend-mode:soft-light;
+  }
+  .in{position:absolute;inset:0;container-type:inline-size}
+  .in::before{content:"";position:absolute;inset:3%;border-radius:calc(var(--R)*.8);border:.18cqw solid rgba(255,255,255,.95);box-shadow:inset 0 0 0 .12cqw rgba(120,125,135,.25);pointer-events:none}
+
+  /* glass ribbons – kept to the corners, clear of the text */
+  .ribbon{position:absolute;pointer-events:none}
+  .ribbon svg{width:100%;height:100%;display:block}
+  .r1{left:3%;top:3%;width:34%;height:46%}
+  .r2{right:3%;bottom:3%;width:34%;height:38%}
+
+  /* ---------- layout (flow, not pinned) ---------- */
+  .head{position:absolute;left:8%;right:8%;top:8%;display:flex;justify-content:space-between;align-items:flex-start}
+  .mid{position:absolute;left:14%;right:14%;top:19%;bottom:23%;display:flex;flex-direction:column;align-items:center;justify-content:space-between}
+  .foot{position:absolute;left:11%;right:9%;bottom:8%;display:flex;justify-content:space-between;align-items:flex-end;gap:14cqw}
+  .row{display:flex;align-items:center;justify-content:center;gap:2.4cqw;width:100%}
+  .row i{flex:0 1 11cqw;height:.14cqw;background:var(--rule)}
+
+  /* ---------- type ---------- */
+  .metal{
+    background:var(--chrome);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+    filter:drop-shadow(0 .1cqw 0 rgba(255,255,255,.95)) drop-shadow(0 .2cqw .25cqw rgba(30,32,40,.2));
+  }
+  .eng{color:var(--ink);text-shadow:0 .1cqw 0 #fff}
+
+  .logo-l{font-family:'Playfair Display',Georgia,serif;font-style:italic;font-weight:500;font-size:3.8cqw;letter-spacing:-.01em;line-height:1.2;position:relative;padding:0 .2em .35em 0}
+  .logo-l::after{content:"";position:absolute;left:0;right:0;bottom:0;height:.14cqw;background:var(--rule)}
+  .logo-r{display:flex;flex-direction:column;align-items:center;padding-left:2.2cqw;position:relative}
+  .logo-r::before{content:"";position:absolute;left:0;top:6%;height:84%;width:.14cqw;background:#3a3b41}
+  .logo-r .t{font-family:'Cinzel',serif;font-size:2.5cqw;letter-spacing:.12em;padding-left:.12em;line-height:1.2}
+  .logo-r .h{font-size:.95cqw;letter-spacing:.36em;padding-left:.36em;margin-top:.5cqw;font-weight:500}
+
+  .title{font-family:'Cinzel',serif;font-weight:600;font-size:6.2cqw;letter-spacing:.02em;line-height:1.15;padding:0 .1em}
+  .sub{font-family:'Pinyon Script',cursive;font-size:4.2cqw;line-height:1.5;padding:0 .3em}
+  .presented{font-size:1.3cqw;letter-spacing:.32em;padding-left:.32em;font-weight:500}
+  .name{font-family:'Pinyon Script',cursive;font-size:7cqw;line-height:1.5;padding:0 .35em;outline:none;cursor:text;max-width:100%;white-space:nowrap}
+  .name:focus{outline:.15cqw dashed rgba(30,32,40,.35);outline-offset:.2cqw}
+  .congrats{font-size:1.55cqw;letter-spacing:.16em;font-weight:500}
+  .event{font-weight:600;font-size:2cqw;letter-spacing:.3em;padding-left:.3em;white-space:nowrap}
+
+  .sigbox,.datebox{flex:1;display:flex;flex-direction:column;gap:1.2cqw;font-size:1.1cqw;letter-spacing:.3em;font-weight:500}
+  .sigbox{align-items:flex-start}
+  .datebox{align-items:flex-end;text-align:right}
+  .sigbox::after,.datebox::after{content:"";order:2;width:100%;height:.14cqw;background:var(--rule)}
+  .datebox span{outline:none;cursor:text}
+
+  /* back */
+  .bk{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.4cqw;text-align:center}
+  .bk .big{font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:10cqw;line-height:1.25;padding:0 .2em}
+  .bk .tv{font-family:'Cinzel',serif;font-size:3.8cqw;letter-spacing:.16em;padding-left:.16em;line-height:1.2}
+  .bk .hk{font-size:1.3cqw;letter-spacing:.5em;padding-left:.5em;font-weight:500}
+
+  /* ---------- controls ---------- */
+  .ctl{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .hint{font-size:13px;color:#4a4d55;text-align:center}
+  button{font:600 14px 'Montserrat',Arial,sans-serif;padding:10px 22px;border:1px solid #fff;border-radius:999px;background:rgba(40,42,48,.9);color:#fff;cursor:pointer}
+  button.alt{background:rgba(255,255,255,.6);color:#222}
+  button:focus-visible{outline:3px solid #4a6cff;outline-offset:2px}
+
+  /* ---------- Monthly Leaderboard Prizes ---------- */
+  .prizes{width:var(--W);margin-top:28px}
+  .prizes h2{font-family:'Cinzel',serif;font-weight:600;font-size:clamp(22px,4vw,36px);letter-spacing:.04em;text-align:center;line-height:1.2;padding:0 .1em}
+  .prizes .lead{text-align:center;font-size:clamp(12px,1.6vw,14px);letter-spacing:.14em;margin:10px 0 28px;font-weight:500}
+  .pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:stretch}
+  .pcard{
+    position:relative;border-radius:22px;padding:26px 22px 24px;display:flex;flex-direction:column;gap:14px;
+    background:linear-gradient(135deg,rgba(255,255,255,.34),rgba(255,255,255,.08) 45%,rgba(255,255,255,.2));
+    -webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);
+    border:1.5px solid rgba(255,255,255,.8);
+    box-shadow:inset 0 0 22px rgba(255,255,255,.4),0 14px 34px rgba(40,48,66,.2);
+  }
+  .pcard.first{transform:translateY(-10px);box-shadow:inset 0 0 26px rgba(255,255,255,.55),0 20px 44px rgba(40,48,66,.28)}
+  .pcard .rank{font-family:'Pinyon Script',cursive;font-size:44px;line-height:1.3;padding:0 .2em}
+  .pcard .place{font-size:12px;letter-spacing:.3em;font-weight:600;margin-top:-6px}
+  .pcard .rule{height:1px;background:var(--rule)}
+  .pcard ul{list-style:none;display:flex;flex-direction:column;gap:11px}
+  .pcard li{font-size:14px;line-height:1.45;padding-left:22px;position:relative;font-weight:500}
+  .pcard li::before{content:"✦";position:absolute;left:0;top:0;font-size:11px;line-height:1.9}
+  .pnote{text-align:center;font-size:13px;margin-top:26px;letter-spacing:.04em;line-height:1.5}
+  @media (max-width:760px){
+    .pgrid{grid-template-columns:1fr;gap:16px}
+    .pcard.first{transform:none}
+  }
+
+  @media print{
+    .prizes{display:none}
+    @page{size:landscape;margin:0}
+    body{background:#fff;display:block;padding:0}
+    .stage{width:100%;perspective:none}
+    .card{transform:none!important}
+    .slab,.back,.shadow,.ctl,.hint{display:none}
+    .front{transform:none}
+  }
+body{padding:0;min-height:0;background:transparent;display:block}.stage{width:100%;cursor:default}.shadow{display:none}</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <div class="card" id="card">
+    <div class="shadow"></div>
+
+    <!-- FRONT -->
+    <div class="face front"><div class="in">
+      <div class="ribbon r1"><svg viewBox="0 0 100 100" preserveAspectRatio="none" fill="none">
+        <path d="M100 0 C60 10 25 35 0 100 L0 0 Z" fill="rgba(150,155,165,.2)"/>
+        <path d="M100 0 C60 10 25 35 0 100" stroke="rgba(255,255,255,1)" stroke-width="1.4" vector-effect="non-scaling-stroke"/>
+      </svg></div>
+      <div class="ribbon r2"><svg viewBox="0 0 100 100" preserveAspectRatio="none" fill="none">
+        <path d="M0 100 C40 90 75 65 100 0 L100 100 Z" fill="rgba(150,155,165,.2)"/>
+        <path d="M0 100 C40 90 75 65 100 0" stroke="rgba(255,255,255,1)" stroke-width="1.4" vector-effect="non-scaling-stroke"/>
+      </svg></div>
+
+      <div class="head">
+        <div class="logo-l metal">Devharbour ✦</div>
+        <div class="logo-r"><div class="t metal">LEADERBOARD</div><div class="h eng">MONTHLY REWARDS</div></div>
+      </div>
+
+      <div class="mid">
+        <div style="text-align:center">
+          <h1 class="title metal">CERTIFICATE</h1>
+          <div class="row"><i></i><div class="sub metal">Of Consistency</div><i></i></div>
+        </div>
+
+        <div style="text-align:center;width:100%">
+          <div class="presented eng">THIS CERTIFICATE IS PRESENTED TO</div>
+          <div class="name metal" id="name" contenteditable="false" spellcheck="false" aria-label="Participant name">Participant Name</div>
+        </div>
+
+        <div style="text-align:center;width:100%">
+          <div class="congrats eng">Congratulations on your consistency on the</div>
+          <div class="row" style="margin-top:1.2cqw"><i></i><div class="event eng">MONTHLY LEADERBOARD</div><i></i></div>
+        </div>
+      </div>
+
+      <div class="foot">
+        <div class="sigbox eng">SIGNATURE</div>
+        <div class="datebox eng"><div>DATE : <span id="date" contenteditable="false" spellcheck="false">DD / MM / YYYY</span></div></div>
+      </div>
+    </div></div>
+
+    <!-- BACK -->
+    <div class="face back"><div class="in">
+      <div class="ribbon r1"><svg viewBox="0 0 100 100" preserveAspectRatio="none" fill="none">
+        <path d="M100 0 C60 10 25 35 0 100 L0 0 Z" fill="rgba(150,155,165,.2)"/>
+        <path d="M100 0 C60 10 25 35 0 100" stroke="#fff" stroke-width="1.4" vector-effect="non-scaling-stroke"/>
+      </svg></div>
+      <div class="ribbon r2"><svg viewBox="0 0 100 100" preserveAspectRatio="none" fill="none">
+        <path d="M0 100 C40 90 75 65 100 0 L100 100 Z" fill="rgba(150,155,165,.2)"/>
+        <path d="M0 100 C40 90 75 65 100 0" stroke="#fff" stroke-width="1.4" vector-effect="non-scaling-stroke"/>
+      </svg></div>
+      <div class="bk">
+        <div class="big metal">Devharbour ✦</div>
+        <div class="row" style="width:30%"><i style="flex:1"></i></div>
+        <div class="tv metal">LEADERBOARD</div>
+        <div class="hk eng">MONTHLY REWARDS</div>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+</body></html>

@@ -4541,6 +4541,49 @@ requestAnimationFrame(loop);
 <!-- 4 LEARNING PATHS -->
 <!-- LEADERBOARD -->
 <section class="zs" id="leaderboard"><h2 class="zh">Climb the leaderboard.</h2>
+<style>
+#leaderboard .lb-prize-preview { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:28px; align-items:center; max-width:1024px; margin:0 auto 30px; padding:clamp(16px,3vw,28px); border:1px solid var(--line,#dcd3ee); border-radius:24px; background:var(--bg,#fff); }
+#leaderboard .lb-prize-preview iframe { display:block; width:100%; aspect-ratio:3/2; border:0; border-radius:12px; }
+#leaderboard .lb-prize-list h2 { margin-bottom:12px; }
+#leaderboard .lb-prize-list article { display:grid; grid-template-columns:42px 1fr; gap:10px; margin-block:8px; align-items:baseline; }
+#leaderboard .lb-prize-list .rank { font-weight:700; }
+#leaderboard .lb-prize-list ul { margin:0; padding-inline-start:18px; }
+#leaderboard .lb-prize-list .lead, #leaderboard .lb-prize-list .place, #leaderboard .lb-prize-list .rule { display:none; }
+#leaderboard .lb-prize-list .pnote { margin-top:12px; font-size:.85rem; }
+@media(max-width:700px) { #leaderboard .lb-prize-preview { grid-template-columns:minmax(0,1fr); } }
+</style>
+<div class="lb-prize-preview">
+  <iframe src="/assets/consistency-preview.html" title="Sample Certificate of Consistency" loading="lazy" sandbox></iframe>
+  <section class="lb-prize-list" aria-labelledby="prizes-title">
+  <h2 id="prizes-title" class="metal">Monthly Leaderboard Prizes</h2>
+  <p class="lead eng">TOP THREE EACH MONTH</p>
+  <div class="pgrid">
+    <article class="pcard first">
+      <div class="rank metal">1st</div><div class="place eng">FIRST PLACE</div><div class="rule"></div>
+      <ul class="eng">
+        <li>Certificate of Consistency</li>
+        <li>Featured Dev Harbour profile</li>
+        <li>Short mentor session</li>
+      </ul>
+    </article>
+    <article class="pcard">
+      <div class="rank metal">2nd</div><div class="place eng">SECOND PLACE</div><div class="rule"></div>
+      <ul class="eng">
+        <li>Certificate of Consistency</li>
+        <li>Featured project or profile</li>
+      </ul>
+    </article>
+    <article class="pcard">
+      <div class="rank metal">3rd</div><div class="place eng">THIRD PLACE</div><div class="rule"></div>
+      <ul class="eng">
+        <li>Certificate of Consistency</li>
+        <li>Leaderboard badge</li>
+      </ul>
+    </article>
+  </div>
+  <p class="pnote eng">Prizes are reviewed and awarded after the monthly standings close.</p>
+</section>
+</div>
 <div class="lbx zv"><div class="lbh"><span class="xlg"><img class="xli" data-logo alt="">DEV HARBOUR</span><div class="ltb" id="ltb" role="tablist"></div></div>
 <div class="lb-search-wrap">
   <span class="lb-search-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
@@ -5565,10 +5608,16 @@ requestAnimationFrame(loop);
           </dl>
           <button class="dh-cert-submit-btn" type="button" id="btn-download-mycert-pdf" onclick="downloadMyCertificatePdf()">Download PDF</button>
           <div class="dh-ii-share" aria-label="Share your certificate">
-            <a id="mycert-linkedin" target="_blank" rel="noopener noreferrer">Share on LinkedIn ↗</a>
+            <a id="mycert-linkedin" target="_blank" rel="noopener noreferrer" onclick="copyCertificateLinkedInCaption()">Share on LinkedIn ↗</a>
+            <button type="button" onclick="copyCertificateLinkedInCaption()">Copy LinkedIn caption</button>
             <button type="button" onclick="shareMyCertificate(false)">Copy verification link</button>
             <button type="button" id="mycert-share" onclick="shareMyCertificate(true)" hidden>More sharing options</button>
           </div>
+          <details id="mycert-linkedin-caption-panel">
+            <summary>LinkedIn caption</summary>
+            <textarea id="mycert-linkedin-caption" aria-label="Suggested LinkedIn caption" rows="6" readonly style="width:100%"></textarea>
+            <p>Paste the caption in LinkedIn. To tag the team, type @ and select each profile.</p>
+          </details>
         </div>
         <div class="dh-ii-actions">
           <a id="mycert-verify-link" hidden>Verify this certificate</a>
@@ -7395,7 +7444,9 @@ function renderAllLeaderboardViews() {
 
   if (myUser) {
     const myTotal = myLeaderboardTotal ?? myUser.totalXp ?? 0;
-    const rankText = myLeaderboardStanding ? '#' + myLeaderboardStanding.rank : 'Unranked';
+    const rankText = leaderboardState === 'loading' ? 'Loading…'
+      : leaderboardState === 'error' ? 'Unavailable'
+      : myLeaderboardStanding ? '#' + myLeaderboardStanding.rank : 'Unranked';
     const movement = myLeaderboardMove > 0 ? 'Up ' + myLeaderboardMove
       : myLeaderboardMove < 0 ? 'Down ' + Math.abs(myLeaderboardMove) : '';
     const periodLabel = currentLeaderboardTimeframe === 'All-time' ? 'All-time' : currentLeaderboardTimeframe;
@@ -7403,7 +7454,7 @@ function renderAllLeaderboardViews() {
       <span>${leaderboardCrystal}<b>${esc(myUser.fullName || myUser.username)}</b></span>
       <span class="lb-standing-stats">
         <span><b>${myTotal.toLocaleString('en-IN')} XP</b> total</span>
-        <span><b>${rankText}</b> · ${periodLabel}${movement ? ' · ' + movement : ''}</span>
+        <span>Your rank <b>${rankText}</b> · ${periodLabel}${movement ? ' · ' + movement : ''}</span>
         ${myLeaderboardStanding ? '<span>' + myLeaderboardStanding.xp.toLocaleString('en-IN') + ' XP in period</span>' : ''}
       </span>
     </div>`;
@@ -7469,7 +7520,7 @@ async function rl(k) {
     renderAllLeaderboardViews();
   }
   try {
-    const response = await fetch('/api/leaderboard?timeframe=' + encodeURIComponent(timeframe) + '&limit=30', {
+    const response = await fetch('/api/leaderboard?timeframe=' + encodeURIComponent(timeframe) + '&limit=8', {
       headers: getAuthHeaders(), cache: 'no-store', signal: request.signal
     });
     if (!response.ok) throw new Error('Leaderboard request failed');
@@ -7486,8 +7537,28 @@ async function rl(k) {
     currentLeaderboardList = [];
     myLeaderboardStanding = myLeaderboardTotal = myLeaderboardMove = null;
     leaderboardState = 'error';
+  } finally {
+    if (leaderboardRequest === request) leaderboardRequest = null;
   }
   renderAllLeaderboardViews();
+}
+
+const leaderboardSection = $('leaderboard');
+let leaderboardVisible = false;
+if (leaderboardSection) {
+  const observer = new IntersectionObserver(([entry]) => {
+    leaderboardVisible = entry.isIntersecting;
+    refreshVisibleLeaderboard();
+  });
+  observer.observe(leaderboardSection);
+  document.addEventListener('visibilitychange', refreshVisibleLeaderboard);
+  setInterval(refreshVisibleLeaderboard, 15000);
+}
+
+function refreshVisibleLeaderboard() {
+  if (leaderboardVisible && !document.hidden && !leaderboardRequest) {
+    void rl(currentLeaderboardTimeframe);
+  }
 }
 
 window.rl = rl;
@@ -11228,6 +11299,8 @@ async function loadMyCertificateView(openSignIn = false) {
   sample.hidden = false;
   $cert('mycert-envelope').hidden = false;
   $cert('mycert-linkedin').removeAttribute('href');
+  $cert('mycert-linkedin-caption').value = '';
+  $cert('mycert-linkedin-caption-panel').open = false;
   blank.hidden = false;
   $cert('mycert-heading').textContent = 'Claim your certificate';
   $cert('mycert-recipient-name').textContent = '';
@@ -11279,6 +11352,7 @@ async function loadMyCertificateView(openSignIn = false) {
     const shareUrl = new URL('https://www.linkedin.com/sharing/share-offsite/');
     shareUrl.searchParams.set('url', link.href);
     $cert('mycert-linkedin').href = shareUrl.href;
+    $cert('mycert-linkedin-caption').value = certificateLinkedInCaption(link.href);
     $cert('mycert-share').hidden = typeof navigator.share !== 'function';
     try {
       await drawMyCertificate(cert, blank, canvas, request.signal);
@@ -11295,6 +11369,34 @@ async function loadMyCertificateView(openSignIn = false) {
     if (!request.signal.aborted) message.textContent = 'The certificate preview could not be loaded. Please try again.';
   } finally {
     if (myCertificateRequest === request) claimForm.removeAttribute('aria-busy');
+  }
+}
+
+function certificateLinkedInCaption(verificationUrl) {
+  return [
+    'I’m excited to share that I earned a Certificate of Participation for Innovative India 2026, hosted by Dev Harbour!',
+    'Thank you to the Dev Harbour team for creating a space to explore new ideas, build solutions, and learn alongside other participants.',
+    'Follow Dev Harbour for upcoming hackathons, opportunities, and updates.\nhttps://www.linkedin.com/company/devharbour/',
+    'A special thank-you to the team:',
+    'Rujula Sharma\nhttps://www.linkedin.com/in/rujula-sharma-ba8a63427',
+    'Parth Gidde\nhttps://www.linkedin.com/in/parth-0a8335412',
+    'Dhairya Sharma\nhttps://www.linkedin.com/in/dhairya-sharma-150874419',
+    'Verify my certificate: ' + verificationUrl,
+    '#InnovativeIndia #DevHarbour #Hackathon'
+  ].join('\n\n');
+}
+
+async function copyCertificateLinkedInCaption() {
+  const caption = $cert('mycert-linkedin-caption');
+  if (!caption.value) return;
+  $cert('mycert-linkedin-caption-panel').open = true;
+  try {
+    await navigator.clipboard.writeText(caption.value);
+    toast('Caption copied. Paste it into your LinkedIn post.');
+  } catch {
+    caption.focus();
+    caption.select();
+    toast('Copy the selected caption and paste it into LinkedIn.');
   }
 }
 

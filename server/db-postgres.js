@@ -286,7 +286,7 @@ async function getLeaderboard(timeframe = 'All-time', limit = 20, viewerId = nul
   const res = await query(`
     WITH ranked AS (
     SELECT
-      (ROW_NUMBER() OVER (ORDER BY SUM(l.amount) DESC,
+      (ROW_NUMBER() OVER (ORDER BY COALESCE(SUM(l.amount), 0) DESC,
         COUNT(DISTINCT CASE WHEN l.source_type = 'challenge_pass' THEN l.reference_id END) DESC,
         u.created_at ASC, u.id ASC))::int AS rank,
       u.id as "userId",
@@ -307,7 +307,6 @@ async function getLeaderboard(timeframe = 'All-time', limit = 20, viewerId = nul
       AND coalesce(cast(settings.profile_public AS text), '1') IN ('1', 'true')
       AND lower(u.email) !~ '^(student|reader|coder|builder|intruder|settings|owner|otp_user|cert_user|new_google_user|existing_dev)_[0-9]{13}@devharbour[.]in$'
     GROUP BY u.id, u.username, u.full_name, u.avatar_url, u.streak_days, u.created_at
-    HAVING SUM(l.amount) > 0
     )
     SELECT * FROM ranked WHERE rank <= $1 OR "userId" = $2 ORDER BY rank;
   `, [limit, viewerId]);

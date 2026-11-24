@@ -812,7 +812,7 @@ function getLeaderboard(timeframe = 'All-time', limit = 20, viewerId = null) {
   const query = `
     WITH ranked AS (
     SELECT
-      ROW_NUMBER() OVER (ORDER BY SUM(l.amount) DESC,
+      ROW_NUMBER() OVER (ORDER BY COALESCE(SUM(l.amount), 0) DESC,
         COUNT(DISTINCT CASE WHEN l.source_type = 'challenge_pass' THEN l.reference_id END) DESC,
         u.created_at ASC, u.id ASC) AS rank,
       u.id as user_id,
@@ -832,7 +832,6 @@ function getLeaderboard(timeframe = 'All-time', limit = 20, viewerId = null) {
       AND EXISTS (SELECT 1 FROM email_verifications ev WHERE ev.user_id = u.id AND ev.verified_at IS NOT NULL)
       AND coalesce(cast(settings.profile_public AS text), '1') IN ('1', 'true')
     GROUP BY u.id
-    HAVING SUM(l.amount) > 0
     )
     SELECT * FROM ranked WHERE rank <= ? OR user_id = ? ORDER BY rank
   `;

@@ -4541,6 +4541,49 @@ requestAnimationFrame(loop);
 <!-- 4 LEARNING PATHS -->
 <!-- LEADERBOARD -->
 <section class="zs" id="leaderboard"><h2 class="zh">Climb the leaderboard.</h2>
+<style>
+#leaderboard .lb-prize-preview { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:28px; align-items:center; max-width:1024px; margin:0 auto 30px; padding:clamp(16px,3vw,28px); border:1px solid var(--line,#dcd3ee); border-radius:24px; background:var(--bg,#fff); }
+#leaderboard .lb-prize-preview iframe { display:block; width:100%; aspect-ratio:3/2; border:0; border-radius:12px; }
+#leaderboard .lb-prize-list h2 { margin-bottom:12px; }
+#leaderboard .lb-prize-list article { display:grid; grid-template-columns:42px 1fr; gap:10px; margin-block:8px; align-items:baseline; }
+#leaderboard .lb-prize-list .rank { font-weight:700; }
+#leaderboard .lb-prize-list ul { margin:0; padding-inline-start:18px; }
+#leaderboard .lb-prize-list .lead, #leaderboard .lb-prize-list .place, #leaderboard .lb-prize-list .rule { display:none; }
+#leaderboard .lb-prize-list .pnote { margin-top:12px; font-size:.85rem; }
+@media(max-width:700px) { #leaderboard .lb-prize-preview { grid-template-columns:minmax(0,1fr); } }
+</style>
+<div class="lb-prize-preview">
+  <iframe src="/assets/consistency-preview.html" title="Sample Certificate of Consistency" loading="lazy" sandbox></iframe>
+  <section class="lb-prize-list" aria-labelledby="prizes-title">
+  <h2 id="prizes-title" class="metal">Monthly Leaderboard Prizes</h2>
+  <p class="lead eng">TOP THREE EACH MONTH</p>
+  <div class="pgrid">
+    <article class="pcard first">
+      <div class="rank metal">1st</div><div class="place eng">FIRST PLACE</div><div class="rule"></div>
+      <ul class="eng">
+        <li>Certificate of Consistency</li>
+        <li>Featured Dev Harbour profile</li>
+        <li>Short mentor session</li>
+      </ul>
+    </article>
+    <article class="pcard">
+      <div class="rank metal">2nd</div><div class="place eng">SECOND PLACE</div><div class="rule"></div>
+      <ul class="eng">
+        <li>Certificate of Consistency</li>
+        <li>Featured project or profile</li>
+      </ul>
+    </article>
+    <article class="pcard">
+      <div class="rank metal">3rd</div><div class="place eng">THIRD PLACE</div><div class="rule"></div>
+      <ul class="eng">
+        <li>Certificate of Consistency</li>
+        <li>Leaderboard badge</li>
+      </ul>
+    </article>
+  </div>
+  <p class="pnote eng">Prizes are reviewed and awarded after the monthly standings close.</p>
+</section>
+</div>
 <div class="lbx zv"><div class="lbh"><span class="xlg"><img class="xli" data-logo alt="">DEV HARBOUR</span><div class="ltb" id="ltb" role="tablist"></div></div>
 <div class="lb-search-wrap">
   <span class="lb-search-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
@@ -7401,7 +7444,9 @@ function renderAllLeaderboardViews() {
 
   if (myUser) {
     const myTotal = myLeaderboardTotal ?? myUser.totalXp ?? 0;
-    const rankText = myLeaderboardStanding ? '#' + myLeaderboardStanding.rank : 'Unranked';
+    const rankText = leaderboardState === 'loading' ? 'Loading…'
+      : leaderboardState === 'error' ? 'Unavailable'
+      : myLeaderboardStanding ? '#' + myLeaderboardStanding.rank : 'Unranked';
     const movement = myLeaderboardMove > 0 ? 'Up ' + myLeaderboardMove
       : myLeaderboardMove < 0 ? 'Down ' + Math.abs(myLeaderboardMove) : '';
     const periodLabel = currentLeaderboardTimeframe === 'All-time' ? 'All-time' : currentLeaderboardTimeframe;
@@ -7409,7 +7454,7 @@ function renderAllLeaderboardViews() {
       <span>${leaderboardCrystal}<b>${esc(myUser.fullName || myUser.username)}</b></span>
       <span class="lb-standing-stats">
         <span><b>${myTotal.toLocaleString('en-IN')} XP</b> total</span>
-        <span><b>${rankText}</b> · ${periodLabel}${movement ? ' · ' + movement : ''}</span>
+        <span>Your rank <b>${rankText}</b> · ${periodLabel}${movement ? ' · ' + movement : ''}</span>
         ${myLeaderboardStanding ? '<span>' + myLeaderboardStanding.xp.toLocaleString('en-IN') + ' XP in period</span>' : ''}
       </span>
     </div>`;
@@ -7475,7 +7520,7 @@ async function rl(k) {
     renderAllLeaderboardViews();
   }
   try {
-    const response = await fetch('/api/leaderboard?timeframe=' + encodeURIComponent(timeframe) + '&limit=30', {
+    const response = await fetch('/api/leaderboard?timeframe=' + encodeURIComponent(timeframe) + '&limit=8', {
       headers: getAuthHeaders(), cache: 'no-store', signal: request.signal
     });
     if (!response.ok) throw new Error('Leaderboard request failed');
@@ -7492,8 +7537,28 @@ async function rl(k) {
     currentLeaderboardList = [];
     myLeaderboardStanding = myLeaderboardTotal = myLeaderboardMove = null;
     leaderboardState = 'error';
+  } finally {
+    if (leaderboardRequest === request) leaderboardRequest = null;
   }
   renderAllLeaderboardViews();
+}
+
+const leaderboardSection = $('leaderboard');
+let leaderboardVisible = false;
+if (leaderboardSection) {
+  const observer = new IntersectionObserver(([entry]) => {
+    leaderboardVisible = entry.isIntersecting;
+    refreshVisibleLeaderboard();
+  });
+  observer.observe(leaderboardSection);
+  document.addEventListener('visibilitychange', refreshVisibleLeaderboard);
+  setInterval(refreshVisibleLeaderboard, 15000);
+}
+
+function refreshVisibleLeaderboard() {
+  if (leaderboardVisible && !document.hidden && !leaderboardRequest) {
+    void rl(currentLeaderboardTimeframe);
+  }
 }
 
 window.rl = rl;
