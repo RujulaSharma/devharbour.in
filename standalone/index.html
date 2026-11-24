@@ -4379,6 +4379,7 @@ html[data-theme="dark"] .dh-submit-btn{color:#0b0b0b}
 .study-layout>*{min-width:0}
 @container(min-width:1120px){.study-layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(20rem,1fr);gap:1rem;align-items:start}.study-layout #study-together{width:100%;margin-top:0}}
 #study-together{margin:1rem auto;padding:clamp(1rem,3vw,2rem);max-width:72rem;background:var(--card,#fff);border:1px solid var(--line,#ded4ef);border-radius:1.4rem;overflow-wrap:anywhere}
+#site-notifications{position:relative} #site-notifications.has-unread::after{content:"";position:absolute;right:6px;top:5px;width:8px;height:8px;border-radius:50%;background:#7451ba} #site-notification-dialog::backdrop{background:#24193455}
 #study-together [hidden]{display:none!important}
 .study-heading,.study-actions,#study-members li{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap}
 .study-heading{justify-content:space-between}.study-heading h3{margin:0}
@@ -4414,6 +4415,15 @@ html[data-theme="dark"] .dh-submit-btn{color:#0b0b0b}
 </style>
 </head>
 <body>
+<dialog id="site-notification-dialog" aria-labelledby="site-notification-heading" style="margin:auto;width:min(90vw,28rem);padding:1.5rem;border:1px solid var(--line);border-radius:1.25rem;background:var(--card);color:var(--ink)">
+  <form method="dialog"><button type="submit" aria-label="Close notifications" style="float:right">✕</button></form>
+  <h2 id="site-notification-heading" style="margin-bottom:1rem">Notifications</h2>
+  <article>
+    <h3>You forgot Dev Harbour?</h3>
+    <p style="margin:.5rem 0 1rem">Yeah, of course you did. You used me for one focus session and disappeared. Meanie 😤</p>
+    <a href="/timer" style="text-decoration:underline;font-weight:700">Open Study Together →</a>
+  </article>
+</dialog>
 
 <!-- Anti-Spying & Security Warning Modal -->
 <div id="dh-security-modal" class="dh-sec-overlay" role="dialog" aria-modal="true" aria-labelledby="dh-sec-title">
@@ -4492,7 +4502,7 @@ html[data-theme="dark"] .dh-submit-btn{color:#0b0b0b}
   <a class="nav-link" href="/#leaderboard">Leaderboard</a>
   <a class="nav-link" href="/home" data-page="home">Dashboard</a>
 </div><div class="site-nav-actions">
-  <button type="button" class="ci" id="sb" aria-label="Search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button><button type="button" class="ci" data-t="No notifications yet" aria-label="Notifications"><svg class="i" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"/></svg></button>
+  <button type="button" class="ci" id="sb" aria-label="Search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button><button type="button" class="ci" id="site-notifications" onclick="openSiteNotifications()" aria-label="Notifications" aria-haspopup="dialog"><svg class="i" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"/></svg></button>
   <details class="nav-dropdown nav-account" name="site-navbar-menu">
     <summary><span class="av" id="header-avatar" aria-hidden="true" hidden></span><span class="nav-account-label">Sign in / Log in</span><span id="navbar-xp" class="nav-account-xp" hidden></span></summary>
     <ul class="nav-dropdown-links">
@@ -7804,7 +7814,25 @@ async function syncWorkspaceAssignment(assignment) {
   return { ...assignment, id: result.assignment.id };
 }
 
+function openSiteNotifications() {
+  if (!currentUser) return openAuthModal('login');
+  document.getElementById('site-notification-dialog').showModal();
+  try { localStorage.setItem('dh-notice-study-meme-' + currentUser.id, 'seen'); } catch {}
+  updateNotificationBadge();
+}
+
+function updateNotificationBadge() {
+  let unread = Boolean(currentUser);
+  try {
+    if (unread) unread = localStorage.getItem('dh-notice-study-meme-' + currentUser.id) !== 'seen';
+  } catch {}
+  const bell = document.getElementById('site-notifications');
+  bell.classList.toggle('has-unread', unread);
+  bell.setAttribute('aria-label', unread ? 'Notifications, 1 unread' : 'Notifications');
+}
+
 function updateAuthUI() {
+  updateNotificationBadge();
   window.renderProfilePage?.();
   const pendingEmail = readPendingVerificationEmail();
   window.refreshProjectLikesForAccount?.();
