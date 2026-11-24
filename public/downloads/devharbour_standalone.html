@@ -4046,10 +4046,10 @@ body{padding-top:var(--site-nav-height)}
 .hack-card--india{--hack-accent:#397a66}
 .hack-card--orca{--hack-accent:#347b9f}
 .hack-cover{position:relative;margin:8px 8px 0;border-radius:17px;aspect-ratio:2;overflow:hidden;background:#e9e0f0}
-.hack-cover--tatva{background:radial-gradient(ellipse at 45% 65%,#512548,#190d29 78%)}
-.hack-cover--india{background:radial-gradient(ellipse at 45% 65%,#375443,#10201d 78%)}
-.hack-cover--orca{background:radial-gradient(ellipse at 45% 65%,#204e66,#0e1b32 78%)}
-.hack-neurons{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;background:linear-gradient(90deg,#140b3038,transparent 40%,#140b3038)}
+.hack-cover--tatva{--neuron-ink:#502b85;background:radial-gradient(ellipse at center,#fcf8ff,#e4d4f5)}
+.hack-cover--india{--neuron-ink:#1b5a49;background:radial-gradient(ellipse at center,#fbfff7,#d6eee1)}
+.hack-cover--orca{--neuron-ink:#154d7a;background:radial-gradient(ellipse at center,#f7fdff,#d0e9fa)}
+.hack-neurons{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .hack-body{display:flex;flex:1;flex-direction:column;align-items:flex-start;gap:12px;padding:clamp(17px,2vw,24px)}
 .hack-body h3{font-size:1.2rem;line-height:1.25;letter-spacing:-.02em}
 .hack-body p{margin:0;line-height:1.5}
@@ -5345,7 +5345,7 @@ requestAnimationFrame(loop);
   <h2 class="hack-heading" id="hack-title">Hackathons</h2>
   <div class="hack-grid">
     <article class="hack-card">
-      <div class="hack-cover hack-cover--tatva"></div>
+      <div class="hack-cover hack-cover--tatva" data-name="TATVA"></div>
       <div class="hack-body">
         <span class="hack-status">Submission round</span>
         <h3>TATVA — National Hackathon 2026</h3>
@@ -5356,7 +5356,7 @@ requestAnimationFrame(loop);
       </div>
     </article>
     <article class="hack-card hack-card--india">
-      <div class="hack-cover hack-cover--india"></div>
+      <div class="hack-cover hack-cover--india" data-name="INNOVATE INDIA"></div>
       <div class="hack-body">
         <span class="hack-status">Round 2</span>
         <h3>Innovate India — Hackathon 2026</h3>
@@ -5367,7 +5367,7 @@ requestAnimationFrame(loop);
       </div>
     </article>
     <article class="hack-card hack-card--orca">
-      <div class="hack-cover hack-cover--orca"></div>
+      <div class="hack-cover hack-cover--orca" data-name="ORCATHON"></div>
       <div class="hack-body">
         <span class="hack-status hack-status--closed">Registration closed</span>
         <h3>ORCA CODERS: ORCATHON 2026</h3>
@@ -12451,78 +12451,58 @@ window.addEventListener('popstate', function() {
 </script>
 <script>
 (() => {
-  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   for (const cover of document.querySelectorAll('.hack-cover')) {
     const canvas = document.createElement('canvas');
+    const mask = document.createElement('canvas');
     const context = canvas.getContext('2d');
-    if (!context) continue;
+    const lettering = mask.getContext('2d', {willReadFrequently: true});
+    if (!context || !lettering) continue;
     canvas.className = 'hack-neurons';
     canvas.setAttribute('aria-hidden', 'true');
     cover.append(canvas);
 
     let width = 0, height = 0, frame = 0, visible = false;
     let pointer = null;
-    let neurons = [];
-    let dust = [];
-    const tint = cover.classList.contains('hack-cover--india') ? '255,243,188' :
-      cover.classList.contains('hack-cover--tatva') ? '250,215,255' : '177,246,255';
+    let dots = [];
+    const ink = getComputedStyle(cover).getPropertyValue('--neuron-ink').trim();
 
-    function draw(move) {
+    function draw(time, still = false) {
       context.clearRect(0, 0, width, height);
-      context.fillStyle = 'rgba(' + tint + ',0.43)';
-      for (const dot of dust) {
-        if (move) {
-          dot.x = (dot.x + dot.speed) % width;
-          const dx = dot.x - (pointer?.x ?? -1000);
-          const dy = dot.y - (pointer?.y ?? -1000);
+      for (const title of [false, true]) {
+        context.fillStyle = ink;
+        context.globalAlpha = title ? 0.94 : 0.24;
+        const settle = still ? 1 : Math.min(1, time);
+        const eased = 1 - Math.pow(1 - settle, 3);
+        for (const dot of dots) {
+          if (dot.title !== title) continue;
+          const x = title ? dot.startX + (dot.x - dot.startX) * eased :
+            (dot.x + time * 42 * dot.speed) % width;
+          const y = title ? dot.startY + (dot.y - dot.startY) * eased :
+            dot.y + Math.sin(time * 2 + dot.phase) * 4;
+          const dx = pointer ? x - pointer.x : 0;
+          const dy = pointer ? y - pointer.y : 0;
           const distance = Math.hypot(dx, dy);
-          const push = distance > 0 && distance < 64 ? (1 - distance / 64) * 32 : 0;
-          dot.offsetX += ((push ? dx / distance * push : 0) - dot.offsetX) * 0.14;
-          dot.offsetY += ((push ? dy / distance * push : 0) - dot.offsetY) * 0.14;
+          const force = distance > 0 && distance < 75 ? (1 - distance / 75) * 55 : 0;
+          dot.offsetX += ((force ? dx / distance * force : 0) - dot.offsetX) * .18;
+          dot.offsetY += ((force ? dy / distance * force : 0) - dot.offsetY) * .18;
+          context.fillRect(x + dot.offsetX, y + dot.offsetY, dot.size, dot.size);
         }
-        context.fillRect(dot.x + dot.offsetX, dot.y + dot.offsetY, dot.size, dot.size);
       }
-      for (const neuron of neurons) {
-        if (!move) continue;
-        const dx = pointer ? neuron.x - pointer.x : 0;
-        const dy = pointer ? neuron.y - pointer.y : 0;
-        const distance = Math.hypot(dx, dy);
-        const force = pointer && distance < 82 ? (1 - distance / 82) * 0.8 : 0;
-        neuron.vx = neuron.vx * 0.94 + (distance ? dx / distance * force : 0);
-        neuron.vy = neuron.vy * 0.94 + (distance ? dy / distance * force : 0);
-        neuron.x = (neuron.x + neuron.driftX + neuron.vx + width) % width;
-        neuron.y = (neuron.y + neuron.driftY + neuron.vy + height) % height;
-      }
-      for (let i = 0; i < neurons.length; i++) {
-        const a = neurons[i];
-        for (let j = i + 1; j < neurons.length; j++) {
-          const b = neurons[j];
-          const distance = Math.hypot(a.x - b.x, a.y - b.y);
-          if (distance >= 55) continue;
-          context.strokeStyle = 'rgba(' + tint + ',' + (1 - distance / 55) * 0.68 + ')';
-          context.beginPath();
-          context.moveTo(a.x, a.y);
-          context.lineTo(b.x, b.y);
-          context.stroke();
-        }
-        context.fillStyle = 'rgb(' + tint + ')';
-        context.beginPath();
-        context.shadowColor = 'rgb(' + tint + ')';
-        context.shadowBlur = 9;
-        context.arc(a.x, a.y, a.radius, 0, Math.PI * 2);
-        context.fill();
-        context.shadowBlur = 0;
-      }
+      context.globalAlpha = 1;
     }
 
-    function tick() {
+    let epoch = null;
+    function step(now) {
       frame = 0;
-      draw(true);
+      if (!visible || document.hidden || reducedMotion.matches || !width || !height) return;
+      epoch ??= now;
+      draw((now - epoch) / 1450);
       start();
     }
     function start() {
-      if (!frame && visible && !document.hidden && !reduceMotion.matches && width && height) {
-        frame = requestAnimationFrame(tick);
+      if (!frame && visible && !document.hidden && !reducedMotion.matches && width && height) {
+        frame = requestAnimationFrame(step);
       }
     }
     new ResizeObserver(() => {
@@ -12533,33 +12513,51 @@ window.addEventListener('popstate', function() {
       canvas.width = width * dpr;
       canvas.height = height * dpr;
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const dustCount = Math.min(7200, Math.max(1600, Math.round(width * height / 14)));
-      dust = Array.from({length: dustCount}, () => ({
-        x: Math.random() * width, y: Math.random() * height,
-        speed: 0.06 + Math.random() * 0.24, size: 0.42 + Math.random() * 0.72,
-        offsetX: 0, offsetY: 0
-      }));
-      const count = Math.min(125, Math.max(48, Math.round(width * height / 950)));
-      neurons = Array.from({length: count}, () => ({
-        x: Math.random() * width, y: Math.random() * height,
-        driftX: 0.2 + Math.random() * 0.36, driftY: (Math.random() - 0.5) * 0.42,
-        vx: 0, vy: 0, radius: 0.8 + Math.random() * 1.15
-      }));
-      draw(false);
+      mask.width = width;
+      mask.height = height;
+      const name = cover.dataset.name;
+      const fontSize = Math.min(width * .17, height * .52);
+      lettering.font = '900 ' + fontSize + 'px system-ui';
+      lettering.textAlign = 'center';
+      lettering.textBaseline = 'middle';
+      lettering.fillText(name, width / 2, height / 2, width * .88);
+      const pixels = lettering.getImageData(0, 0, width, height).data;
+      const gap = width < 290 ? 2 : 3;
+      dots = [];
+      for (let y = 0; y < height; y += gap) {
+        for (let x = 0; x < width; x += gap) {
+          if (pixels[(y * width + x) * 4 + 3] < 140) continue;
+          dots.push({title:true, x, y, startX:Math.random()*width, startY:Math.random()*height,
+            offsetX:0, offsetY:0, size:gap*.68});
+        }
+      }
+      const ambientCount = Math.min(5400, Math.round(width * height / 18));
+      for (let i = 0; i < ambientCount; i++) {
+        dots.push({title:false, x:Math.random()*width, y:Math.random()*height, speed:.35+Math.random(),
+          phase:Math.random()*Math.PI*2, offsetX:0, offsetY:0, size:.5+Math.random()*.6});
+      }
+      epoch = null;
+      draw(0, true);
       start();
     }).observe(cover);
     new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !visible) epoch = null;
       visible = entry.isIntersecting;
       start();
     }).observe(cover);
     cover.addEventListener('pointermove', event => {
-      if (event.pointerType === 'touch') return;
+      if (event.pointerType === 'touch' || reducedMotion.matches) return;
       const bounds = cover.getBoundingClientRect();
-      pointer = {x: event.clientX - bounds.left, y: event.clientY - bounds.top};
+      pointer = {x:event.clientX-bounds.left, y:event.clientY-bounds.top};
     });
     cover.addEventListener('pointerleave', () => { pointer = null; });
     document.addEventListener('visibilitychange', start);
-    reduceMotion.addEventListener('change', start);
+    reducedMotion.addEventListener('change', () => {
+      pointer = null;
+      for (const dot of dots) dot.offsetX = dot.offsetY = 0;
+      if (reducedMotion.matches && width && height) draw(0, true);
+      else start();
+    });
   }
 })();
 </script>
