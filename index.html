@@ -3993,15 +3993,10 @@ body{padding-top:var(--site-nav-height)}
 .hack-card--india{--hack-accent:#397a66}
 .hack-card--orca{--hack-accent:#347b9f}
 .hack-cover{position:relative;margin:8px 8px 0;border-radius:17px;aspect-ratio:2;overflow:hidden;background:#e9e0f0}
-.hack-cover--tatva{background:#85273c}
-.hack-cover--india{background:#ecd7b4}
-.hack-cover--orca{background:#172b46}
+.hack-cover--tatva{background:radial-gradient(ellipse at 45% 65%,#512548,#190d29 78%)}
+.hack-cover--india{background:radial-gradient(ellipse at 45% 65%,#375443,#10201d 78%)}
+.hack-cover--orca{background:radial-gradient(ellipse at 45% 65%,#204e66,#0e1b32 78%)}
 .hack-neurons{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;background:linear-gradient(90deg,#140b3038,transparent 40%,#140b3038)}
-.hack-cover img{display:block;width:100%;height:100%;object-fit:cover}
-@media(hover:hover) and (prefers-reduced-motion:no-preference){
-  .hack-cover img{transition:transform .35s ease}
-  .hack-card:hover .hack-cover img,.hack-card:focus-within .hack-cover img{transform:scale(1.035)}
-}
 .hack-body{display:flex;flex:1;flex-direction:column;align-items:flex-start;gap:12px;padding:clamp(17px,2vw,24px)}
 .hack-body h3{font-size:1.2rem;line-height:1.25;letter-spacing:-.02em}
 .hack-body p{margin:0;line-height:1.5}
@@ -5295,7 +5290,7 @@ requestAnimationFrame(loop);
   <h2 class="hack-heading" id="hack-title">Hackathons</h2>
   <div class="hack-grid">
     <article class="hack-card">
-      <div class="hack-cover hack-cover--tatva"><img src="/assets/hack-tatva-editorial.webp" alt="" width="960" height="480" loading="lazy" decoding="async"></div>
+      <div class="hack-cover hack-cover--tatva"></div>
       <div class="hack-body">
         <span class="hack-status">Submission round</span>
         <h3>TATVA — National Hackathon 2026</h3>
@@ -5306,7 +5301,7 @@ requestAnimationFrame(loop);
       </div>
     </article>
     <article class="hack-card hack-card--india">
-      <div class="hack-cover hack-cover--india"><img src="/assets/hack-india-editorial.webp" alt="" width="960" height="480" loading="lazy" decoding="async"></div>
+      <div class="hack-cover hack-cover--india"></div>
       <div class="hack-body">
         <span class="hack-status">Round 2</span>
         <h3>Innovate India — Hackathon 2026</h3>
@@ -5317,7 +5312,7 @@ requestAnimationFrame(loop);
       </div>
     </article>
     <article class="hack-card hack-card--orca">
-      <div class="hack-cover hack-cover--orca"><img src="/assets/hack-orca-editorial.webp" alt="" width="960" height="480" loading="lazy" decoding="async"></div>
+      <div class="hack-cover hack-cover--orca"></div>
       <div class="hack-body">
         <span class="hack-status hack-status--closed">Registration closed</span>
         <h3>ORCA CODERS: ORCATHON 2026</h3>
@@ -12138,8 +12133,8 @@ window.addEventListener('popstate', function() {
         for (let j = i + 1; j < neurons.length; j++) {
           const b = neurons[j];
           const distance = Math.hypot(a.x - b.x, a.y - b.y);
-          if (distance >= 47) continue;
-          context.strokeStyle = 'rgba(' + tint + ',' + (1 - distance / 47) * 0.56 + ')';
+          if (distance >= 55) continue;
+          context.strokeStyle = 'rgba(' + tint + ',' + (1 - distance / 55) * 0.68 + ')';
           context.beginPath();
           context.moveTo(a.x, a.y);
           context.lineTo(b.x, b.y);
@@ -12147,8 +12142,11 @@ window.addEventListener('popstate', function() {
         }
         context.fillStyle = 'rgb(' + tint + ')';
         context.beginPath();
+        context.shadowColor = 'rgb(' + tint + ')';
+        context.shadowBlur = 9;
         context.arc(a.x, a.y, a.radius, 0, Math.PI * 2);
         context.fill();
+        context.shadowBlur = 0;
       }
     }
 
@@ -12170,7 +12168,7 @@ window.addEventListener('popstate', function() {
       canvas.width = width * dpr;
       canvas.height = height * dpr;
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const count = Math.min(76, Math.max(30, Math.round(width * height / 1600)));
+      const count = Math.min(125, Math.max(48, Math.round(width * height / 950)));
       neurons = Array.from({length: count}, () => ({
         x: Math.random() * width, y: Math.random() * height,
         driftX: 0.2 + Math.random() * 0.36, driftY: (Math.random() - 0.5) * 0.42,

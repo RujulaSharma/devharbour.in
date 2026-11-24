@@ -4,9 +4,6 @@ const path = require('node:path');
 const root = path.join(__dirname, '..');
 const publicDir = path.join(root, 'public');
 const assets = {
-  'hack-tatva-editorial.webp': 'image/webp',
-  'hack-india-editorial.webp': 'image/webp',
-  'hack-orca-editorial.webp': 'image/webp',
   'devharbour-logo.png': 'image/png',
   'devharbour-icon-32.png': 'image/png',
   'devharbour-icon-96.png': 'image/png',
