@@ -4547,6 +4547,25 @@ requestAnimationFrame(loop);
 #leaderboard .lb-certificate-toggle { padding:8px 16px; border:1px solid var(--line,#dcd3ee); border-radius:99px; font-weight:700; font-size:13px; color:var(--mut); }
 #leaderboard .lb-certificate-toggle[aria-expanded="true"] { background:var(--ink); color:var(--bg); }
 #leaderboard .lb-prize-preview[hidden] { display:none; }
+#leaderboard .lb-meta { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; margin:14px 0; color:var(--mut); font-size:.8rem; }
+#leaderboard .lb-meta button { padding:6px 12px; border:1px solid var(--line); border-radius:99px; font-weight:700; }
+#leaderboard .lb-personal { display:grid; grid-template-columns:minmax(0,1fr) auto; }
+#leaderboard .lb-personal .lb-standing-stats { display:flex; flex-wrap:wrap; gap:10px 18px; }
+#leaderboard .lb-personal strong { display:block; color:var(--ink); font-size:1rem; }
+#leaderboard .lb-personal-heading { display:grid; gap:3px; }
+#leaderboard .pod .pd { min-width:0; padding:12px 8px; }
+#leaderboard .pod .pd.p1 { padding-block:18px; }
+#leaderboard .pod .pd b { overflow-wrap:anywhere; }
+@media(min-width:701px) {
+  #leaderboard .lb-podium-row { display:none; }
+  #leaderboard #lrows:not(:has(.lrw:not(.h,.lb-podium-row))) .h { display:none; }
+}
+@media(max-width:700px) {
+  #leaderboard .pod:has(.pd) { display:none; }
+  #leaderboard .lrw { grid-template-columns:30px minmax(0,1fr) auto; }
+  #leaderboard .lrw > :nth-child(3) { display:none; }
+  #leaderboard .lb-personal { grid-template-columns:1fr; }
+}
 #leaderboard .lb-prize-preview { margin-top:18px; }
 #leaderboard .lb-prize-preview iframe { display:block; width:100%; aspect-ratio:3/2; box-sizing:content-box; padding-bottom:0; height:calc((100cqw - 28px) * .36364 + 52px); border:0; border-radius:12px; }
 #leaderboard .lb-prize-list h2 { margin-bottom:12px; }
@@ -4595,6 +4614,10 @@ requestAnimationFrame(loop);
   <input class="lb-search-input" id="lb-search" type="search" placeholder="Search developer or handle…" aria-label="Search leaderboard">
 </div>
 <div id="lb-user-standing"></div>
+<div class="lb-meta">
+  <span id="lb-freshness">Loading standings…</span>
+  <button type="button" id="lb-refresh">Refresh</button>
+</div>
 <div class="pod" id="lpod"></div><div id="lrows"></div>
 <div class="lbf"><p class="zn">Rankings use XP recorded by Dev Harbour. Keep an activity streak by earning XP on consecutive days. The top three eligible performers each month receive the <strong>Certificate of Consistency</strong> after review.</p><button class="zb" type="button" data-go="practice">See how to earn XP</button></div></div></section>
 <section class="zs" id="learning"><h2 class="zh">Curiosity, with direction.</h2><div class="zq" id="zpath" data-st></div><p class="zn" style="margin-top:34px">Every path is free, start to finish.</p></section>
@@ -7237,6 +7260,7 @@ const leaderboardCrystal = '<span class="lb-crystal" aria-hidden="true"></span>'
 let currentLeaderboardTimeframe = 'Monthly';
 let currentLeaderboardList = [];
 let leaderboardState = 'loading';
+let leaderboardUpdatedAt = null;
 let myLeaderboardStanding = null;
 let myLeaderboardTotal = null;
 let myLeaderboardMove = null;
@@ -7361,9 +7385,25 @@ function renderAllLeaderboardViews() {
   // 1. Timeframe Tabs (#ltb on Landing Page, #lt in Practice)
   const ltb = $('ltb');
   if (ltb) {
-    ltb.innerHTML = LB_TIMEFRAMES.map(tf => 
-      `<button type="button" role="tab" aria-selected="${tf === currentLeaderboardTimeframe}" data-k="${tf}">${tf}</button>`
-    ).join('');
+    if (!ltb.firstElementChild) {
+      ltb.innerHTML = LB_TIMEFRAMES.map(tf =>
+        `<button type="button" role="tab" data-k="${tf}">${tf}</button>`
+      ).join('');
+    }
+    for (const tab of ltb.children) {
+      tab.setAttribute('aria-selected', String(tab.dataset.k === currentLeaderboardTimeframe));
+    }
+  }
+  const freshness = $('lb-freshness');
+  const refresh = $('lb-refresh');
+  if (freshness && refresh) {
+    const lastUpdate = leaderboardUpdatedAt
+      ? 'Last updated ' + leaderboardUpdatedAt.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', second: '2-digit' })
+      : '';
+    freshness.textContent = leaderboardState === 'error'
+      ? (lastUpdate ? 'Refresh failed · ' + lastUpdate : 'Standings unavailable')
+      : lastUpdate || 'Loading standings…';
+    refresh.textContent = leaderboardState === 'error' ? 'Retry' : 'Refresh';
   }
 
   // 2. Filter list for Landing Page
@@ -7410,14 +7450,13 @@ function renderAllLeaderboardViews() {
   }
 
   if (lrows) {
-    const rest = lbLandingFilter ? filteredLanding : filteredLanding.slice(3);
-    if (filteredLanding.length === 0 || (rest.length === 0 && top3.length > 0)) {
+    if (filteredLanding.length === 0) {
       lrows.innerHTML = '';
     } else {
       const myUser = getCurrentUser();
       lrows.innerHTML = '<div class="lrw h"><span>Rank</span><span>Developer</span><span>Challenges</span><span>XP</span></div>' +
-        rest.map((u, i) => {
-          const r = u.rank || (i + 4);
+        filteredLanding.map((u, i) => {
+          const r = u.rank || (i + 1);
           const rankStr = r < 10 ? `0${r}` : `${r}`;
           const name = u.fullName || u.username || 'Developer';
           const initial = (name || 'D')[0].toUpperCase();
@@ -7426,7 +7465,7 @@ function renderAllLeaderboardViews() {
           const devKey = u.userId || u.username || name;
           const streak = u.streakDays ?? 0;
           const isMe = myUser && (u.userId === myUser.id || u.username === myUser.username || u.id === myUser.id);
-          return `<div class="lrw${isMe ? ' is-me' : ''}" data-developer="${esc(devKey)}" onclick="openDeveloperModal(this.dataset.developer)">
+          return `<div class="lrw${isMe ? ' is-me' : ''}${!lbLandingFilter && i < 3 ? ' lb-podium-row' : ''}" data-developer="${esc(devKey)}" onclick="openDeveloperModal(this.dataset.developer)">
             <b>${rankStr}</b>
             <div class="dev-cell">
               <span class="dev-av">${esc(initial)}</span>
@@ -7450,17 +7489,17 @@ function renderAllLeaderboardViews() {
   if (myUser) {
     const myTotal = myLeaderboardTotal ?? myUser.totalXp ?? 0;
     const rankText = leaderboardState === 'loading' ? 'Loading…'
-      : leaderboardState === 'error' ? 'Unavailable'
+      : leaderboardState === 'error' && !myLeaderboardStanding ? 'Unavailable'
       : myLeaderboardStanding ? '#' + myLeaderboardStanding.rank : 'Unranked';
     const movement = myLeaderboardMove > 0 ? 'Up ' + myLeaderboardMove
       : myLeaderboardMove < 0 ? 'Down ' + Math.abs(myLeaderboardMove) : '';
     const periodLabel = currentLeaderboardTimeframe === 'All-time' ? 'All-time' : currentLeaderboardTimeframe;
-    bannerHtml = `<div class="lb-user-banner" role="status">
-      <span>${leaderboardCrystal}<b>${esc(myUser.fullName || myUser.username)}</b></span>
+    const periodXp = myLeaderboardStanding?.xp;
+    bannerHtml = `<div class="lb-user-banner lb-personal">
+      <span class="lb-personal-heading"><strong>Your Rank · ${rankText}</strong><span>${esc(myUser.fullName || myUser.username)}${movement ? ' · ' + movement : ''}</span></span>
       <span class="lb-standing-stats">
-        <span><b>${myTotal.toLocaleString('en-IN')} XP</b> total</span>
-        <span>Your rank <b>${rankText}</b> · ${periodLabel}${movement ? ' · ' + movement : ''}</span>
-        ${myLeaderboardStanding ? '<span>' + myLeaderboardStanding.xp.toLocaleString('en-IN') + ' XP in period</span>' : ''}
+        <span><strong>${periodXp == null ? '—' : periodXp.toLocaleString('en-IN') + ' XP'}</strong>${periodLabel}</span>
+        <span><strong>${myTotal.toLocaleString('en-IN')} XP</strong>Lifetime</span>
       </span>
     </div>`;
   } else {
@@ -7469,7 +7508,7 @@ function renderAllLeaderboardViews() {
       <button class="bt" type="button" onclick="openAuthModal()" style="padding:4px 12px;font-size:11.5px;border-radius:99px;background:var(--ink);color:var(--bg);cursor:pointer;">Sign In</button>
     </div>`;
   }
-  if (stEl) stEl.innerHTML = bannerHtml;
+  if (stEl && stEl !== document.activeElement?.closest('#lb-user-standing')) stEl.innerHTML = bannerHtml;
   // 6. Community Section (#zlb & #zav)
   const zav = $('zav');
   const zlb = $('zlb');
@@ -7516,9 +7555,10 @@ async function rl(k) {
   const previousRank = sameView ? myLeaderboardStanding?.rank : null;
   if (!sameView) {
     myLeaderboardStanding = myLeaderboardTotal = myLeaderboardMove = null;
+    leaderboardUpdatedAt = null;
   }
   leaderboardViewerId = viewerId;
-  if (timeframe !== currentLeaderboardTimeframe || !currentLeaderboardList.length) {
+  if (!sameView || !leaderboardUpdatedAt) {
     currentLeaderboardList = [];
     leaderboardState = 'loading';
     currentLeaderboardTimeframe = timeframe;
@@ -7536,17 +7576,18 @@ async function rl(k) {
     myLeaderboardStanding = data.currentUserRank ?? null;
     myLeaderboardTotal = data.currentUserTotalXp ?? null;
     myLeaderboardMove = previousRank && myLeaderboardStanding ? previousRank - myLeaderboardStanding.rank : null;
+    leaderboardUpdatedAt = new Date();
     leaderboardState = 'ready';
   } catch {
     if (request.signal.aborted) return;
-    currentLeaderboardList = [];
-    myLeaderboardStanding = myLeaderboardTotal = myLeaderboardMove = null;
     leaderboardState = 'error';
   } finally {
     if (leaderboardRequest === request) leaderboardRequest = null;
   }
   renderAllLeaderboardViews();
 }
+
+$('lb-refresh')?.addEventListener('click', () => void rl(currentLeaderboardTimeframe));
 
 const certificateToggle = $('lb-certificate-toggle');
 const certificatePanel = $('lb-certificate-panel');
@@ -7572,7 +7613,8 @@ if (leaderboardSection) {
 }
 
 function refreshVisibleLeaderboard() {
-  if (leaderboardVisible && !document.hidden && !leaderboardRequest) {
+  if (leaderboardVisible && !document.hidden && !leaderboardRequest
+    && !document.activeElement?.closest('#lpod, #lrows')) {
     void rl(currentLeaderboardTimeframe);
   }
 }
@@ -7600,7 +7642,7 @@ setTimeout(() => {
   }
 }, 50);
 
-rl('Weekly');
+rl(currentLeaderboardTimeframe);
 // Project Likes State & Real-Time Sync (Strictly real likes, NO fake counts)
 const likedProjects = new Set();
 const serverVotes = Object.create(null);
