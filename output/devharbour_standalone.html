@@ -4017,7 +4017,7 @@ body{padding-top:var(--site-nav-height)}
  #site-navbar .xli{width:30px;height:30px}
  .site-nav-actions{gap:4px}
  .site-nav-actions .ci,.site-nav-actions .av{width:32px;height:32px}
- #site-navbar .nav-account:has(.av:not([hidden])) .nav-account-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+ #site-navbar .nav-account-label{max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
  .site-nav-actions .mercury-pill{padding:4px}
  .site-nav-actions .mercury-orb,.site-nav-actions .mercury-name,.site-nav-actions .mercury-sep{display:none}
 }
@@ -4446,7 +4446,7 @@ html[data-theme="dark"] .dh-submit-btn{color:#0b0b0b}
 </div><div class="site-nav-actions">
   <button type="button" class="ci" id="sb" aria-label="Search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button><button type="button" class="ci" data-t="No notifications yet" aria-label="Notifications"><svg class="i" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"/></svg></button>
   <details class="nav-dropdown nav-account" name="site-navbar-menu">
-    <summary><span class="av" id="header-avatar" aria-hidden="true" hidden></span><span class="nav-account-label">My Account</span><span id="navbar-xp" class="nav-account-xp" hidden></span></summary>
+    <summary><span class="av" id="header-avatar" aria-hidden="true" hidden></span><span class="nav-account-label">Sign in / Log in</span><span id="navbar-xp" class="nav-account-xp" hidden></span></summary>
     <ul class="nav-dropdown-links">
       <li class="nav-dropdown-heading" aria-hidden="true">Your Dev Harbour</li>
       <li><a href="/home" data-page="home"><span class="nav-option-title">My Dashboard</span><span class="nav-option-description">View your personal overview.</span></a></li>
@@ -6203,6 +6203,11 @@ if (mobSbBackdrop) {
   mobSbBackdrop.addEventListener('click', () => setSidebarExpanded(false));
 }
 siteNavbar.addEventListener('click', (e) => {
+  if (e.target.closest('.nav-account summary') && !currentUser) {
+    e.preventDefault();
+    openAuthModal('login');
+    return;
+  }
   if (e.target.closest('a[data-page],a[href^="/#"],button[data-menu-action]') && siteNavbar.classList.contains('mob-open')) {
     siteNavbar.classList.remove('mob-open');
     if (mobNavToggle) mobNavToggle.setAttribute('aria-expanded', 'false');
@@ -7706,6 +7711,17 @@ function updateAuthUI() {
   const btn = document.getElementById('auth-header-btn');
   const av = document.getElementById('header-avatar');
   const greet = document.getElementById('greet-name');
+  const accountLabel = document.querySelector('#site-navbar .nav-account-label');
+  const accountMenu = document.querySelector('#site-navbar .nav-account');
+  const accountName = currentUser ? (currentUser.fullName || currentUser.username || 'Your account') : 'Sign in / Log in';
+  if (accountLabel) {
+    accountLabel.textContent = accountName;
+    accountLabel.title = accountName;
+  }
+  if (accountMenu) {
+    accountMenu.querySelector('summary').setAttribute('aria-label', currentUser ? accountName + ' — account menu' : 'Sign in / Log in');
+    if (!currentUser) accountMenu.open = false;
+  }
   const xp = document.getElementById('navbar-xp');
   xp.hidden = !currentUser;
   xp.textContent = currentUser ? (currentUser.totalXp || 0) + ' XP' : '';
