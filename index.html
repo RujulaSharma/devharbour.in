@@ -4576,7 +4576,7 @@ requestAnimationFrame(loop);
 #leaderboard .lb-prize-list .pnote { margin-top:12px; font-size:.85rem; }
 @media(max-width:700px) { #leaderboard .lb-prize-preview { grid-template-columns:minmax(0,1fr); } #leaderboard .lb-prize-preview iframe { height:calc(100cqw / 1.5 + 52px); } }
 </style>
-<div class="lbx zv"><div class="lbh"><span class="xlg"><img class="xli" data-logo alt="">DEV HARBOUR</span><div class="lb-toolbar"><span class="lb-certificate-toggle">Monthly standings</span><button type="button" class="lb-certificate-toggle" id="lb-certificate-toggle" aria-controls="lb-certificate-panel" aria-expanded="false">Certificate</button></div></div>
+<div class="lbx zv"><div class="lbh"><span class="xlg"><img class="xli" data-logo alt="">DEV HARBOUR</span><div class="lb-toolbar"><div class="ltb" id="ltb" role="tablist" aria-label="Leaderboard period"></div><button type="button" class="lb-certificate-toggle" id="lb-certificate-toggle" aria-controls="lb-certificate-panel" aria-expanded="false">Certificate</button></div></div>
 <div class="lb-prize-preview" id="lb-certificate-panel" hidden>
   <iframe data-src="/assets/consistency-preview.html" title="Sample Certificate of Consistency" sandbox="allow-scripts"></iframe>
   <section class="lb-prize-list" aria-labelledby="prizes-title">
@@ -7221,10 +7221,10 @@ try {
       const data = JSON.parse(e.data);
       if (data.type === 'challenge_solved' && data.data) {
         toast(`Live: ${data.data.username || 'A developer'} solved ${data.data.title}!`);
-        if (typeof rl === 'function') rl();
+        if (typeof rl === 'function') rl(currentLeaderboardTimeframe);
       } else if (data.type === 'user_joined' && data.message) {
         toast(`✦ ${data.message}`);
-        if (typeof rl === 'function') rl();
+        if (typeof rl === 'function') rl(currentLeaderboardTimeframe);
       }
     } catch(err) {}
   };
@@ -7255,8 +7255,9 @@ function safeHttpLink(value) {
 }
 
 /* ===== REAL DYNAMIC LEADERBOARD CONTROLLER ===== */
+const LB_TIMEFRAMES = ['Weekly', 'Monthly', 'All-time'];
 const leaderboardCrystal = '<span class="lb-crystal" aria-hidden="true"></span>';
-const currentLeaderboardTimeframe = 'Monthly';
+let currentLeaderboardTimeframe = 'Monthly';
 let currentLeaderboardList = [];
 let leaderboardState = 'loading';
 let leaderboardUpdatedAt = null;
@@ -7381,6 +7382,18 @@ document.addEventListener('keydown', e => {
 });
 
 function renderAllLeaderboardViews() {
+  // 1. Timeframe Tabs (#ltb on Landing Page, #lt in Practice)
+  const ltb = $('ltb');
+  if (ltb) {
+    if (!ltb.firstElementChild) {
+      ltb.innerHTML = LB_TIMEFRAMES.map(tf =>
+        `<button type="button" role="tab" data-k="${tf}">${tf}</button>`
+      ).join('');
+    }
+    for (const tab of ltb.children) {
+      tab.setAttribute('aria-selected', String(tab.dataset.k === currentLeaderboardTimeframe));
+    }
+  }
   const freshness = $('lb-freshness');
   const refresh = $('lb-refresh');
   if (freshness && refresh) {
@@ -7480,7 +7493,7 @@ function renderAllLeaderboardViews() {
       : myLeaderboardStanding ? '#' + myLeaderboardStanding.rank : 'Unranked';
     const movement = myLeaderboardMove > 0 ? 'Up ' + myLeaderboardMove
       : myLeaderboardMove < 0 ? 'Down ' + Math.abs(myLeaderboardMove) : '';
-    const periodLabel = currentLeaderboardTimeframe;
+    const periodLabel = currentLeaderboardTimeframe === 'All-time' ? 'All-time' : currentLeaderboardTimeframe;
     const periodXp = myLeaderboardStanding?.xp;
     bannerHtml = `<div class="lb-user-banner lb-personal">
       <span class="lb-personal-heading"><strong>Your Rank · ${rankText}</strong><span>${esc(myUser.fullName || myUser.username)}${movement ? ' · ' + movement : ''}</span></span>
@@ -7527,12 +7540,14 @@ function leaderboardEmptyMessage(search) {
   if (leaderboardState === 'loading') return 'Loading rankings…';
   if (leaderboardState === 'error') return 'Rankings are temporarily unavailable.';
   if (search) return 'No developers match your search.';
-  return 'No public rankings for this month yet.';
+  return currentLeaderboardTimeframe === 'All-time'
+    ? 'No public rankings yet. Earn XP from a focus session or completed assignment to get ranked.'
+    : 'No public rankings for this period yet. <button class="bt" type="button" onclick="rl(&quot;All-time&quot;)">View all-time rankings</button>';
 }
 
-async function rl() {
+async function rl(k) {
   const viewerId = getCurrentUser()?.id || null;
-  const timeframe = currentLeaderboardTimeframe;
+  const timeframe = LB_TIMEFRAMES.includes(k) ? k : currentLeaderboardTimeframe;
   leaderboardRequest?.abort();
   const request = new AbortController();
   leaderboardRequest = request;
@@ -7546,6 +7561,7 @@ async function rl() {
   if (!sameView || !leaderboardUpdatedAt) {
     currentLeaderboardList = [];
     leaderboardState = 'loading';
+    currentLeaderboardTimeframe = timeframe;
     renderAllLeaderboardViews();
   }
   try {
@@ -7571,7 +7587,7 @@ async function rl() {
   renderAllLeaderboardViews();
 }
 
-$('lb-refresh')?.addEventListener('click', () => void rl());
+$('lb-refresh')?.addEventListener('click', () => void rl(currentLeaderboardTimeframe));
 
 const certificateToggle = $('lb-certificate-toggle');
 const certificatePanel = $('lb-certificate-panel');
@@ -7599,7 +7615,7 @@ if (leaderboardSection) {
 function refreshVisibleLeaderboard() {
   if (leaderboardVisible && !document.hidden && !leaderboardRequest
     && !document.activeElement?.closest('#lpod, #lrows')) {
-    void rl();
+    void rl(currentLeaderboardTimeframe);
   }
 }
 
@@ -7614,9 +7630,19 @@ setTimeout(() => {
       renderAllLeaderboardViews();
     });
   }
+  const tb = $('ltb');
+  if (tb) {
+    tb.addEventListener('click', e => {
+      const b = e.target.closest('[data-k]');
+      if (b) {
+        e.stopPropagation();
+        rl(b.dataset.k);
+      }
+    });
+  }
 }, 50);
 
-rl();
+rl(currentLeaderboardTimeframe);
 // Project Likes State & Real-Time Sync (Strictly real likes, NO fake counts)
 const likedProjects = new Set();
 const serverVotes = Object.create(null);
@@ -8345,10 +8371,10 @@ try {
         }
       } else if (data.type === 'challenge_solved' && data.data) {
         toast(`Live: ${data.data.username || 'A developer'} solved ${data.data.title}!`);
-        if (typeof rl === 'function') rl();
+        if (typeof rl === 'function') rl(currentLeaderboardTimeframe);
       } else if (data.type === 'user_joined' && data.message) {
         toast(`✦ ${data.message}`);
-        if (typeof rl === 'function') rl();
+        if (typeof rl === 'function') rl(currentLeaderboardTimeframe);
       }
     } catch(err) {}
   };
@@ -10296,7 +10322,7 @@ if(!RM){const st=$('zpst');let q=0;intro.addEventListener('scroll',()=>{if(q)ret
 </script>
 <script>
 if (typeof rl === 'function') {
-  rl();
+  rl(currentLeaderboardTimeframe);
 }
 </script>
 <script>
@@ -11849,7 +11875,7 @@ window.onGoogleCredentialResponse = async function(response) {
       updateAuthUI(data.user);
       closeAuthModal();
       toast(`Signed in with Google as ${data.user.fullName || data.user.username}!`);
-      if (typeof rl === 'function') rl();
+      if (typeof rl === 'function') rl(currentLeaderboardTimeframe);
     } else {
       toast(data.error || 'Google sign-in failed. Please try again.');
     }
