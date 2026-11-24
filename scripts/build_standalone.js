@@ -20,7 +20,9 @@ const source = fs.readFileSync(path.join(publicDir, 'index.html'), 'utf8').repla
   '<script src="/assets/privacy-choices.js" defer></script>',
   () => '<script>' + fs.readFileSync(path.join(publicDir, 'assets', 'privacy-choices.js'), 'utf8') + '</script>'
 );
-const html = source.replace(assetUrl, (reference, quote, file) => {
+const bundledSource = source.replace('<script src="/assets/study-together.js"></script>',
+  () => '<script>' + fs.readFileSync(path.join(publicDir, 'assets', 'study-together.js'), 'utf8') + '</script>');
+const html = bundledSource.replace(assetUrl, (reference, quote, file) => {
   if (!assets[file]) return reference;
   const bytes = fs.readFileSync(path.join(publicDir, 'assets', file));
   return quote + 'data:' + assets[file] + ';base64,' + bytes.toString('base64') + quote;
