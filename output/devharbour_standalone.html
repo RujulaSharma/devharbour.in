@@ -4388,18 +4388,29 @@ html[data-theme="dark"] .dh-submit-btn{color:#0b0b0b}
 #study-together button{background:#302345;color:white;padding:.55rem .85rem;border:0;border-radius:.7rem;font:inherit;cursor:pointer}
 .study-actions{margin-top:.8rem}#study-members{list-style:none;padding:0}#study-members li{padding:.5rem 0;border-bottom:1px solid var(--line,#ddd)}#study-members strong{margin-right:auto}#study-message:empty{display:none}
 
-#study-together{background:radial-gradient(ellipse at 100% 0%,#dfd1fa 0%,transparent 48%),linear-gradient(145deg,#fcfaff,#f2ebfc);border-color:#ddd0f1;box-shadow:0 16px 36px #35205e12;color:#271a3d}
-.study-label{display:block;color:#654690;font-size:.78rem;font-weight:700;margin-bottom:.25rem}
-#study-together .study-heading{justify-content:space-between;align-items:center;gap:.65rem;margin-bottom:1rem}
-#study-heading{font-size:clamp(1.25rem,3vw,1.65rem);line-height:1.15;margin:0}
-#study-count{display:inline-flex;align-items:center;gap:.45rem;padding:.36rem .65rem;border-radius:99px;background:#fff;color:#285747;font-size:.78rem;font-weight:700}
-#study-count::before{content:"";width:.45rem;height:.45rem;border-radius:50%;background:#16815d}
-#study-together .study-session-card,#study-entry form,#study-group{padding:1rem;border:1px solid #e2d7f1;border-radius:1rem;background:#fff}
-#study-together .study-session-card{margin-bottom:.8rem}
-#study-progress{margin:0 0 .65rem;font-weight:700;color:#5b3c84}
-#study-together details{margin-top:.7rem}
-#study-together #study-join button,#study-together #study-rotate,#study-together #study-leave{background:#eee6f8;color:#39235b}
+
+#study-together{position:relative;isolation:isolate;overflow:hidden;background:#fffdfb;color:#29243b;border:1px solid #e8e1ed;border-radius:2rem;box-shadow:0 20px 60px #392b5614}
+#study-together::before{content:"";position:absolute;z-index:-1;inset:-6rem -4rem auto;height:19rem;pointer-events:none;background:radial-gradient(ellipse at 55% 75%,#ffffff 32%,#f9f6fa 49%,#e8ddf2 64%,#f9f5fa 78%);border-radius:42% 58% 65% 35% / 56% 45% 55% 44%;transform:rotate(-12deg);box-shadow:0 18px 35px #d6c9e74a,inset 0 -9px 18px #fff}
+#study-together .study-heading{align-items:flex-start;gap:.65rem;margin-bottom:1.4rem}
+.study-label{display:block;margin-bottom:.45rem;color:#655473;font-size:.76rem;font-weight:700}
+#study-heading{font-size:clamp(1.55rem,3vw,2.2rem);letter-spacing:-.045em;line-height:1.05}
+#study-count{display:inline-flex;align-items:center;gap:.4rem;background:#fff;color:#374d45;font-size:.75rem;font-weight:700;box-shadow:0 2px 12px #3725480d}
+#study-count::before{content:"";width:.45rem;height:.45rem;border-radius:50%;background:#248460}
+.study-session-card{padding-bottom:1rem;margin-bottom:1rem;border-bottom:1px solid #eae4ee}
+#study-progress{margin:0 0 .8rem;color:#514162;font-size:.88rem;font-weight:700}
+#study-together input:not([type=checkbox]){display:block;width:100%;min-width:0;min-height:44px;padding:.65rem .8rem;border:1px solid #ded6e7;border-radius:.8rem;background:#fff;color:#29243b;font:inherit}
+#study-together label,#study-together summary{font-size:.85rem;font-weight:600}
+#study-together details{margin-top:.65rem}
+#study-together summary{cursor:pointer;color:#655473}
+.study-entry{display:block}
+.study-switch{display:flex;gap:.25rem;background:#eee8f3;padding:.25rem;border-radius:1rem;margin-bottom:.85rem}
+#study-together .study-switch button{flex:1;min-width:0;background:transparent;color:#5e506c;box-shadow:none}
+#study-together .study-switch button[aria-pressed=true]{background:#fff;color:#302345;box-shadow:0 2px 8px #39304c16}
+#study-together button{min-height:44px;transition:background-color .16s ease,box-shadow .16s ease}
+#study-together button:hover{box-shadow:0 3px 12px #32254835}
+#study-together button:disabled{opacity:.65;cursor:wait}
 #study-together :focus-visible{outline:2px solid #7149a3;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){#study-together button{transition:none}}
 </style>
 </head>
 <body>
@@ -5300,8 +5311,9 @@ requestAnimationFrame(loop);
     <details><summary>Recent sessions</summary><ul id="study-history"></ul></details>
     </div>
     <div id="study-entry" class="study-entry">
+      <div class="study-switch" role="group" aria-label="Group setup"><button type="button" id="study-show-create" aria-pressed="true">Create</button><button type="button" id="study-show-join" aria-pressed="false">Join with invite</button></div>
       <form id="study-create"><label for="study-new-name">Group name</label><input id="study-new-name" required maxlength="60" placeholder="Evening study group"><button>Create group</button></form>
-      <form id="study-join"><label for="study-invite">Invite link or code</label><input id="study-invite" required autocomplete="off"><button>Join group</button></form>
+      <form id="study-join" hidden><label for="study-invite">Invite link or code</label><input id="study-invite" required autocomplete="off"><button>Join group</button></form>
     </div>
     <section id="study-group" hidden>
       <h4 id="study-name"></h4><ul id="study-members"></ul>
@@ -12256,6 +12268,15 @@ window.addEventListener('popstate', function() {
   let seen=new Set(), rosterKey='', established=false;
   const invite=new URLSearchParams(location.hash.slice(1)).get('study-invite') || new URLSearchParams(location.search).get('study-invite');
   if(invite && /^[\da-f-]{36}$/i.test(invite)) byId('invite').value=invite;
+  function showGroupForm(joining){
+    byId('create').hidden=joining;
+    byId('join').hidden=!joining;
+    byId('show-create').setAttribute('aria-pressed',String(!joining));
+    byId('show-join').setAttribute('aria-pressed',String(joining));
+  }
+  byId('show-create').onclick=()=>showGroupForm(false);
+  byId('show-join').onclick=()=>showGroupForm(true);
+  showGroupForm(Boolean(byId('invite').value));
   async function api(path,body) {
     const res=await fetch('/api/study/'+path,{method:body?'POST':'GET',headers:getAuthHeaders(),credentials:'same-origin',
       body:body?JSON.stringify(body):undefined,cache:'no-store'});
@@ -12367,9 +12388,12 @@ window.addEventListener('popstate', function() {
   window.studyTogether={timer,get session(){return session;}};
   async function groupAction(body){
     if(busy)return;busy=true;revision++;
+    const buttons=[...byId('entry').querySelectorAll('button')];
+    buttons.forEach(button=>{button.disabled=true;});
+    if(body.action==='create'||body.action==='join')message(body.action==='create'?'Creating group…':'Joining group…');
     try{await api('group',body);message('');}
     catch(e){message(e.message);}
-    finally{busy=false;refresh();}
+    finally{busy=false;buttons.forEach(button=>{button.disabled=false;});refresh();}
   }
   byId('create').onsubmit=e=>{e.preventDefault();groupAction({action:'create',name:byId('new-name').value});};
   byId('join').onsubmit=e=>{

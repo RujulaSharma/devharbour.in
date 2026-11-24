@@ -9,6 +9,15 @@
   let seen=new Set(), rosterKey='', established=false;
   const invite=new URLSearchParams(location.hash.slice(1)).get('study-invite') || new URLSearchParams(location.search).get('study-invite');
   if(invite && /^[\da-f-]{36}$/i.test(invite)) byId('invite').value=invite;
+  function showGroupForm(joining){
+    byId('create').hidden=joining;
+    byId('join').hidden=!joining;
+    byId('show-create').setAttribute('aria-pressed',String(!joining));
+    byId('show-join').setAttribute('aria-pressed',String(joining));
+  }
+  byId('show-create').onclick=()=>showGroupForm(false);
+  byId('show-join').onclick=()=>showGroupForm(true);
+  showGroupForm(Boolean(byId('invite').value));
   async function api(path,body) {
     const res=await fetch('/api/study/'+path,{method:body?'POST':'GET',headers:getAuthHeaders(),credentials:'same-origin',
       body:body?JSON.stringify(body):undefined,cache:'no-store'});
@@ -120,9 +129,12 @@
   window.studyTogether={timer,get session(){return session;}};
   async function groupAction(body){
     if(busy)return;busy=true;revision++;
+    const buttons=[...byId('entry').querySelectorAll('button')];
+    buttons.forEach(button=>{button.disabled=true;});
+    if(body.action==='create'||body.action==='join')message(body.action==='create'?'Creating group…':'Joining group…');
     try{await api('group',body);message('');}
     catch(e){message(e.message);}
-    finally{busy=false;refresh();}
+    finally{busy=false;buttons.forEach(button=>{button.disabled=false;});refresh();}
   }
   byId('create').onsubmit=e=>{e.preventDefault();groupAction({action:'create',name:byId('new-name').value});};
   byId('join').onsubmit=e=>{
