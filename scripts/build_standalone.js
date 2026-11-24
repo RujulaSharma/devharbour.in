@@ -4,6 +4,9 @@ const path = require('node:path');
 const root = path.join(__dirname, '..');
 const publicDir = path.join(root, 'public');
 const assets = {
+  'devharbour-logo.png': 'image/png',
+  'devharbour-icon-32.png': 'image/png',
+  'devharbour-icon-180.png': 'image/png',
   'innovative_india_certificate.webp': 'image/webp',
   'eb-garamond-bold.ttf': 'font/ttf',
   'noto-sans-devanagari.ttf': 'font/ttf',
