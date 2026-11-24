@@ -4386,7 +4386,21 @@ html[data-theme="dark"] .dh-submit-btn{color:#0b0b0b}
 .study-entry{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,15rem),1fr));gap:1rem}
 .study-entry form{display:grid;gap:.5rem}.study-entry input{min-width:0;padding:.6rem;border:1px solid #c8bfda;border-radius:.55rem}
 #study-together button{background:#302345;color:white;padding:.55rem .85rem;border:0;border-radius:.7rem;font:inherit;cursor:pointer}
-.study-actions{margin-top:.8rem}#study-members{list-style:none;padding:0}#study-members li{padding:.5rem 0;border-bottom:1px solid var(--line,#ddd)}#study-members strong{margin-right:auto}#study-message:empty{display:none}</style>
+.study-actions{margin-top:.8rem}#study-members{list-style:none;padding:0}#study-members li{padding:.5rem 0;border-bottom:1px solid var(--line,#ddd)}#study-members strong{margin-right:auto}#study-message:empty{display:none}
+
+#study-together{background:radial-gradient(ellipse at 100% 0%,#dfd1fa 0%,transparent 48%),linear-gradient(145deg,#fcfaff,#f2ebfc);border-color:#ddd0f1;box-shadow:0 16px 36px #35205e12;color:#271a3d}
+.study-label{display:block;color:#654690;font-size:.78rem;font-weight:700;margin-bottom:.25rem}
+#study-together .study-heading{justify-content:space-between;align-items:center;gap:.65rem;margin-bottom:1rem}
+#study-heading{font-size:clamp(1.25rem,3vw,1.65rem);line-height:1.15;margin:0}
+#study-count{display:inline-flex;align-items:center;gap:.45rem;padding:.36rem .65rem;border-radius:99px;background:#fff;color:#285747;font-size:.78rem;font-weight:700}
+#study-count::before{content:"";width:.45rem;height:.45rem;border-radius:50%;background:#16815d}
+#study-together .study-session-card,#study-entry form,#study-group{padding:1rem;border:1px solid #e2d7f1;border-radius:1rem;background:#fff}
+#study-together .study-session-card{margin-bottom:.8rem}
+#study-progress{margin:0 0 .65rem;font-weight:700;color:#5b3c84}
+#study-together details{margin-top:.7rem}
+#study-together #study-join button,#study-together #study-rotate,#study-together #study-leave{background:#eee6f8;color:#39235b}
+#study-together :focus-visible{outline:2px solid #7149a3;outline-offset:3px}
+</style>
 </head>
 <body>
 
@@ -5276,13 +5290,15 @@ requestAnimationFrame(loop);
     </div>
   </div>
 <section id="study-together" aria-labelledby="study-heading" class="c">
-  <div class="study-heading"><h3 id="study-heading">Study Together</h3><span id="study-count">Checking active timers…</span></div>
+  <div class="study-heading"><div><span class="study-label">Private study group</span><h3 id="study-heading">Study Together</h3></div><span id="study-count">Checking active timers…</span></div>
   <p id="study-guest">Sign in to start a private study group and see when friends are focusing.</p>
   <div id="study-signed" hidden>
+    <div class="study-session-card">
     <p id="study-progress"></p><p id="study-admin" hidden></p>
     <label for="study-subject">Private study subject (optional)</label> <input id="study-subject" maxlength="80" placeholder="What are you studying?">
     <button id="study-finish" hidden>Finish session</button>
     <details><summary>Recent sessions</summary><ul id="study-history"></ul></details>
+    </div>
     <div id="study-entry" class="study-entry">
       <form id="study-create"><label for="study-new-name">Group name</label><input id="study-new-name" required maxlength="60" placeholder="Evening study group"><button>Create group</button></form>
       <form id="study-join"><label for="study-invite">Invite link or code</label><input id="study-invite" required autocomplete="off"><button>Join group</button></form>
@@ -7254,6 +7270,8 @@ function safeHttpLink(value) {
   if (!value || typeof value !== 'string') return '';
   try {
     const url = new URL(value);
+    if (['github.com', 'www.github.com'].includes(url.hostname.toLowerCase()) &&
+        decodeURIComponent(url.pathname).split('/').filter(Boolean)[0]?.toLowerCase() === 'rujulasharma') return '';
     return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : '';
   } catch {
     return '';
@@ -10218,7 +10236,7 @@ document.addEventListener('click',e=>{
 <script>
 /* ===== LANDING SECTIONS ===== */
 /* EDIT HERE: leave '' for any URL you don't have yet — the button then shows a "not set" message instead of a fake link. */
-const LINKS={orcathon:'https://unstop.com/o/vON6wtS?lb=useupllP&utm_medium=Share&utm_source=online_coding_challenge&utm_campaign=Parthhyg96055',tatva:'https://unstop.com/o/9sLW7l8?lb=useupllP&utm_medium=Share&utm_source=online_coding_challenge&utm_campaign=Parthhyg96055',instagram:'https://www.instagram.com/devharbour.official',community:'https://chat.whatsapp.com/Dt87L7lU5SOBSfKDKuNS8s',about:'',contact:'',github:'',linkedin:'https://www.linkedin.com/company/devharbour/',terms:'',poster:''};
+const LINKS={orcathon:'https://unstop.com/o/vON6wtS?lb=useupllP&utm_medium=Share&utm_source=online_coding_challenge&utm_campaign=Parthhyg96055',tatva:'https://unstop.com/o/9sLW7l8?lb=useupllP&utm_medium=Share&utm_source=online_coding_challenge&utm_campaign=Parthhyg96055',instagram:'https://www.instagram.com/devharbour.official',community:'https://chat.whatsapp.com/Dt87L7lU5SOBSfKDKuNS8s',about:'',contact:'',linkedin:'https://www.linkedin.com/company/devharbour/',terms:'',poster:''};
 const RM=matchMedia('(prefers-reduced-motion:reduce)').matches;
 document.querySelectorAll('[data-lk]').forEach(a=>{const u=LINKS[a.dataset.lk];if(u){a.href=u;a.target='_blank';a.rel='noopener noreferrer'}
 a.addEventListener('click',e=>{e.stopPropagation();if(!u){e.preventDefault();toast(a.textContent.replace(' ↗','')+' link isn’t set yet — add it in LINKS')}});
@@ -10289,7 +10307,7 @@ renderAllLeaderboardViews();
 $('zfl').src=document.querySelector('.xlg .xli').src;
 const syncLogos=()=>{const src=$('zfl').src;document.querySelectorAll('[data-logo]').forEach(i=>{if(!i.src)i.src=src;});};
 syncLogos();document.addEventListener('DOMContentLoaded',syncLogos);
-if ($('zfn')) $('zfn').innerHTML=[['about','About'],['certificate','Certificate'],['contact','Contact'],['github','GitHub'],['linkedin','LinkedIn'],['terms','Terms']].map(x=>x[0]=='about'?'<a href="#" data-sc="#about">About</a>':x[0]=='certificate'?'<a href="/my-certificate" data-go="my-certificate">Certificate</a>':ph(x[0],x[1])).join('');
+if ($('zfn')) $('zfn').innerHTML=[['about','About'],['certificate','Certificate'],['contact','Contact'],['linkedin','LinkedIn'],['terms','Terms']].map(x=>x[0]=='about'?'<a href="#" data-sc="#about">About</a>':x[0]=='certificate'?'<a href="/my-certificate" data-go="my-certificate">Certificate</a>':ph(x[0],x[1])).join('');
 /* links that point nowhere stay inert; data-go / data-sc work */
 LD.addEventListener('click',e=>{const a=e.target.closest('a[href="#"],[data-go],[data-sc]');if(!a)return;e.preventDefault();if(a.dataset.sc)jump(a.dataset.sc);else if(a.dataset.go){enter(a.dataset.go,e.clientX,e.clientY);if(window.show)window.show(a.dataset.go,true);}});
 LD.addEventListener('click',e=>{if(e.target.closest('#chTry')){e.stopPropagation();e.preventDefault();enter('work',e.clientX,e.clientY)}},true);
@@ -12117,7 +12135,7 @@ window.addEventListener('popstate', function() {
   function safeLink(element, url) {
     element.replaceChildren();
     try {
-      const parsed = new URL(url);
+      const parsed = new URL(safeHttpLink(url));
       if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('Unsupported URL');
       const link = document.createElement('a');
       link.href = parsed.href; link.textContent = parsed.hostname + (parsed.pathname === '/' ? '' : parsed.pathname);
