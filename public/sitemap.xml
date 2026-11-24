@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://devharbour.in/</loc></url>
-  <url><loc>https://devharbour.in/parth-gidde</loc></url>
+<url><loc>https://www.devharbour.in/</loc></url>
+<url><loc>https://www.devharbour.in/parth-gidde</loc></url>
+<url><loc>https://www.devharbour.in/guides/</loc></url>
+<url><loc>https://www.devharbour.in/guides/two-sum/</loc></url>
+<url><loc>https://www.devharbour.in/guides/deploy-a-web-project/</loc></url>
+<url><loc>https://www.devharbour.in/guides/hackathon-submission/</loc></url>
+<url><loc>https://www.devharbour.in/guides/focus-session/</loc></url>
+<url><loc>https://www.devharbour.in/privacy/</loc></url>
+<url><loc>https://www.devharbour.in/about/</loc></url>
+<url><loc>https://www.devharbour.in/contact/</loc></url>
+<url><loc>https://www.devharbour.in/terms/</loc></url>
 </urlset>

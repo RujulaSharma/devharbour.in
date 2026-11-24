@@ -54,14 +54,59 @@
   document.head.appendChild(s);
 })();
 </script>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-HJSFWLF5VT"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-HJSFWLF5VT');
+<script>/* Optional analytics only. This is not an advertising CMP; no ad tags are loaded. */
+(() => {
+  const key = 'dh_analytics_consent';
+  let panel;
+  let analyticsLoaded = false;
+  function read() { try { return localStorage.getItem(key); } catch { return null; } }
+  function enable() {
+    if (analyticsLoaded || read() !== 'granted') return;
+    analyticsLoaded = true;
+    window['ga-disable-G-HJSFWLF5VT'] = false;
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = window.gtag || function () { window.dataLayer.push(arguments); };
+    window.gtag('consent', 'default', { analytics_storage: 'granted', ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' });
+    window.gtag('js', new Date());
+    window.gtag('config', 'G-HJSFWLF5VT');
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = 'https://www.googletagmanager.com/gtag/js?id=G-HJSFWLF5VT';
+    document.head.appendChild(script);
+  }
+  function choose(value) {
+    try { localStorage.setItem(key, value); } catch { /* Remain usable when storage is blocked. */ }
+    if (value === 'granted') enable();
+    else {
+      window['ga-disable-G-HJSFWLF5VT'] = true;
+      if (window.gtag) window.gtag('consent', 'update', { analytics_storage: 'denied', ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' });
+      for (const cookie of document.cookie.split(';')) {
+        const name = cookie.split('=')[0].trim();
+        if (!/^_ga(?:_|$)/.test(name)) continue;
+        for (const domain of ['', location.hostname, '.devharbour.in']) {
+          document.cookie = name + '=;Max-Age=0;Path=/' + (domain ? ';Domain=' + domain : '');
+        }
+      }
+    }
+    panel.hidden = true;
+  }
+  function show() { panel.hidden = false; panel.querySelector('button').focus(); }
+  function init() {
+    panel = document.createElement('section');
+    panel.className = 'consent'; panel.setAttribute('aria-label', 'Optional analytics');
+    panel.style.cssText = 'position:fixed;bottom:12px;left:12px;right:12px;max-width:650px;background:#fff;color:#28223f;border:1px solid #cbbce2;border-radius:16px;padding:18px;box-shadow:0 6px 30px #28223f22;z-index:9999';
+    panel.innerHTML = '<p style="margin:0 0 12px">We use storage for sign-in and preferences. May we also use optional Google Analytics to understand site usage? Your choice does not affect access. <a href="/privacy/">Privacy policy</a></p><button type="button" data-choice="denied">Decline analytics</button> <button type="button" data-choice="granted">Allow analytics</button>';
+    panel.querySelectorAll('button').forEach(b => {
+      b.style.cssText = 'padding:10px 14px;margin:4px;border:1px solid #cbbce2;border-radius:10px;background:#f1ecfa;color:#28223f;cursor:pointer';
+      b.addEventListener('click', () => choose(b.dataset.choice));
+    });
+    panel.hidden = read() !== null;
+    document.body.appendChild(panel);
+    document.addEventListener('click', e => { if (e.target.closest('[data-cookie-settings]')) show(); });
+    if (read() === 'granted') enable();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
 </script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -4345,7 +4390,7 @@ html[data-theme="dark"] .dh-submit-btn{color:#0b0b0b}
       <li><a href="/learn#pg" data-page="learn"><span class="nav-option-title">Courses</span><span class="nav-option-description">Browse the developer course catalog.</span></a></li>
       <li><a href="/learn#pg" data-page="learn"><span class="nav-option-title">Developer Roadmaps</span><span class="nav-option-description">Explore roadmaps in the engineering tracks.</span></a></li>
       <li><a href="/learn" data-page="learn"><span class="nav-option-title">Learning Paths</span><span class="nav-option-description">Follow structured beginner-to-advanced tracks.</span></a></li>
-      <li><a href="/learn#pg" data-page="learn"><span class="nav-option-title">Tutorials &amp; Resources</span><span class="nav-option-description">Find guides and documentation inside each track.</span></a></li>
+      <li><a href="/guides/"><span class="nav-option-title">Tutorials &amp; Resources</span><span class="nav-option-description">Worked examples, release checklists, and study guides.</span></a></li>
       <li><div class="nav-option-planned"><span class="nav-option-title">My Learning</span><span class="nav-option-description">Enrolled courses and progress.</span><span class="nav-option-status">Coming soon</span></div></li>
     </ul>
   </details>
@@ -4611,7 +4656,7 @@ requestAnimationFrame(loop);
 <div class="lbf"><p class="zn">Rankings use XP recorded by Dev Harbour. Keep an activity streak by earning XP on consecutive days. The top three eligible performers each month receive the <strong>Certificate of Consistency</strong> after review.</p><button class="zb" type="button" data-go="practice">See how to earn XP</button></div></div></section>
 <section class="zs" id="learning"><h2 class="zh">Curiosity, with direction.</h2><div class="zq" id="zpath" data-st></div><p class="zn" style="margin-top:34px">Every path is free, start to finish.</p></section>
 <!-- 5 DEVELOPER PROFILES -->
-<section class="zs" id="profiles"><h2 class="zh">People building what’s next.</h2><div class="zpr" id="zprof" data-st></div><p class="zn" style="margin-top:34px">Featured student developers building and shipping on Dev Harbour.</p></section>
+<section class="zs" id="profiles"><h2 class="zh">Build your next skill.</h2><div class="zpr" id="zprof" data-st></div><p class="zn" style="margin-top:34px">Practical guides for your next learning or project session.</p></section>
 <!-- 6 COMMUNITY & RANKINGS -->
 <section class="zs" id="community"><h2 class="zh">Better together.</h2>
 <div class="zm2"><div class="zv"><h3>Meet the Community</h3><p>Pair up on a bug, review each other’s projects, and contribute to open ideas. Nobody builds alone here.</p><div class="zst3" id="zav"></div><button class="zl" type="button" data-go="comm">Visit the community</button></div>
@@ -4669,8 +4714,8 @@ requestAnimationFrame(loop);
             <span class="xlg"><img class="xli" alt="" data-logo>DEV HARBOUR</span>
             <small>01</small>
           </div>
-          <h3>PARTH VIJAY GIDDE</h3>
-          <span class="fro">Co-Founder @Dev Harbour │ Cybersecurity &amp; AI</span>
+          <h3><a href="/parth-gidde" style="color:inherit;text-decoration:underline;text-underline-offset:.15em">PARTH VIJAY GIDDE</a></h3>
+          <span class="fro">Founder @Dev Harbour │ Cybersecurity &amp; AI</span>
           <span class="fc-expand-hint">✦ Hover to view credentials →</span>
         </div>
         <div class="fk">
@@ -4748,7 +4793,7 @@ requestAnimationFrame(loop);
 <!-- ========================================== -->
 <!-- 8. DEV HARBOUR PROFESSIONAL FOOTER -->
 <!-- ========================================== -->
-<footer class="dh-pro-footer" id="footer">
+<section style="max-width:1100px;margin:40px auto;padding:24px" aria-labelledby="public-guides-heading"><h2 id="public-guides-heading">Developer field guides</h2><p>Read a worked example, try an exercise, and verify the result. No account required.</p><ul><li><a href="/guides/two-sum/">Solve Two Sum with a hash map</a></li><li><a href="/guides/deploy-a-web-project/">Deploy a web project reliably</a></li><li><a href="/guides/hackathon-submission/">Prepare a reproducible hackathon submission</a></li><li><a href="/guides/focus-session/">Plan a focused development session</a></li></ul><a href="/guides/">Browse all guides →</a></section><footer class="dh-pro-footer" id="footer">
   <div class="dh-pf-container">
     <div class="dh-pf-top">
 
@@ -4819,12 +4864,12 @@ requestAnimationFrame(loop);
       <div class="dh-pf-col">
         <h4>Company</h4>
         <ul>
-          <li><a data-go="about">About Dev Harbour</a></li>
+          <li><a href="/about/">About Dev Harbour</a></li>
           <li><a href="/sitemap" data-go="sitemap">Navigation Sitemap</a></li>
-          <li><a data-go="contact">Contact & Support</a></li>
+          <li><a href="/contact/">Contact & Support</a></li>
           <li><a href="https://chat.whatsapp.com/Dt87L7lU5SOBSfKDKuNS8s" target="_blank" rel="noopener noreferrer">WhatsApp Community ↗</a></li>
           <li><a href="https://www.linkedin.com/company/devharbour/" target="_blank" rel="noopener noreferrer">LinkedIn Official ↗</a></li>
-          <li><a data-go="contact">Partner with Us</a></li>
+          <li><a href="/contact/">Partner with Us</a></li>
         </ul>
       </div>
 
@@ -4832,11 +4877,11 @@ requestAnimationFrame(loop);
       <div class="dh-pf-col">
         <h4>Legal & Trust</h4>
         <ul>
-          <li><a data-go="terms">Terms & Conditions</a></li>
-          <li><a data-go="privacy">Privacy Policy</a></li>
+          <li><a href="/terms/">Terms & Conditions</a></li>
+          <li><a href="/privacy/">Privacy Policy</a></li>
           <li><a data-go="certificate">Credential Registry</a></li>
-          <li><a data-go="contact">Report an Issue</a></li>
-          <li><a data-go="about">Security Architecture</a></li>
+          <li><a href="/contact/">Report an Issue</a></li>
+          <li><a href="/about/">Security Architecture</a></li>
         </ul>
       </div>
 
@@ -4850,7 +4895,7 @@ requestAnimationFrame(loop);
       <div class="dh-pf-badges">
         <span class="dh-pf-badge">100% Free & Open</span>
         <span class="dh-pf-badge">Supabase PostgreSQL</span>
-        <span class="dh-pf-badge">TLS 1.3 Encrypted</span>
+        <a href="/guides/">Developer guides</a><button type="button" data-cookie-settings>Cookie settings</button>
         <span class="dh-pf-badge">Made in India 🇮🇳</span>
         <a href="#intro" onclick="window.scrollTo({top:0,behavior:'smooth'});
   if (fromUserAction && window.history && window.history.pushState && id) {
@@ -5707,34 +5752,14 @@ requestAnimationFrame(loop);
       </div>
     </div>
 
-    <!-- Live Platform Impact Stats -->
-    <div class="dh-stat-grid">
-      <div class="dh-stat-card">
-        <div class="dh-stat-val">700+</div>
-        <div class="dh-stat-lbl">Verified Participants</div>
-      </div>
-      <div class="dh-stat-card">
-        <div class="dh-stat-val">1,000+</div>
-        <div class="dh-stat-lbl">Challenges Solved</div>
-      </div>
-      <div class="dh-stat-card">
-        <div class="dh-stat-val">₹5.2 Lakh+</div>
-        <div class="dh-stat-lbl">Hackathon Grant Pool</div>
-      </div>
-      <div class="dh-stat-card">
-        <div class="dh-stat-val">100% Free</div>
-        <div class="dh-stat-lbl">Open Developer Access</div>
-      </div>
-    </div>
-
     <!-- Core Pillars Cards -->
     <div class="dh-page-card">
       <h3>🎯 Our Core Mission</h3>
       <p>
-        Traditional computer science education often leaves developers stranded between syntax tutorials and shipping production systems. Dev Harbour changes this paradigm by providing hands-on challenges, live sandboxed execution, national-scale hackathons, and cryptographic credentialing in a single unified interface.
+        Traditional computer science education often leaves developers stranded between syntax tutorials and shipping production systems. Dev Harbour changes this paradigm by providing hands-on challenges, live sandboxed execution, national-scale hackathons, and event-specific certificate access in a single unified interface.
       </p>
       <p>
-        Whether you are a college student writing your first backend API or an experienced hacker prototyping cutting-edge AI workflows, Dev Harbour gives you the arena to build in public, validate your skills, and earn industry-recognized achievements.
+        Whether you are a college student writing your first backend API or an experienced hacker prototyping cutting-edge AI workflows, Dev Harbour gives you the arena to build in public, validate your skills, and earn a record of their participation and learning.
       </p>
     </div>
 
@@ -5754,13 +5779,13 @@ requestAnimationFrame(loop);
       <div class="dh-page-card" style="margin-bottom:0;">
         <h3>🛡️ Verified Credential Registry</h3>
         <p>
-          Every certificate issued on Dev Harbour is cryptographically anchored in Supabase PostgreSQL with a unique verifiable credential ID and instant QR resolution. No fake passcodes, zero extra OTP, and 100% tamper-evident.
+          Event certificates have unique credential IDs checked against the platform registry. Access depends on event eligibility and verified account ownership.
         </p>
       </div>
       <div class="dh-page-card" style="margin-bottom:0;">
         <h3>⚡ High-Performance Architecture</h3>
         <p>
-          Engineered for sub-100ms response times worldwide. Powered by Supabase PostgreSQL, Vercel Edge Serverless Functions, in-memory caching, and zero framework bloat.
+          The website uses cloud hosting and a PostgreSQL database. Availability and response times depend on the network and service providers.
         </p>
       </div>
     </div>
@@ -6000,90 +6025,7 @@ requestAnimationFrame(loop);
 <!-- ========================================== -->
 <!-- 4. VIEW: PRIVACY POLICY -->
 <!-- ========================================== -->
-<section class="view" id="v-privacy">
-  <div class="dh-page-wrap">
-
-    <div class="dh-page-hero">
-      <div class="dh-page-badge">
-        <span class="orb" style="background:#10b981;box-shadow:0 0 10px #10b981;"></span>
-        <span>Privacy & Data Protection · GDPR & DPDP Compliant</span>
-      </div>
-      <h2 class="dh-page-title">Privacy Policy & Trust</h2>
-      <p class="dh-page-sub">
-        Last updated: November 3, 2026 · We believe in radical transparency, zero commercial data brokering, and cryptographic privacy protections for every developer.
-      </p>
-      <div class="dh-page-actions">
-        <button class="dh-page-btn p" onclick="show('home', true);">← Back to Dashboard</button>
-        <button class="dh-page-btn s" onclick="show('terms', true);">View Terms of Service</button>
-      </div>
-    </div>
-
-    <div class="dh-page-card">
-      <h3>🛡️ Our Privacy Commitment</h3>
-      <p>
-        At Dev Harbour, we respect your privacy. <strong>We do not sell, rent, or monetize your personal information to data brokers or advertising networks.</strong> We collect only the minimal data required to deliver high-quality developer learning, verify hackathon certificates, and protect platform security.
-      </p>
-    </div>
-
-    <div class="dh-page-card">
-      <h3>1. Information We Collect</h3>
-      <ul>
-        <li><strong>Account Information:</strong> When registering, we collect your name, email address, and securely hashed passwords (using PBKDF2 with unique salts). For Google users, we receive verified email and profile picture URLs via Google's official FedCM Identity Services.</li>
-        <li><strong>Hackathon & Certificate Data:</strong> Participant name, registered email address, college/organisation, and assigned unique credential IDs to verify attendance and prize eligibility.</li>
-        <li><strong>Activity & Progress:</strong> Code challenge completions, XP ledger points, bookmarked projects, and leaderboard rankings.</li>
-        <li><strong>Security Logs:</strong> IP address and user-agent strings temporarily processed by Redis rate limiters to prevent brute-force attacks and abuse.</li>
-      </ul>
-    </div>
-
-    <div class="dh-page-card">
-      <h3>2. How We Protect Your Public Credentials</h3>
-      <p>
-        Dev Harbour operates a public certificate verification registry so universities, hackathon organizers, and employers can confirm credentials. To preserve participant privacy:
-      </p>
-      <ul>
-        <li>The public verification endpoint (<code>/api/certificates/verify/:id</code>) displays <strong>only safe details</strong>: Recipient Name, Event Title, Certificate Type, and Issue Date.</li>
-        <li>Participant email addresses are strictly masked (e.g. <code>sh************3@gmail.com</code>) so third parties can never harvest or scrape personal contact info.</li>
-      </ul>
-    </div>
-
-    <div class="dh-page-card">
-      <h3>3. Data Storage, Encryption & Security</h3>
-      <p>
-        Your data is stored in authoritative, cloud-managed PostgreSQL databases hosted on Supabase in encrypted European/Global data centers with:
-      </p>
-      <ul>
-        <li>TLS 1.3 encryption in transit for all client-to-server and serverless-to-database communication.</li>
-        <li>AES-256 encryption at rest for database tables, backups, and storage buckets.</li>
-        <li>Embedded root CA verification preventing man-in-the-middle attacks.</li>
-        <li>Zero hardcoded database credentials exposed to client web browsers.</li>
-      </ul>
-    </div>
-
-    <div class="dh-page-card">
-      <h3>4. Cookies & Local Storage</h3>
-      <p>
-        We use browser LocalStorage and sessionStorage solely for essential functional operations:
-      </p>
-      <ul>
-        <li><code>dh_token</code> &amp; <code>dh_user</code>: Secure JWT authentication session persistence.</li>
-      </ul>
-      <p>
-        We do not use invasive third-party cross-site tracking cookies or ad-tracking beacons.
-      </p>
-    </div>
-
-    <div class="dh-page-card">
-      <h3>5. Your Rights & Account Deletion</h3>
-      <p>
-        Under applicable data protection laws (including the Digital Personal Data Protection Act and GDPR principles), you have the right to inspect, correct, export, or permanently delete your account data.
-      </p>
-      <p style="margin-bottom:0;">
-        To request data export or complete account erasure, email our Data Protection team at <strong>privacy@devharbour.in</strong> or <strong>sharmarujula123@gmail.com</strong>.
-      </p>
-    </div>
-
-  </div>
-</section>
+<section class="view" id="v-privacy"><div class="dh-page-wrap"><h1>Privacy policy</h1><p>Read our current data, analytics, and advertising disclosures.</p><a href="/privacy/">Open the privacy policy</a><p><button type="button" data-cookie-settings>Cookie settings</button></p></div></section>
 
 <section class="view" id="v-sitemap">
   <div class="sitemap-shell">
@@ -10253,9 +10195,8 @@ const PA=[['Cybersecurity','Learn how systems break and how to protect them, saf
 ['Artificial Intelligence','From first prompts to small models and apps that use them.',[['Foundations','Python, data and machine-learning basics'],['Practice','Prompting and working with models'],['Build','Ship a small AI-powered app']]],
 ['Web Development','The route from a blank file to a live site.',[['Foundations','HTML, CSS and JavaScript'],['Practice','APIs, frameworks and Git'],['Build','Deploy a full project']]]];
 $('zpath').innerHTML=PA.map(p=>`<article><h3>${p[0]}</h3><p>${p[1]}</p><ul class="zst">${p[2].map(s=>`<li>${s[0]}<small>${s[1]}</small></li>`).join('')}</ul><a class="zl" href="#" data-go="learn">Explore Path</a></article>`).join('');
-/* profiles (demo, handles match the leaderboard) */
-const PR=[['Ayesha','AI · Data','Python,PyTorch,SQL',198,5,3],['Kabir','Web · Open source','React,Node,TypeScript',187,7,2],['Mei','Security · Systems','Linux,Rust,CTFs',212,4,4]];
-$('zprof').innerHTML=PR.map(p=>`<article><div class="zav">${p[0][0]}</div><h3>${p[0]}</h3><p class="zn">${p[1]}</p><div class="zt">${T(p[2].split(','))}</div><p class="zst2">${p[3]} challenges · ${p[4]} projects · ${p[5]} hackathons</p><div class="zk"><a class="zl" href="https://devharbour.in" target="_blank" rel="noopener noreferrer">Portfolio ↗</a></div></article>`).join('');
+/* Real projects and learning resources replace fabricated developer statistics. */
+$('zprof').innerHTML='<article><h3>Build a project</h3><p>Start with one complete user journey, then share a working demo.</p><a href="/guides/deploy-a-web-project/">Read the deployment guide</a></article><article><h3>Practice an algorithm</h3><p>Work through inputs and edge cases before optimising.</p><a href="/guides/two-sum/">Try the Two Sum walkthrough</a></article><article><h3>Prepare a submission</h3><p>Document what works, give credit, and make your demo reproducible.</p><a href="/guides/hackathon-submission/">Use the submission guide</a></article>';
 renderAllLeaderboardViews();
 /* footer */
 $('zfl').src=document.querySelector('.xlg .xli').src;
@@ -12040,6 +11981,7 @@ window.addEventListener('popstate', function() {
   }
 });
 </script>
+
 
 
 

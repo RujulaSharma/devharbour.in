@@ -13,6 +13,7 @@ const canonicalPath = path.join(rootDir, 'public', 'index.html');
 const rootIndexPath = path.join(rootDir, 'index.html');
 
 console.log('⚡ Starting Dev Harbour Build Pipeline...');
+require('./build-public-guides');
 
 if (!fs.existsSync(canonicalPath)) {
   console.error('❌ Build failed: Canonical public/index.html not found!');
