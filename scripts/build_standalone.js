@@ -6,6 +6,7 @@ const publicDir = path.join(root, 'public');
 const assets = {
   'devharbour-logo.png': 'image/png',
   'devharbour-icon-32.png': 'image/png',
+  'devharbour-icon-96.png': 'image/png',
   'devharbour-icon-180.png': 'image/png',
   'innovative_india_certificate.webp': 'image/webp',
   'eb-garamond-bold.ttf': 'font/ttf',
