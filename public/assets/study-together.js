@@ -21,8 +21,8 @@
   async function api(path,body) {
     const res=await fetch('/api/study/'+path,{method:body?'POST':'GET',headers:getAuthHeaders(),credentials:'same-origin',
       body:body?JSON.stringify(body):undefined,cache:'no-store'});
-    const data=await res.json();
-    if(!res.ok) throw Error(data.error||'Study Together is unavailable.');
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok || !Object.keys(data).length) throw Error(data.error||'Study Together is unavailable. Please try again.');
     return data;
   }
   function syncAccount(){
@@ -167,7 +167,7 @@
       await api('push',{subscription:sub.toJSON()});message('Browser notifications enabled.');
     }catch(e){message(e.message);}
   };
-  setInterval(()=>{syncAccount();drawClock();},1000);
+  setInterval(()=>{const previous=account;if(syncAccount()!==previous)refresh();drawClock();},1000);
   setInterval(()=>{if(!document.hidden)refresh();},15000);
   new IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting))refresh();}).observe(panel);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});

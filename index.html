@@ -5247,7 +5247,7 @@ requestAnimationFrame(loop);
   </div>
 <section id="study-together" aria-labelledby="study-heading" class="c">
   <div class="study-heading"><div><span class="study-label">Private study group</span><h3 id="study-heading">Study Together</h3></div><span id="study-count">Checking active timers…</span></div>
-  <p id="study-guest">Sign in to start a private study group and see when friends are focusing.</p>
+  <div id="study-guest"><p>Sign in to start a private study group and see when friends are focusing.</p><button type="button" onclick="openAuthModal('login')">Sign in to Study Together</button></div>
   <div id="study-signed" hidden>
     <div class="study-session-card">
     <p id="study-progress"></p><p id="study-admin" hidden></p>
@@ -12082,6 +12082,6 @@ window.addEventListener('popstate', function() {
 
 
 <script src="/assets/profile-page.js"></script>
-<script src="/assets/study-together.js"></script>
+<script src="/assets/study-together.js?v=3"></script>
 </body>
 </html>
