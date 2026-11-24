@@ -559,7 +559,7 @@ function seedDatabase() {
         desc: 'Markdown notes application with real-time multi-device sync and KaTeX math rendering.',
         category: 'Web',
         tech: ['JavaScript', 'Markdown', 'WebSockets'],
-        repo: null,
+        repo: '',
         demo: 'https://devharbour.in',
         votes: 0
       },
@@ -570,7 +570,7 @@ function seedDatabase() {
         desc: 'A gentle, privacy-first habit tracker with streak analytics and SQLite persistence.',
         category: 'Mobile',
         tech: ['React Native', 'SQLite', 'Notifications'],
-        repo: null,
+        repo: '',
         demo: 'https://devharbour.in',
         votes: 0
       },
@@ -581,7 +581,7 @@ function seedDatabase() {
         desc: 'An educational network socket inspector and port reconnaissance tool for cybersecurity students.',
         category: 'Security',
         tech: ['Python', 'Sockets', 'Networking'],
-        repo: null,
+        repo: '',
         demo: 'https://devharbour.in',
         votes: 0
       }
