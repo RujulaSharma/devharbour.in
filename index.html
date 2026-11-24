@@ -10255,7 +10255,7 @@ const PA=[['Cybersecurity','Learn how systems break and how to protect them, saf
 $('zpath').innerHTML=PA.map(p=>`<article><h3>${p[0]}</h3><p>${p[1]}</p><ul class="zst">${p[2].map(s=>`<li>${s[0]}<small>${s[1]}</small></li>`).join('')}</ul><a class="zl" href="#" data-go="learn">Explore Path</a></article>`).join('');
 /* profiles (demo, handles match the leaderboard) */
 const PR=[['Ayesha','AI · Data','Python,PyTorch,SQL',198,5,3],['Kabir','Web · Open source','React,Node,TypeScript',187,7,2],['Mei','Security · Systems','Linux,Rust,CTFs',212,4,4]];
-$('zprof').innerHTML=PR.map(p=>`<article><div class="zav">${p[0][0]}</div><h3>${p[0]}</h3><p class="zn">${p[1]}</p><div class="zt">${T(p[2].split(','))}</div><p class="zst2">${p[3]} challenges · ${p[4]} projects · ${p[5]} hackathons</p><div class="zk"><a class="zl" href="https://github.com/RujulaSharma/devharbour.in" target="_blank" rel="noopener noreferrer">GitHub ↗</a><a class="zl" href="https://devharbour.in" target="_blank" rel="noopener noreferrer">Portfolio ↗</a></div></article>`).join('');
+$('zprof').innerHTML=PR.map(p=>`<article><div class="zav">${p[0][0]}</div><h3>${p[0]}</h3><p class="zn">${p[1]}</p><div class="zt">${T(p[2].split(','))}</div><p class="zst2">${p[3]} challenges · ${p[4]} projects · ${p[5]} hackathons</p><div class="zk"><a class="zl" href="https://devharbour.in" target="_blank" rel="noopener noreferrer">Portfolio ↗</a></div></article>`).join('');
 renderAllLeaderboardViews();
 /* footer */
 $('zfl').src=document.querySelector('.xlg .xli').src;
