@@ -4311,6 +4311,7 @@ html[data-theme="dark"] .dh-submit-btn{color:#0b0b0b}
 @container (max-width:640px){.dh-ii-grid{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:760px){.dh-ii-grid{grid-template-columns:minmax(0,1fr)}}
 </style>
+<link rel="stylesheet" href="/assets/profile-page.css">
 </head>
 <body>
 
@@ -4397,7 +4398,7 @@ html[data-theme="dark"] .dh-submit-btn{color:#0b0b0b}
     <ul class="nav-dropdown-links">
       <li class="nav-dropdown-heading" aria-hidden="true">Your Dev Harbour</li>
       <li><a href="/home" data-page="home"><span class="nav-option-title">My Dashboard</span><span class="nav-option-description">View your personal overview.</span></a></li>
-      <li><button type="button" data-menu-action="profile"><span class="nav-option-title">My Profile</span><span class="nav-option-description">View and edit your developer profile.</span></button></li>
+      <li><button type="button" data-menu-action="profile-page"><span class="nav-option-title">My Profile</span><span class="nav-option-description">View and edit your developer profile.</span></button></li>
       <li><button type="button" data-menu-action="profile"><span class="nav-option-title">XP &amp; Badges</span><span class="nav-option-description">See your XP, level, and streak.</span></button></li>
       <li><a href="/my-certificate" data-page="my-certificate"><span class="nav-option-title">Certificates</span><span class="nav-option-description">Claim, download, or verify certificates.</span></a></li>
       <li><div class="nav-option-planned"><span class="nav-option-title">Achievements</span><span class="nav-option-description">Explore your milestones and awards.</span><span class="nav-option-status">Coming soon</span></div></li>
@@ -5971,6 +5972,32 @@ requestAnimationFrame(loop);
 <!-- ========================================== -->
 <section class="view" id="v-privacy"><div class="dh-page-wrap"><h1>Privacy policy</h1><p>Read our current data, analytics, and advertising disclosures.</p><a href="/privacy/">Open the privacy policy</a><p><button type="button" data-cookie-settings>Cookie settings</button></p></div></section>
 
+
+<section class="view" id="v-profile">
+ <div class="profile-page">
+  <div class="profile-page-heading"><div><div class="profile-kicker">YOUR DEV HARBOUR</div><h1 id="profile-page-title" tabindex="-1">My Profile</h1><p>A little about you. A place for your progress.</p></div><a class="profile-button secondary" href="/home" data-page="home">Dashboard ↗</a></div>
+  <div id="profile-signed-out" class="profile-panel profile-signin"><h2>Your developer profile starts here.</h2><p>Sign in to view your progress and edit your details.</p><button class="profile-button" type="button" onclick="openAuthModal('login')">Sign in / Log in</button></div>
+  <div id="profile-signed-in" class="profile-layout" hidden>
+   <aside class="profile-side" aria-label="Profile overview">
+    <section class="profile-panel profile-identity"><div class="profile-avatar" id="profile-page-avatar">D</div><h2 id="profile-display-name">Developer</h2><div id="profile-username" class="profile-handle"></div><div id="profile-location" class="profile-location"></div><span id="profile-account-state" class="profile-tag">Developer account</span></section>
+    <section class="profile-panel"><div class="profile-panel-title"><h2>Personal information</h2><button class="profile-edit-link" type="button" data-profile-focus="profile-name-input">Edit ↗</button></div><dl class="profile-details"><div><dt>Email · only visible to you</dt><dd id="profile-email"></dd></div><div><dt>GitHub</dt><dd id="profile-github-link">Not added yet</dd></div><div><dt>Portfolio</dt><dd id="profile-portfolio-link">Not added yet</dd></div></dl></section>
+    <section class="profile-panel"><div class="profile-panel-title"><h2>Your progress</h2></div><div class="profile-numbers"><div><strong id="profile-total-xp">0</strong><span>Total XP</span></div><div><strong id="profile-level">1</strong><span>Level</span></div><div><strong id="profile-streak">0</strong><span>Day streak</span></div></div></section>
+   </aside>
+   <div class="profile-main">
+    <section class="profile-panel profile-completion"><div><div class="profile-kicker">COMPLETE YOUR PROFILE</div><h2 id="profile-completion-title">Make your profile your own.</h2><p>Add your details so your profile reflects what you’re building.</p></div><div class="profile-ring" id="profile-completion-ring"><span id="profile-completion-value">0%</span></div></section>
+    <form id="profile-edit-form" class="profile-main">
+     <section class="profile-panel"><div class="profile-panel-title"><h2>Personal details</h2><button type="button" class="profile-edit-link" data-profile-focus="profile-name-input">Edit details ↗</button></div><div class="profile-fields"><div class="profile-field"><label for="profile-name-input">Full name</label><input id="profile-name-input" name="fullName" autocomplete="name" minlength="2" maxlength="70" required placeholder="Your full name"></div><div class="profile-field"><label for="profile-location-input">City / location</label><input id="profile-location-input" name="location" autocomplete="address-level2" maxlength="70" placeholder="Where you’re based"></div></div><p class="profile-help">Your email and username stay linked to your account. Editing your profile name does not change the original name saved for certificates.</p></section>
+     <section class="profile-panel"><div class="profile-panel-title"><h2>About you</h2><button type="button" class="profile-edit-link" data-profile-focus="profile-bio-input">Edit bio ↗</button></div><p class="profile-muted" id="profile-short-bio"></p><div class="profile-field"><label for="profile-bio-input">Bio</label><textarea id="profile-bio-input" name="bio" maxlength="500" rows="4" placeholder="What do you enjoy building? What are you learning next?"></textarea><p class="profile-help">Up to 500 characters. Tell your story in your own words.</p></div></section>
+     <section class="profile-panel"><div class="profile-panel-title"><h2>Links</h2><button type="button" class="profile-edit-link" data-profile-focus="profile-github-input">Edit links ↗</button></div><div class="profile-fields"><div class="profile-field"><label for="profile-github-input">GitHub profile</label><input id="profile-github-input" name="githubUrl" type="url" placeholder="https://github.com/username"></div><div class="profile-field"><label for="profile-portfolio-input">Portfolio / website</label><input id="profile-portfolio-input" name="portfolioUrl" type="url" placeholder="https://yourportfolio.dev"></div></div></section>
+     <div class="profile-savebar"><div id="profile-save-status" class="profile-status" role="status" aria-live="polite"></div><div class="profile-save-actions"><button id="profile-discard" class="profile-button secondary" type="button">Discard changes</button><button id="profile-save" class="profile-button" type="submit">Save changes</button></div></div>
+    </form>
+    <section class="profile-panel"><div class="profile-panel-title"><h2>My badges</h2></div><div id="profile-earned-badges" class="profile-empty">Your earned badges will appear here.</div></section>
+    <section class="profile-panel"><div class="profile-panel-title"><h2>My certificates</h2><a class="profile-edit-link" href="/my-certificate" data-page="my-certificate">View certificates ↗</a></div><p class="profile-muted">View your eligible event credentials and download certificates from your account.</p></section>
+   </div>
+  </div>
+ </div>
+</section>
+
 <section class="view" id="v-sitemap">
   <div class="sitemap-shell">
     <header class="sitemap-header">
@@ -6112,7 +6139,10 @@ function openMenuDestination(event) {
     menu.querySelector('summary').focus();
   }
   const action = item.dataset.menuAction;
-  if (action === 'profile') {
+  if (action === 'profile-page') {
+    if (currentUser) window.openProfilePage();
+    else openAuthModal('login');
+  } else if (action === 'profile') {
     if (currentUser) openProfileModal();
     else openAuthModal('login');
   } else if (action === 'session') {
@@ -7649,6 +7679,7 @@ async function syncWorkspaceAssignment(assignment) {
 }
 
 function updateAuthUI() {
+  window.renderProfilePage?.();
   const pendingEmail = readPendingVerificationEmail();
   window.refreshProjectLikesForAccount?.();
   if (pendingEmail && currentUser?.email?.trim().toLowerCase() === pendingEmail && currentUser.emailVerified) {
@@ -11936,7 +11967,7 @@ window.addEventListener('popstate', function() {
     if (!intro || intro.classList.contains('out')) window.location.reload();
     return;
   }
-  if (['my-certificate', 'verify-certificate', 'about', 'contact', 'terms', 'privacy', 'certificate', 'sitemap', 'home', 'learn', 'practice', 'timer', 'projects', 'hack', 'work', 'comm', 'settings'].includes(p)) {
+  if (['my-certificate', 'verify-certificate', 'about', 'contact', 'terms', 'privacy', 'certificate', 'sitemap', 'home', 'learn', 'practice', 'timer', 'projects', 'hack', 'work', 'comm', 'settings', 'profile'].includes(p)) {
     show(p, true, false);
   }
 });
@@ -11945,5 +11976,6 @@ window.addEventListener('popstate', function() {
 
 
 
+<script src="/assets/profile-page.js"></script>
 </body>
 </html>

@@ -16,7 +16,7 @@ const assets = {
   'pipos-thumbnail.svg': 'image/svg+xml'
 };
 const assetUrl = /(["'])(?:\/?assets\/)([\w.-]+)(?:\?v=[\w.-]+)?\1/g;
-const source = fs.readFileSync(path.join(publicDir, 'index.html'), 'utf8').replace(
+const source = fs.readFileSync(path.join(publicDir, 'index.html'), 'utf8').replace('<link rel="stylesheet" href="/assets/profile-page.css">', () => '<style>' + fs.readFileSync(path.join(publicDir, 'assets', 'profile-page.css'), 'utf8') + '</style>').replace('<script src="/assets/profile-page.js"></script>', () => '<script>' + fs.readFileSync(path.join(publicDir, 'assets', 'profile-page.js'), 'utf8') + '</script>').replace(
   '<script src="/assets/privacy-choices.js" defer></script>',
   () => '<script>' + fs.readFileSync(path.join(publicDir, 'assets', 'privacy-choices.js'), 'utf8') + '</script>'
 );
