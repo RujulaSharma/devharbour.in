@@ -12463,11 +12463,25 @@ window.addEventListener('popstate', function() {
     let width = 0, height = 0, frame = 0, visible = false;
     let pointer = null;
     let neurons = [];
+    let dust = [];
     const tint = cover.classList.contains('hack-cover--india') ? '255,243,188' :
       cover.classList.contains('hack-cover--tatva') ? '250,215,255' : '177,246,255';
 
     function draw(move) {
       context.clearRect(0, 0, width, height);
+      context.fillStyle = 'rgba(' + tint + ',0.43)';
+      for (const dot of dust) {
+        if (move) {
+          dot.x = (dot.x + dot.speed) % width;
+          const dx = dot.x - (pointer?.x ?? -1000);
+          const dy = dot.y - (pointer?.y ?? -1000);
+          const distance = Math.hypot(dx, dy);
+          const push = distance > 0 && distance < 64 ? (1 - distance / 64) * 32 : 0;
+          dot.offsetX += ((push ? dx / distance * push : 0) - dot.offsetX) * 0.14;
+          dot.offsetY += ((push ? dy / distance * push : 0) - dot.offsetY) * 0.14;
+        }
+        context.fillRect(dot.x + dot.offsetX, dot.y + dot.offsetY, dot.size, dot.size);
+      }
       for (const neuron of neurons) {
         if (!move) continue;
         const dx = pointer ? neuron.x - pointer.x : 0;
@@ -12519,6 +12533,12 @@ window.addEventListener('popstate', function() {
       canvas.width = width * dpr;
       canvas.height = height * dpr;
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const dustCount = Math.min(7200, Math.max(1600, Math.round(width * height / 14)));
+      dust = Array.from({length: dustCount}, () => ({
+        x: Math.random() * width, y: Math.random() * height,
+        speed: 0.06 + Math.random() * 0.24, size: 0.42 + Math.random() * 0.72,
+        offsetX: 0, offsetY: 0
+      }));
       const count = Math.min(125, Math.max(48, Math.round(width * height / 950)));
       neurons = Array.from({length: count}, () => ({
         x: Math.random() * width, y: Math.random() * height,
