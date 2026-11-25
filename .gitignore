@@ -62,3 +62,6 @@ server/devharbour.sql
 output/certificates_manifest.csv
 output/certificates_manifest.json
 supabase/.temp/
+
+# Generated Prisma client (regenerate during build)
+server/generated/

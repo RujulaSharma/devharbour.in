@@ -832,6 +832,7 @@ function getLeaderboard(timeframe = 'All-time', limit = 20, viewerId = null) {
       AND EXISTS (SELECT 1 FROM email_verifications ev WHERE ev.user_id = u.id AND ev.verified_at IS NOT NULL)
       AND coalesce(cast(settings.profile_public AS text), '1') IN ('1', 'true')
     GROUP BY u.id
+    HAVING COALESCE(SUM(l.amount), 0) > 0
     )
     SELECT * FROM ranked WHERE rank <= ? OR user_id = ? ORDER BY rank
   `;

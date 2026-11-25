@@ -51,6 +51,7 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/achievements', achievementRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/profile', require('./routes/profile'));
 app.use('/api/workspace', workspaceRoutes);
 app.use('/api/certificates', certificateRoutes);
 
@@ -99,6 +100,14 @@ app.get('/api/config/public', (req, res) => {
 });
 
 // SPA Fallback
+app.get('/u/:username', async (req,res,next) => {
+  if(process.env.PROFILE_ECOSYSTEM_ENABLED!=='true')return res.status(404).send('Profile not found');
+  try {
+    const user=await require('./db').getUserByUsername(req.params.username);
+    if(!user)return res.status(404).send('Profile not found');
+    res.set('Cache-Control','private, no-store').type('html').send(await require('./profile/exports').publicHtml(user));
+  } catch(error) { if(error.status===404)return res.status(404).send('Profile not found');next(error); }
+});
 app.use((req, res, next) => {
   if (req.method !== 'GET') return next();
   if (req.path.startsWith('/api')) {

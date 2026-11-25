@@ -1,0 +1,14 @@
+.git
+node_modules
+server/generated
+.env
+.env.*
+!.env.example
+private
+.codex
+output
+*.log
+**/*.sqlite
+**/*.sqlite-*
+**/*.db
+**/*.db-*
