@@ -32,9 +32,11 @@
     "pg": "^8.23.1",
     "qrcode": "1.5.4",
     "regenerator-runtime": "0.14.1",
-    "sharp": "0.34.5"
+    "sharp": "0.34.5",
+    "web-push": "3.6.7"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.4.1",
     "prisma": "7.10.1"
   }
 }

@@ -3992,24 +3992,11 @@ body{padding-top:var(--site-nav-height)}
 .hack-card{--hack-accent:#695ccd;display:flex;flex-direction:column;min-width:0;overflow:hidden;background:linear-gradient(155deg,var(--soft),var(--card) 52%);border:1px solid var(--line);border-radius:24px;box-shadow:0 16px 32px -24px rgba(35,25,63,.48)}
 .hack-card--india{--hack-accent:#397a66}
 .hack-card--orca{--hack-accent:#347b9f}
-.hack-cover{--glow:#a997fa;--shade:#29234b;position:relative;isolation:isolate;display:grid;place-items:center;margin:8px 8px 0;border-radius:17px;aspect-ratio:2;overflow:hidden;background:radial-gradient(ellipse at 52% 39%,var(--shade),#111527 75%);border:1px solid #ffffff28}
-.hack-cover--india{--glow:#83f7c7;--shade:#2c594c}
-.hack-cover--orca{--glow:#6ddaf6;--shade:#254c60}
-.hack-cover::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 31px,#ffffff15 32px),repeating-linear-gradient(0deg,transparent 0 31px,#ffffff15 32px);mask-image:radial-gradient(ellipse at center,#000,transparent 77%)}
-.hack-cover::after{content:"";position:absolute;inset:10px;border:1px solid #ffffff30;border-radius:11px;pointer-events:none}
-.hack-sculpture{position:relative;width:47%;aspect-ratio:1.6;display:block;isolation:isolate}
-.hack-sculpture::before,.hack-sculpture::after{content:"";position:absolute;inset:0;border-radius:50%;background:linear-gradient(155deg,#fff 1%,var(--glow) 16%,#252e41 31%,#c2c4df 49%,#343f56 66%,var(--glow) 80%,#edf6ff 95%);box-shadow:0 10px 32px -7px var(--glow),inset 0 0 0 1px #ffffff7d;mask-image:radial-gradient(ellipse closest-side,transparent 59%,#000 61%)}
-.hack-cover--tatva .hack-sculpture::before{border-radius:22%;transform:rotate(29deg) scale(.88);mask-image:none;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%,50% 0,50% 18%,19% 50%,50% 82%,81% 50%,50% 18%)}
-.hack-cover--tatva .hack-sculpture::after{transform:rotate(-28deg) scale(1.09,.74);opacity:.68}
-.hack-cover--india .hack-sculpture::before{transform:rotate(-24deg) scale(1.16,.88)}
-.hack-cover--india .hack-sculpture::after{transform:rotate(42deg) scale(.82,.71);opacity:.83}
-.hack-cover--orca .hack-sculpture::before{transform:translate(-15%,1%) rotate(-28deg) scale(.9,.75)}
-.hack-cover--orca .hack-sculpture::after{transform:translate(15%,-4%) rotate(-28deg) scale(.9,.75);opacity:.8}
-.hack-core{position:absolute;inset:34% 40%;border-radius:50%;background:radial-gradient(circle at 39% 34%,white,var(--glow) 48%,#405066 87%);box-shadow:0 0 24px var(--glow)}
-@media(hover:hover) and (prefers-reduced-motion:no-preference){
-  .hack-sculpture{transition:transform .32s ease}
-  .hack-card:hover .hack-sculpture,.hack-card:focus-within .hack-sculpture{transform:translateY(-4px) scale(1.05)}
-}
+.hack-cover{position:relative;margin:8px 8px 0;border-radius:17px;aspect-ratio:2;overflow:hidden;background:#e9e0f0}
+.hack-cover--tatva{--neuron-ink:#502b85;background:radial-gradient(ellipse at center,#fcf8ff,#e4d4f5)}
+.hack-cover--india{--neuron-ink:#1b5a49;background:radial-gradient(ellipse at center,#fbfff7,#d6eee1)}
+.hack-cover--orca{--neuron-ink:#154d7a;background:radial-gradient(ellipse at center,#f7fdff,#d0e9fa)}
+.hack-neurons{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .hack-body{display:flex;flex:1;flex-direction:column;align-items:flex-start;gap:12px;padding:clamp(17px,2vw,24px)}
 .hack-body h3{font-size:1.2rem;line-height:1.25;letter-spacing:-.02em}
 .hack-body p{margin:0;line-height:1.5}
@@ -4234,7 +4221,7 @@ button,a,[role="button"],.nv,.pill,.mob-dock-btn{touch-action:manipulation;-webk
   .view > .g,.practice-overview,.hack-grid{gap:12px}
   .view > .g > .c,.practice-overview > .c{padding:16px}
   .hack-card{border-radius:18px}
-  .hack-cover{aspect-ratio:3}
+  .hack-cover{aspect-ratio:2}
   .hack-body{padding:14px;gap:9px}
   .hack-footer{padding-top:9px}
   .hack-footer a{min-height:44px}
@@ -4320,8 +4307,55 @@ html[data-theme="dark"] .dh-submit-btn{color:#0b0b0b}
 @media(max-width:760px){.dh-ii-grid{grid-template-columns:minmax(0,1fr)}}
 </style>
 <link rel="stylesheet" href="/assets/profile-page.css">
+<style>#v-timer{container-type:inline-size}
+.study-layout>*{min-width:0}
+@container(min-width:1120px){.study-layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(20rem,1fr);gap:1rem;align-items:start}.study-layout #study-together{width:100%;margin-top:0}}
+#study-together{margin:1rem auto;padding:clamp(1rem,3vw,2rem);max-width:72rem;background:var(--card,#fff);border:1px solid var(--line,#ded4ef);border-radius:1.4rem;overflow-wrap:anywhere}
+#site-notifications{position:relative} #site-notifications.has-unread::after{content:"";position:absolute;right:6px;top:5px;width:8px;height:8px;border-radius:50%;background:#7451ba} #site-notification-dialog::backdrop{background:#24193455}
+#study-together [hidden]{display:none!important}
+.study-heading,.study-actions,#study-members li{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap}
+.study-heading{justify-content:space-between}.study-heading h3{margin:0}
+#study-count{color:#43316c;background:#efe8fa;border-radius:2rem;padding:.35rem .8rem}
+.study-entry{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,15rem),1fr));gap:1rem}
+.study-entry form{display:grid;gap:.5rem}.study-entry input{min-width:0;padding:.6rem;border:1px solid #c8bfda;border-radius:.55rem}
+#study-together button{background:#302345;color:white;padding:.55rem .85rem;border:0;border-radius:.7rem;font:inherit;cursor:pointer}
+.study-actions{margin-top:.8rem}#study-members{list-style:none;padding:0}#study-members li{padding:.5rem 0;border-bottom:1px solid var(--line,#ddd)}#study-members strong{margin-right:auto}#study-message:empty{display:none}
+
+
+#study-together{position:relative;isolation:isolate;overflow:hidden;background:#fffdfb;color:#29243b;border:1px solid #e8e1ed;border-radius:2rem;box-shadow:0 20px 60px #392b5614}
+#study-together::before{content:"";position:absolute;z-index:-1;inset:-6rem 0 auto;height:19rem;pointer-events:none;background:radial-gradient(ellipse at 55% 75%,#ffffff 32%,#f9f6fa 49%,#e8ddf2 64%,#f9f5fa 78%);border-radius:42% 58% 65% 35% / 56% 45% 55% 44%;box-shadow:0 18px 35px #d6c9e74a,inset 0 -9px 18px #fff}
+#study-together .study-heading{align-items:flex-start;gap:.65rem;margin-bottom:1.4rem}
+.study-label{display:block;margin-bottom:.45rem;color:#655473;font-size:.76rem;font-weight:700}
+#study-heading{font-size:clamp(1.55rem,3vw,2.2rem);letter-spacing:-.045em;line-height:1.05}
+#study-count{display:inline-flex;align-items:center;gap:.4rem;background:#fff;color:#374d45;font-size:.75rem;font-weight:700;box-shadow:0 2px 12px #3725480d}
+#study-count::before{content:"";width:.45rem;height:.45rem;border-radius:50%;background:#248460}
+.study-session-card{padding-bottom:1rem;margin-bottom:1rem;border-bottom:1px solid #eae4ee}
+#study-progress{margin:0 0 .8rem;color:#514162;font-size:.88rem;font-weight:700}
+#study-together input:not([type=checkbox]){display:block;width:100%;min-width:0;min-height:44px;padding:.65rem .8rem;border:1px solid #ded6e7;border-radius:.8rem;background:#fff;color:#29243b;font:inherit}
+#study-together label,#study-together summary{font-size:.85rem;font-weight:600}
+#study-together details{margin-top:.65rem}
+#study-together summary{cursor:pointer;color:#655473}
+.study-entry{display:block}
+.study-switch{display:flex;gap:.25rem;background:#eee8f3;padding:.25rem;border-radius:1rem;margin-bottom:.85rem}
+#study-together .study-switch button{flex:1;min-width:0;background:transparent;color:#5e506c;box-shadow:none}
+#study-together .study-switch button[aria-pressed=true]{background:#fff;color:#302345;box-shadow:0 2px 8px #39304c16}
+#study-together button{min-height:44px;transition:background-color .16s ease,box-shadow .16s ease}
+#study-together button:hover{box-shadow:0 3px 12px #32254835}
+#study-together button:disabled{opacity:.65;cursor:wait}
+#study-together :focus-visible{outline:2px solid #7149a3;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){#study-together button{transition:none}}
+</style>
 </head>
 <body>
+<dialog id="site-notification-dialog" aria-labelledby="site-notification-heading" style="margin:auto;width:min(90vw,28rem);padding:1.5rem;border:1px solid var(--line);border-radius:1.25rem;background:var(--card);color:var(--ink)">
+  <form method="dialog"><button type="submit" aria-label="Close notifications" style="float:right">✕</button></form>
+  <h2 id="site-notification-heading" style="margin-bottom:1rem">Notifications</h2>
+  <article>
+    <h3>You forgot Dev Harbour?</h3>
+    <p style="margin:.5rem 0 1rem">Yeah, of course you did. You used me for one focus session and disappeared. Meanie 😤</p>
+    <a href="/timer" style="text-decoration:underline;font-weight:700">Open Study Together →</a>
+  </article>
+</dialog>
 
 <!-- Anti-Spying & Security Warning Modal -->
 <div id="dh-security-modal" class="dh-sec-overlay" role="dialog" aria-modal="true" aria-labelledby="dh-sec-title">
@@ -4400,7 +4434,7 @@ html[data-theme="dark"] .dh-submit-btn{color:#0b0b0b}
   <a class="nav-link" href="/#leaderboard">Leaderboard</a>
   <a class="nav-link" href="/home" data-page="home">Dashboard</a>
 </div><div class="site-nav-actions">
-  <button type="button" class="ci" id="sb" aria-label="Search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button><button type="button" class="ci" data-t="No notifications yet" aria-label="Notifications"><svg class="i" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"/></svg></button>
+  <button type="button" class="ci" id="sb" aria-label="Search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button><button type="button" class="ci" id="site-notifications" onclick="openSiteNotifications()" aria-label="Notifications" aria-haspopup="dialog"><svg class="i" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"/></svg></button>
   <details class="nav-dropdown nav-account" name="site-navbar-menu">
     <summary><span class="av" id="header-avatar" aria-hidden="true" hidden></span><span class="nav-account-label">Sign in / Log in</span><span id="navbar-xp" class="nav-account-xp" hidden></span></summary>
     <ul class="nav-dropdown-links">
@@ -4749,7 +4783,7 @@ requestAnimationFrame(loop);
 <!-- ========================================== -->
 <!-- 8. DEV HARBOUR PROFESSIONAL FOOTER -->
 <!-- ========================================== -->
-<section style="max-width:1100px;margin:40px auto;padding:24px" aria-labelledby="public-guides-heading"><h2 id="public-guides-heading">Developer field guides</h2><p>Read a worked example, try an exercise, and verify the result. No account required.</p><ul><li><a href="/guides/two-sum/">Solve Two Sum with a hash map</a></li><li><a href="/guides/deploy-a-web-project/">Deploy a web project reliably</a></li><li><a href="/guides/hackathon-submission/">Prepare a reproducible hackathon submission</a></li><li><a href="/guides/focus-session/">Plan a focused development session</a></li></ul><a href="/guides/">Browse all guides →</a></section><footer class="dh-pro-footer" id="footer">
+<section style="max-width:1100px;margin:40px auto;padding:24px" aria-labelledby="public-guides-heading"><h2 id="public-guides-heading">Developer field guides</h2><p>Read a worked example, try an exercise, and verify the result. No account required.</p><ul><li><a href="/guides/two-sum/">Solve Two Sum with a hash map</a></li><li><a href="/guides/deploy-a-web-project/">Deploy a web project reliably</a></li><li><a href="/guides/hackathon-submission/">Prepare a reproducible hackathon submission</a></li><li><a href="/guides/focus-session/">Plan a focused development session</a></li><li><a href="/study-together/">Study online with friends</a></li><li><a href="/guides/hackathon-demo-script/">Rehearse a three-minute hackathon demo</a></li></ul><a href="/guides/">Browse all guides →</a></section><footer class="dh-pro-footer" id="footer">
   <div class="dh-pf-container">
     <div class="dh-pf-top">
       
@@ -5024,6 +5058,7 @@ requestAnimationFrame(loop);
 
 <!-- TIMER / FLIPPING CLOCK & STUDY COUNTDOWN -->
 <section class="view" id="v-timer">
+<div class="study-layout">
   <div class="dh-timer-shell">
     <div class="dh-timer-top">
       <div class="dh-timer-title-group">
@@ -5207,6 +5242,29 @@ requestAnimationFrame(loop);
       </div>
     </div>
   </div>
+<section id="study-together" aria-labelledby="study-heading" class="c">
+  <div class="study-heading"><div><span class="study-label">Private study group</span><h3 id="study-heading">Study Together</h3></div><span id="study-count">Checking active timers…</span></div>
+  <div id="study-guest"><p>Sign in to start a private study group and see when friends are focusing.</p><button type="button" onclick="openAuthModal('login')">Sign in to Study Together</button></div>
+  <div id="study-signed" hidden>
+    <div class="study-session-card">
+    <p id="study-progress"></p><p id="study-admin" hidden></p>
+    <label for="study-subject">Private study subject (optional)</label> <input id="study-subject" maxlength="80" placeholder="What are you studying?">
+    <button id="study-finish" hidden>Finish session</button>
+    <details><summary>Recent sessions</summary><ul id="study-history"></ul></details>
+    </div>
+    <div id="study-entry" class="study-entry">
+      <div class="study-switch" role="group" aria-label="Group setup"><button type="button" id="study-show-create" aria-pressed="true">Create</button><button type="button" id="study-show-join" aria-pressed="false">Join with invite</button></div>
+      <form id="study-create"><label for="study-new-name">Group name</label><input id="study-new-name" required maxlength="60" placeholder="Evening study group"><button>Create group</button></form>
+      <form id="study-join" hidden><label for="study-invite">Invite link or code</label><input id="study-invite" required autocomplete="off"><button>Join group</button></form>
+    </div>
+    <section id="study-group" hidden>
+      <h4 id="study-name"></h4><ul id="study-members"></ul>
+      <div class="study-actions"><button id="study-focus">Join focus</button><span id="study-owner" hidden><button id="study-copy">Copy invite</button> <button id="study-rotate">Renew invite</button></span></div>
+      <div class="study-actions"><label><input type="checkbox" id="study-visible"> Show my study status</label><label><input type="checkbox" id="study-mute"> Mute group alerts</label></div>
+      <div class="study-actions"><button id="study-push" hidden>Enable browser alerts</button><button id="study-leave">Leave group</button></div>
+    </section>
+  </div><p role="status" id="study-message"></p>
+</section></div>
 </section>
 
 <section class="view" id="v-projects">
@@ -5232,7 +5290,7 @@ requestAnimationFrame(loop);
   <h2 class="hack-heading" id="hack-title">Hackathons</h2>
   <div class="hack-grid">
     <article class="hack-card">
-      <div class="hack-cover hack-cover--tatva" aria-hidden="true"><span class="hack-sculpture"><span class="hack-core"></span></span></div>
+      <div class="hack-cover hack-cover--tatva" data-name="TATVA"></div>
       <div class="hack-body">
         <span class="hack-status">Submission round</span>
         <h3>TATVA — National Hackathon 2026</h3>
@@ -5243,7 +5301,7 @@ requestAnimationFrame(loop);
       </div>
     </article>
     <article class="hack-card hack-card--india">
-      <div class="hack-cover hack-cover--india" aria-hidden="true"><span class="hack-sculpture"><span class="hack-core"></span></span></div>
+      <div class="hack-cover hack-cover--india" data-name="INNOVATE INDIA"></div>
       <div class="hack-body">
         <span class="hack-status">Round 2</span>
         <h3>Innovate India — Hackathon 2026</h3>
@@ -5254,7 +5312,7 @@ requestAnimationFrame(loop);
       </div>
     </article>
     <article class="hack-card hack-card--orca">
-      <div class="hack-cover hack-cover--orca" aria-hidden="true"><span class="hack-sculpture"><span class="hack-core"></span></span></div>
+      <div class="hack-cover hack-cover--orca" data-name="ORCATHON"></div>
       <div class="hack-body">
         <span class="hack-status hack-status--closed">Registration closed</span>
         <h3>ORCA CODERS: ORCATHON 2026</h3>
@@ -7166,6 +7224,8 @@ function safeHttpLink(value) {
   if (!value || typeof value !== 'string') return '';
   try {
     const url = new URL(value);
+    if (['github.com', 'www.github.com'].includes(url.hostname.toLowerCase()) &&
+        decodeURIComponent(url.pathname).split('/').filter(Boolean)[0]?.toLowerCase() === 'rujulasharma') return '';
     return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : '';
   } catch {
     return '';
@@ -7686,7 +7746,25 @@ async function syncWorkspaceAssignment(assignment) {
   return { ...assignment, id: result.assignment.id };
 }
 
+function openSiteNotifications() {
+  if (!currentUser) return openAuthModal('login');
+  document.getElementById('site-notification-dialog').showModal();
+  try { localStorage.setItem('dh-notice-study-meme-' + currentUser.id, 'seen'); } catch {}
+  updateNotificationBadge();
+}
+
+function updateNotificationBadge() {
+  let unread = Boolean(currentUser);
+  try {
+    if (unread) unread = localStorage.getItem('dh-notice-study-meme-' + currentUser.id) !== 'seen';
+  } catch {}
+  const bell = document.getElementById('site-notifications');
+  bell.classList.toggle('has-unread', unread);
+  bell.setAttribute('aria-label', unread ? 'Notifications, 1 unread' : 'Notifications');
+}
+
 function updateAuthUI() {
+  updateNotificationBadge();
   window.renderProfilePage?.();
   const pendingEmail = readPendingVerificationEmail();
   window.refreshProjectLikesForAccount?.();
@@ -10130,7 +10208,7 @@ document.addEventListener('click',e=>{
 <script>
 /* ===== LANDING SECTIONS ===== */
 /* EDIT HERE: leave '' for any URL you don't have yet — the button then shows a "not set" message instead of a fake link. */
-const LINKS={orcathon:'https://unstop.com/o/vON6wtS?lb=useupllP&utm_medium=Share&utm_source=online_coding_challenge&utm_campaign=Parthhyg96055',tatva:'https://unstop.com/o/9sLW7l8?lb=useupllP&utm_medium=Share&utm_source=online_coding_challenge&utm_campaign=Parthhyg96055',instagram:'https://www.instagram.com/devharbour.official',community:'https://chat.whatsapp.com/Dt87L7lU5SOBSfKDKuNS8s',about:'',contact:'',github:'',linkedin:'https://www.linkedin.com/company/devharbour/',terms:'',poster:''};
+const LINKS={orcathon:'https://unstop.com/o/vON6wtS?lb=useupllP&utm_medium=Share&utm_source=online_coding_challenge&utm_campaign=Parthhyg96055',tatva:'https://unstop.com/o/9sLW7l8?lb=useupllP&utm_medium=Share&utm_source=online_coding_challenge&utm_campaign=Parthhyg96055',instagram:'https://www.instagram.com/devharbour.official',community:'https://chat.whatsapp.com/Dt87L7lU5SOBSfKDKuNS8s',about:'',contact:'',linkedin:'https://www.linkedin.com/company/devharbour/',terms:'',poster:''};
 const RM=matchMedia('(prefers-reduced-motion:reduce)').matches;
 document.querySelectorAll('[data-lk]').forEach(a=>{const u=LINKS[a.dataset.lk];if(u){a.href=u;a.target='_blank';a.rel='noopener noreferrer'}
 a.addEventListener('click',e=>{e.stopPropagation();if(!u){e.preventDefault();toast(a.textContent.replace(' ↗','')+' link isn’t set yet — add it in LINKS')}});
@@ -10201,7 +10279,7 @@ renderAllLeaderboardViews();
 $('zfl').src=document.querySelector('.xlg .xli').src;
 const syncLogos=()=>{const src=$('zfl').src;document.querySelectorAll('[data-logo]').forEach(i=>{if(!i.src)i.src=src;});};
 syncLogos();document.addEventListener('DOMContentLoaded',syncLogos);
-if ($('zfn')) $('zfn').innerHTML=[['about','About'],['certificate','Certificate'],['contact','Contact'],['github','GitHub'],['linkedin','LinkedIn'],['terms','Terms']].map(x=>x[0]=='about'?'<a href="#" data-sc="#about">About</a>':x[0]=='certificate'?'<a href="/my-certificate" data-go="my-certificate">Certificate</a>':ph(x[0],x[1])).join('');
+if ($('zfn')) $('zfn').innerHTML=[['about','About'],['certificate','Certificate'],['contact','Contact'],['linkedin','LinkedIn'],['terms','Terms']].map(x=>x[0]=='about'?'<a href="#" data-sc="#about">About</a>':x[0]=='certificate'?'<a href="/my-certificate" data-go="my-certificate">Certificate</a>':ph(x[0],x[1])).join('');
 /* links that point nowhere stay inert; data-go / data-sc work */
 LD.addEventListener('click',e=>{const a=e.target.closest('a[href="#"],[data-go],[data-sc]');if(!a)return;e.preventDefault();if(a.dataset.sc)jump(a.dataset.sc);else if(a.dataset.go){enter(a.dataset.go,e.clientX,e.clientY);if(window.show)window.show(a.dataset.go,true);}});
 LD.addEventListener('click',e=>{if(e.target.closest('#chTry')){e.stopPropagation();e.preventDefault();enter('work',e.clientX,e.clientY)}},true);
@@ -10826,7 +10904,32 @@ new MutationObserver(()=>{P.querySelectorAll('span').forEach(up);R.querySelector
   }
 
   // Countdown Controls
+  let managed = false;
+  document.addEventListener('study-clock', event => {
+    const state=event.detail;
+    if(!state && !managed)return;
+    if(state){
+      if(!managed)setMode('countdown');
+      managed=true;
+      clearInterval(studyTimerInterval);
+      currentPresetType='focus';
+      studyDurationSeconds=state.duration;
+      studyRemainingSeconds=state.remaining;
+      isStudyRunning=state.state==='running';
+    }else{
+      managed=false;isStudyRunning=false;studyRemainingSeconds=studyDurationSeconds;
+    }
+    timerToggleText.textContent=isStudyRunning?'Pause':(managed?'Resume':'Start Focus');
+    timerToggleIcon.innerHTML=isStudyRunning?'<path d="M7 4v16m10-16v16" stroke="currentColor" stroke-width="4"/>':'<polygon points="5 3 19 12 5 21 5 3"/>';
+    if(mode==='countdown')updateCountdownDisplay();
+  });
+  document.addEventListener('study-finished',event=>{playZenChime();completedSessions++;totalFocusedMinutes+=Math.floor(event.detail/60);updateStatsUI();});
   function toggleCountdownTimer() {
+    if(currentUser && window.studyTogether && currentPresetType==='focus'){
+      const live=window.studyTogether.session;
+      window.studyTogether.timer(live?(live.state==='running'?'pause':'resume'):'start',studyDurationSeconds);
+      return;
+    }
     if (isStudyRunning) {
       clearInterval(studyTimerInterval);
       isStudyRunning = false;
@@ -10876,6 +10979,8 @@ new MutationObserver(()=>{P.querySelectorAll('span').forEach(up);R.querySelector
   }
 
   function resetCountdownTimer() {
+    if(window.studyTogether?.session)window.studyTogether.timer("cancel");
+    managed=false;
     focusRewardToken = null;
     clearInterval(studyTimerInterval);
     isStudyRunning = false;
@@ -11993,5 +12098,118 @@ window.addEventListener('popstate', function() {
 
 <script src="/assets/profile-page.js"></script>
 <script src="/assets/profile-ecosystem.js" defer></script>
+<script src="/assets/study-together.js?v=3"></script>
+<script>
+(() => {
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  for (const cover of document.querySelectorAll('.hack-cover')) {
+    const canvas = document.createElement('canvas');
+    const mask = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    const lettering = mask.getContext('2d', {willReadFrequently: true});
+    if (!context || !lettering) continue;
+    canvas.className = 'hack-neurons';
+    canvas.setAttribute('aria-hidden', 'true');
+    cover.append(canvas);
+
+    let width = 0, height = 0, frame = 0, visible = false;
+    let pointer = null;
+    let dots = [];
+    const ink = getComputedStyle(cover).getPropertyValue('--neuron-ink').trim();
+
+    function draw(time, still = false) {
+      context.clearRect(0, 0, width, height);
+      for (const title of [false, true]) {
+        context.fillStyle = ink;
+        context.globalAlpha = title ? 0.94 : 0.24;
+        const settle = still ? 1 : Math.min(1, time);
+        const eased = 1 - Math.pow(1 - settle, 3);
+        for (const dot of dots) {
+          if (dot.title !== title) continue;
+          const x = title ? dot.startX + (dot.x - dot.startX) * eased :
+            (dot.x + time * 42 * dot.speed) % width;
+          const y = title ? dot.startY + (dot.y - dot.startY) * eased :
+            dot.y + Math.sin(time * 2 + dot.phase) * 4;
+          const dx = pointer ? x - pointer.x : 0;
+          const dy = pointer ? y - pointer.y : 0;
+          const distance = Math.hypot(dx, dy);
+          const force = distance > 0 && distance < 75 ? (1 - distance / 75) * 55 : 0;
+          dot.offsetX += ((force ? dx / distance * force : 0) - dot.offsetX) * .18;
+          dot.offsetY += ((force ? dy / distance * force : 0) - dot.offsetY) * .18;
+          context.fillRect(x + dot.offsetX, y + dot.offsetY, dot.size, dot.size);
+        }
+      }
+      context.globalAlpha = 1;
+    }
+
+    let epoch = null;
+    function step(now) {
+      frame = 0;
+      if (!visible || document.hidden || reducedMotion.matches || !width || !height) return;
+      epoch ??= now;
+      draw((now - epoch) / 1450);
+      start();
+    }
+    function start() {
+      if (!frame && visible && !document.hidden && !reducedMotion.matches && width && height) {
+        frame = requestAnimationFrame(step);
+      }
+    }
+    new ResizeObserver(() => {
+      width = cover.clientWidth;
+      height = cover.clientHeight;
+      if (!width || !height) return;
+      const dpr = Math.min(devicePixelRatio || 1, 2);
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      context.setTransform(dpr, 0, 0, dpr, 0, 0);
+      mask.width = width;
+      mask.height = height;
+      const name = cover.dataset.name;
+      const fontSize = Math.min(width * .17, height * .52);
+      lettering.font = '900 ' + fontSize + 'px system-ui';
+      lettering.textAlign = 'center';
+      lettering.textBaseline = 'middle';
+      lettering.fillText(name, width / 2, height / 2, width * .88);
+      const pixels = lettering.getImageData(0, 0, width, height).data;
+      const gap = width < 290 ? 2 : 3;
+      dots = [];
+      for (let y = 0; y < height; y += gap) {
+        for (let x = 0; x < width; x += gap) {
+          if (pixels[(y * width + x) * 4 + 3] < 140) continue;
+          dots.push({title:true, x, y, startX:Math.random()*width, startY:Math.random()*height,
+            offsetX:0, offsetY:0, size:gap*.68});
+        }
+      }
+      const ambientCount = Math.min(5400, Math.round(width * height / 18));
+      for (let i = 0; i < ambientCount; i++) {
+        dots.push({title:false, x:Math.random()*width, y:Math.random()*height, speed:.35+Math.random(),
+          phase:Math.random()*Math.PI*2, offsetX:0, offsetY:0, size:.5+Math.random()*.6});
+      }
+      epoch = null;
+      draw(0, true);
+      start();
+    }).observe(cover);
+    new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !visible) epoch = null;
+      visible = entry.isIntersecting;
+      start();
+    }).observe(cover);
+    cover.addEventListener('pointermove', event => {
+      if (event.pointerType === 'touch' || reducedMotion.matches) return;
+      const bounds = cover.getBoundingClientRect();
+      pointer = {x:event.clientX-bounds.left, y:event.clientY-bounds.top};
+    });
+    cover.addEventListener('pointerleave', () => { pointer = null; });
+    document.addEventListener('visibilitychange', start);
+    reducedMotion.addEventListener('change', () => {
+      pointer = null;
+      for (const dot of dots) dot.offsetX = dot.offsetY = 0;
+      if (reducedMotion.matches && width && height) draw(0, true);
+      else start();
+    });
+  }
+})();
+</script>
 </body>
 </html>

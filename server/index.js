@@ -53,6 +53,7 @@ app.use('/api/achievements', achievementRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/profile', require('./routes/profile'));
 app.use('/api/workspace', workspaceRoutes);
+app.use('/api/study', require('./routes/study'));
 app.use('/api/certificates', certificateRoutes);
 
 // Real-Time Server-Sent Events (SSE) Stream

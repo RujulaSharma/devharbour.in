@@ -9,7 +9,7 @@
   function safeLink(element, url) {
     element.replaceChildren();
     try {
-      const parsed = new URL(url);
+      const parsed = new URL(safeHttpLink(url));
       if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('Unsupported URL');
       const link = document.createElement('a');
       link.href = parsed.href; link.textContent = parsed.hostname + (parsed.pathname === '/' ? '' : parsed.pathname);
