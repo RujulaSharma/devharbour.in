@@ -7,10 +7,13 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm ci --include=dev
 
 # Copy application code and database
 COPY . .
+
+# Generate the additive profile client without applying any database migration.
+RUN npm run profile:generate && npm prune --omit=dev
 
 # Expose server port
 EXPOSE 3000

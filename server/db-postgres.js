@@ -307,6 +307,7 @@ async function getLeaderboard(timeframe = 'All-time', limit = 20, viewerId = nul
       AND coalesce(cast(settings.profile_public AS text), '1') IN ('1', 'true')
       AND lower(u.email) !~ '^(student|reader|coder|builder|intruder|settings|owner|otp_user|cert_user|new_google_user|existing_dev)_[0-9]{13}@devharbour[.]in$'
     GROUP BY u.id, u.username, u.full_name, u.avatar_url, u.streak_days, u.created_at
+    HAVING COALESCE(SUM(l.amount), 0) > 0
     )
     SELECT * FROM ranked WHERE rank <= $1 OR "userId" = $2 ORDER BY rank;
   `, [limit, viewerId]);

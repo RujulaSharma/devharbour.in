@@ -20,10 +20,11 @@ test('Terms, Privacy, Contact, About pages and Pro Footer Integrity', () => {
   // 3. Professional footer must exist
   assert.ok(publicHtml.includes('class="dh-pro-footer"'), 'dh-pro-footer must exist');
   assert.ok(publicHtml.includes('All Systems Operational'), 'Status indicator must exist');
-  assert.ok(publicHtml.includes('data-go="about"'), 'About link in footer must exist');
-  assert.ok(publicHtml.includes('data-go="contact"'), 'Contact link in footer must exist');
-  assert.ok(publicHtml.includes('data-go="terms"'), 'Terms link in footer must exist');
-  assert.ok(publicHtml.includes('data-go="privacy"'), 'Privacy link in footer must exist');
+  const footer = publicHtml.match(/<footer\b[\s\S]*?<\/footer>/)?.[0] || '';
+  for (const route of ['about', 'contact', 'terms', 'privacy']) {
+    assert.ok(footer.includes(`href="/${route}/"`), `${route} link in footer must exist`);
+    assert.ok(fs.existsSync(path.join(__dirname, '..', 'public', route, 'index.html')), `${route} public page must exist`);
+  }
 
   // 4. Contact form must exist
   assert.ok(publicHtml.includes('id="dh-contact-form"'), 'dh-contact-form must exist');

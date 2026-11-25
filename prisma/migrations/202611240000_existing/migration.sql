@@ -1,0 +1,2 @@
+-- Baseline marker only. Existing Dev Harbour tables remain managed by their original migrations.
+-- On an existing database, resolve this baseline as applied before deploying the additive profile migration.

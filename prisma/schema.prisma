@@ -1,14 +1,23 @@
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 generator client {
   provider = "prisma-client-js"
+  output = "../server/generated/profile-client"
 }
 
 model User {
+  profile DeveloperProfile?
+  entries ProfileEntry[]
+  skills ProfileSkill[]
+  activities ProfileActivity[]
+  goals ProfileGoal[]
+  media ProfileMedia[]
+  sent ProfileConnection[] @relation("ConnectionFrom")
+  received ProfileConnection[] @relation("ConnectionTo")
+  notifications ProfileNotification[]
+
   id               String            @id @default(dbgenerated("gen_random_uuid()::text"))
   email            String            @unique
   username         String            @unique
@@ -414,4 +423,128 @@ model WorkspaceBookmark {
 
   @@index([userId])
   @@map("workspace_bookmarks")
+}
+
+
+model DeveloperProfile {
+  userId String @id @map("user_id")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  headline String @default("")
+  college String @default("")
+  company String @default("")
+  title String @default("")
+  city String @default("")
+  state String @default("")
+  country String @default("")
+  cover String @default("lavender")
+  visibility String @default("private")
+  discovery Boolean @default(false)
+  recruitment Boolean @default(false)
+  details Json @default("{}")
+  privacy Json @default("{}")
+  links Json @default("{}")
+  pins Json @default("{}")
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@index([visibility, discovery])
+  @@map("developer_profiles")
+}
+
+model ProfileEntry {
+  id String @id @default(uuid())
+  userId String @map("user_id")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind String
+  data Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@index([userId, kind, createdAt])
+  @@map("profile_entries")
+}
+
+model ProfileSkill {
+  id String @id @default(uuid())
+  userId String @map("user_id")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name String
+  category String
+  proficiency String @default("Beginner")
+  pinned Boolean @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@unique([userId, name])
+  @@index([userId, category])
+  @@map("profile_skills")
+}
+
+model ProfileActivity {
+  id String @id @default(uuid())
+  userId String @map("user_id")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventKey String @map("event_key")
+  type String
+  title String
+  reference String?
+  occurredAt DateTime @map("occurred_at")
+  @@unique([userId, eventKey])
+  @@index([userId, occurredAt, id])
+  @@map("profile_activity")
+}
+
+model ProfileGoal {
+  id String @id @default(uuid())
+  userId String @map("user_id")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title String
+  metric String
+  target Int
+  baseline Int @default(0)
+  deadline DateTime?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@index([userId, createdAt])
+  @@map("profile_goals")
+}
+
+model ProfileMedia {
+  id String @id @default(uuid())
+  userId String @map("user_id")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind String
+  objectPath String @unique @map("object_path")
+  mime String
+  bytes Int
+  label String
+  createdAt DateTime @default(now()) @map("created_at")
+  @@index([userId, kind])
+  @@map("profile_media")
+}
+
+model ProfileConnection {
+  id String @id @default(uuid())
+  fromId String @map("from_id")
+  toId String @map("to_id")
+  from User @relation("ConnectionFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to User @relation("ConnectionTo", fields: [toId], references: [id], onDelete: Cascade)
+  kind String
+  status String @default("pending")
+  message String @default("")
+  createdAt DateTime @default(now()) @map("created_at")
+  @@unique([fromId, toId, kind])
+  @@index([toId, kind, status])
+  @@map("profile_connections")
+}
+
+model ProfileNotification {
+  id String @id @default(uuid())
+  userId String @map("user_id")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventKey String @map("event_key")
+  title String
+  read Boolean @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  @@unique([userId, eventKey])
+  @@index([userId, read, createdAt])
+  @@map("profile_notifications")
 }
