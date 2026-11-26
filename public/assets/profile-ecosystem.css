@@ -1858,3 +1858,6 @@ html[data-theme="dark"] .dp-stat-icon.rank {
     padding: 18px;
   }
 }
+
+/* Component display rules must respect route-specific hidden panels. */
+.dp-settings-shell [hidden] { display: none !important; }
