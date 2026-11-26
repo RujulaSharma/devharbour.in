@@ -101,6 +101,7 @@ app.get('/api/config/public', (req, res) => {
   });
 });
 
+app.use('/api/innovative-certificate', require('./routes/innovative-certificate'));
 app.use('/api/orcathon-certificate', require('./routes/orcathon-certificate'));
 
 // SPA Fallback

@@ -164,4 +164,4 @@ async function verifyCertificate(req, res, input) {
   }
 }
 
-module.exports = { myCertificate, verifyCertificate };
+module.exports = { myCertificate, verifyCertificate, issueCertificate };

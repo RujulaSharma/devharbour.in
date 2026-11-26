@@ -308,10 +308,10 @@ async function certificateList(user) {
     status: c.status,
     verificationUrl:
       c.event_slug === "innovative-india-2026"
-        ? "/api/certificates/innovative-india/verify/" +
+        ? "/innovative-certificate/?id=" +
           encodeURIComponent(c.credential_id)
         : "/orcathon-certificate/?id=" + encodeURIComponent(c.credential_id),
-    downloadUrl: c.event_slug === "orca-coders-orcathon-2026" ? "/orcathon-certificate/" : "/my-certificate",
+    downloadUrl: c.event_slug === "orca-coders-orcathon-2026" ? "/orcathon-certificate/" : "/innovative-certificate/",
   }));
 }
 async function workspace(userId) {

@@ -1213,7 +1213,7 @@ async function getUserCertificates(email) {
   const res = await query(`
     SELECT c.* FROM issued_certificates c
     WHERE LOWER(c.recipient_email) = $1
-      AND (c.event_slug <> 'orca-coders-orcathon-2026' OR EXISTS (
+      AND (c.event_slug NOT IN ('orca-coders-orcathon-2026','innovative-india-2026') OR EXISTS (
         SELECT 1 FROM event_participants p WHERE p.event_slug=c.event_slug
         AND lower(trim(p.candidate_email))=lower(trim(c.recipient_email)) AND p.is_eligible=1))
     ORDER BY c.created_at DESC;

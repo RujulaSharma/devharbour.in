@@ -888,7 +888,7 @@
           ? `<div class="dp-cert-list">
               ${list
                 .map((c) => {
-                  const certificatePage = c.id?.startsWith("DH-ORCA-") ? "/orcathon-certificate/?id=" + encodeURIComponent(c.id) : c.verificationUrl;
+                  const certificatePage = c.id?.startsWith("DH-ORCA-") ? "/orcathon-certificate/?id=" + encodeURIComponent(c.id) : c.id?.startsWith("IN-26-") ? "/innovative-certificate/?id=" + encodeURIComponent(c.id) : c.verificationUrl;
                   const verifyUrl = safeHref(certificatePage || (c.source === "platform" && c.id ? `/verify-certificate?id=${encodeURIComponent(c.id)}` : ""));
                   return `<div class="dp-cert-row">
                     <div class="dp-cert-left">
