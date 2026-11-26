@@ -20,7 +20,17 @@ if (!fs.existsSync(canonicalPath)) {
   process.exit(1);
 }
 
-const canonicalHtml = fs.readFileSync(canonicalPath, 'utf8');
+let canonicalHtml = fs.readFileSync(canonicalPath, 'utf8');
+// Ship profile markup and its renderer/styles atomically, avoiding stale external bundles.
+for (const [kind, file] of [['style','profile-ecosystem.css'], ['script','profile-ecosystem.js']]) {
+  const content = fs.readFileSync(path.join(rootDir, 'public/assets', file), 'utf8');
+  const block = '<!-- profile-bundle-' + kind + ':start -->\n<' + kind + '>' + content + '</' + kind + '>\n<!-- profile-bundle-' + kind + ':end -->';
+  const existing = new RegExp('<!-- profile-bundle-' + kind + ':start -->[\\s\\S]*?<!-- profile-bundle-' + kind + ':end -->');
+  const external = kind === 'style' ? /<link rel="stylesheet" href="\/assets\/profile-ecosystem\.css[^" ]*">/ : /<script src="\/assets\/profile-ecosystem\.js[^" ]*" defer><\/script>/;
+  canonicalHtml = canonicalHtml.replace(existing.test(canonicalHtml) ? existing : external, () => block);
+}
+canonicalHtml = canonicalHtml.replace(/<script src="\/assets\/profile-page\.js[^" ]*"><\/script>/, '');
+fs.writeFileSync(canonicalPath, canonicalHtml, 'utf8');
 
 // Integrity checks: Ensure legacy passcode patterns are permanently eradicated
 const forbiddenPatterns = [
