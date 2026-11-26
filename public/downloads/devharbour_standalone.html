@@ -8260,7 +8260,7 @@ function show(id, fromUserAction, updateHistory = fromUserAction){
     }
   }
   document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id=='v-'+id));
-  document.querySelectorAll('.nv[data-v],.mob-dock-btn[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v==id));
+  document.querySelectorAll('.nv[data-v],.mob-dock-btn[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v==id && (id !== 'settings' || location.pathname === '/theme')));
   const moreDock = document.getElementById('mob-dock-more');
   if (moreDock) moreDock.classList.toggle('on', !['home','learn','practice','projects'].includes(id));
   updateSidebarTagline();
@@ -16092,6 +16092,12 @@ window.addEventListener('popstate', function() {
     const settingsView = document.getElementById("v-settings");
     if (!settingsView) return;
     if (activeSubTab) state.settingsTab = activeSubTab;
+    document.querySelectorAll('.nv[data-v="settings"],.mob-dock-btn[data-v="settings"]').forEach(button => {
+      const isTheme = location.pathname.replace(/\/+$/, '') === '/theme';
+      button.classList.toggle('on', isTheme);
+      if (isTheme) button.setAttribute('aria-current', 'page');
+      else button.removeAttribute('aria-current');
+    });
 
     // Preserve the existing Theme/Appearance `.g` element on first init
     let shell = document.getElementById("dp-settings-shell");

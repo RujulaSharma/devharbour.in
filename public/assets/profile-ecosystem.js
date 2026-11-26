@@ -1947,6 +1947,12 @@
     const settingsView = document.getElementById("v-settings");
     if (!settingsView) return;
     if (activeSubTab) state.settingsTab = activeSubTab;
+    document.querySelectorAll('.nv[data-v="settings"],.mob-dock-btn[data-v="settings"]').forEach(button => {
+      const isTheme = location.pathname.replace(/\/+$/, '') === '/theme';
+      button.classList.toggle('on', isTheme);
+      if (isTheme) button.setAttribute('aria-current', 'page');
+      else button.removeAttribute('aria-current');
+    });
 
     // Preserve the existing Theme/Appearance `.g` element on first init
     let shell = document.getElementById("dp-settings-shell");
