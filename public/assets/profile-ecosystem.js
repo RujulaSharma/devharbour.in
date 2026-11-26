@@ -2634,7 +2634,8 @@
   };
 
   window.renderSettingsSubRoute = function (sub) {
-    renderSettingsHub(location.pathname === "/theme" ? "appearance" : sub || "account");
+    const path = location.pathname.replace(/\/+$/, "");
+    renderSettingsHub(path === "/theme" ? "appearance" : path === "/settings" ? "account" : sub || "account");
   };
 
   // Delegate settings navigation clicks from navbar & cards
