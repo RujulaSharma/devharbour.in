@@ -2685,7 +2685,7 @@
 
   window.renderSettingsSubRoute = function (sub) {
     const path = location.pathname.replace(/\/+$/, "");
-    renderSettingsHub(path === "/theme" ? "appearance" : path === "/settings" ? "account" : sub || "account");
+    renderSettingsHub(path === "/theme" ? "appearance" : path.endsWith("/privacy") ? "privacy" : ["/profile/settings", "/settings/profile"].includes(path) ? "profile" : "account");
   };
 
   // Delegate settings navigation clicks from navbar & cards
@@ -2716,6 +2716,15 @@
   });
 
   document.addEventListener("click", (e) => {
+    if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+    const settingsLink = e.target.closest('a[href="/profile/settings"],a[href="/settings/profile"],a[href="/profile/settings/privacy"],a[href="/settings/privacy"]');
+    if (settingsLink) {
+      e.preventDefault(); e.stopImmediatePropagation();
+      document.querySelectorAll('.nav-account[open]').forEach(menu => menu.open = false);
+      if (settingsLink.getAttribute('href').endsWith('/privacy')) window.openPrivacySettings();
+      else window.openProfileSettings();
+      return;
+    }
     const theme = e.target.closest('[data-v="settings"], a[href="/theme"]');
     if (!theme) return;
     e.preventDefault(); e.stopImmediatePropagation();
