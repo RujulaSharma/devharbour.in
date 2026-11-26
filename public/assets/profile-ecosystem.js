@@ -888,7 +888,8 @@
           ? `<div class="dp-cert-list">
               ${list
                 .map((c) => {
-                  const verifyUrl = safeHref(c.verificationUrl || (c.source === "platform" && c.id ? `/verify-certificate?id=${encodeURIComponent(c.id)}` : ""));
+                  const certificatePage = c.id?.startsWith("DH-ORCA-") ? "/orcathon-certificate/?id=" + encodeURIComponent(c.id) : c.verificationUrl;
+                  const verifyUrl = safeHref(certificatePage || (c.source === "platform" && c.id ? `/verify-certificate?id=${encodeURIComponent(c.id)}` : ""));
                   return `<div class="dp-cert-row">
                     <div class="dp-cert-left">
                       <div class="dp-cert-thumb"><span>CERTIFICATE</span><span>DEV HARBOUR</span></div>
@@ -900,7 +901,7 @@
                     <div class="dp-cert-right">
                       <span class="dp-verified-pill">${icon("checkCircle")} Verified</span>
                       ${isOwner && c.downloadUrl ? `<a class="dp-btn dp-btn-sm" href="${esc(safeHref(c.downloadUrl))}">Open Certificate</a>` : ""}
-                      ${verifyUrl ? `<a class="dp-btn dp-btn-sm" href="${esc(verifyUrl)}" target="${verifyUrl.startsWith("/") ? "_self" : "_blank"}" rel="noopener noreferrer">Verify ${icon("externalLink")}</a>` : ""}
+                      ${verifyUrl ? `<a class="dp-btn dp-btn-sm" href="${esc(verifyUrl)}" target="${verifyUrl.startsWith("/") ? "_self" : "_blank"}" rel="noopener noreferrer">View Certificate ${icon("externalLink")}</a>` : ""}
                     </div>
                   </div>`;
                 })

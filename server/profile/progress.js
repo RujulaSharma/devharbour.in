@@ -302,7 +302,7 @@ async function eventHistory(user) {
 async function certificateList(user) {
   return (await db.getUserCertificates(user.email)).map((c) => ({
     id: c.credential_id,
-    title: c.event_slug,
+    title: c.event_slug === "orca-coders-orcathon-2026" ? "Orcathon 2026 — Participation" : c.event_slug === "innovative-india-2026" ? "Innovative India 2026" : c.event_slug,
     type: c.certificate_type,
     issueDate: c.issue_date,
     status: c.status,
@@ -310,7 +310,7 @@ async function certificateList(user) {
       c.event_slug === "innovative-india-2026"
         ? "/api/certificates/innovative-india/verify/" +
           encodeURIComponent(c.credential_id)
-        : "/api/certificates/verify/" + encodeURIComponent(c.credential_id),
+        : "/orcathon-certificate/?id=" + encodeURIComponent(c.credential_id),
     downloadUrl: c.event_slug === "orca-coders-orcathon-2026" ? "/orcathon-certificate/" : "/my-certificate",
   }));
 }

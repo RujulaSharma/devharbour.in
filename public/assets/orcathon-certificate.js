@@ -1,1 +1,38 @@
-(()=>{const $=id=>document.getElementById(id);let certificate;function headers(){const t=localStorage.getItem('dh_token')||localStorage.getItem('dh-auth-token');return {'Content-Type':'application/json',...(t?{Authorization:'Bearer '+t}:{})}}async function call(path='',options={}){const r=await fetch('/api/orcathon-certificate'+path,{...options,headers:headers(),credentials:'include',signal:AbortSignal.timeout(20000)});if(!r.ok){const data=await r.json();throw Error(r.status===401?'Sign in to Dev Harbour using your registered email, then return here.':data.error||'Request failed')}return r}async function load(){try{certificate=await(await call()).json();$('recipient').textContent=certificate.name;$('name').value=certificate.name;$('credential').textContent=certificate.id+' · '+certificate.date;$('status').textContent='Verified participation. Your certificate is ready.';for(const id of ['save','download','share'])$(id).disabled=false}catch(e){$('status').textContent=e.message;$('recipient').textContent='Certificate unavailable'}}$('name-form').onsubmit=async e=>{e.preventDefault();$('save').disabled=true;try{await call('/name',{method:'PATCH',body:JSON.stringify({name:$('name').value})});await load()}catch(e){$('status').textContent=e.message}finally{$('save').disabled=false}};$('download').onclick=async()=>{try{const blob=await(await call('/pdf')).blob();const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Orcathon-Participation.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){$('status').textContent=e.message}};$('share').onclick=async()=>{try{await navigator.clipboard.writeText(new URL(certificate.verificationUrl,location.origin).href);$('status').textContent='Verification link copied.'}catch{$('status').textContent='Unable to copy link.'}};load()})();
+(() => {
+  const $ = id => document.getElementById(id);
+  const id = new URLSearchParams(location.search).get('id');
+  let certificate;
+  function headers() { const token = localStorage.getItem('dh_token') || localStorage.getItem('dh-auth-token'); return {'Content-Type':'application/json', ...(token ? {Authorization:'Bearer '+token} : {})}; }
+  async function call(path='', options={}) {
+    const response = await fetch('/api/orcathon-certificate'+path, {...options,headers:headers(),credentials:'include',signal:AbortSignal.timeout(20000)});
+    if (!response.ok) { const body=await response.json(); throw Error(response.status===401?'Sign in with your registered email to manage this certificate.':body.error||'Request failed'); }
+    return response;
+  }
+  function display(c) { certificate=c; $('recipient').textContent=c.name; $('name').value=c.name; $('credential').textContent=c.id+' · '+c.date; $('share').disabled=false; }
+  async function load() {
+    $('name-form').hidden=true; $('download').hidden=true;
+    try {
+      if (id) {
+        if (!/^DH-ORCA-[A-Za-z0-9-]{5,100}$/.test(id)) throw Error('Invalid certificate link.');
+        const response=await fetch('/api/certificates/verify/'+encodeURIComponent(id),{cache:'no-store',signal:AbortSignal.timeout(20000)});
+        const data=await response.json();
+        if (!response.ok || !data.verified) throw Error('This certificate is invalid or unavailable.');
+        const c=data.credential;
+        display({id:c.credential_id,name:c.recipient_name,date:c.issue_date});
+        $('status').textContent='Verified Orcathon participation certificate.';
+      }
+      try {
+        const own=await(await call()).json();
+        if (!id || own.id===id) {
+          display(own); $('name-form').hidden=false; $('download').hidden=false;
+          $('save').disabled=false; $('download').disabled=false;
+          $('status').textContent='Verified participation. You can update the name and download your certificate.';
+        }
+      } catch(error) { if (!id) throw error; }
+    } catch(error) { $('status').textContent=error.message; $('recipient').textContent='Certificate unavailable'; }
+  }
+  $('name-form').onsubmit=async event=>{event.preventDefault();$('save').disabled=true;try{await call('/name',{method:'PATCH',body:JSON.stringify({name:$('name').value})});await load()}catch(error){$('status').textContent=error.message}finally{$('save').disabled=false}};
+  $('download').onclick=async()=>{try{const blob=await(await call('/pdf')).blob();const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='Orcathon-Participation.pdf';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(error){$('status').textContent=error.message}};
+  $('share').onclick=async()=>{try{await navigator.clipboard.writeText(new URL('/orcathon-certificate/?id='+encodeURIComponent(certificate.id),location.origin).href);$('status').textContent='Certificate link copied.'}catch{$('status').textContent='Unable to copy link.'}};
+  load();
+})();
