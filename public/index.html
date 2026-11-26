@@ -35,31 +35,55 @@
     }
   };
 
-  // Fetch non-secret public config from server to retrieve configured GOOGLE_CLIENT_ID
-  window.__googleConfigReady = fetch('/api/config/public').then(function(r){
-    if (!r.ok) throw new Error('Google sign-in configuration is unavailable');
-    return r.json();
-  }).then(function(cfg){
-    if (cfg && cfg.googleClientId) {
-      var el = document.getElementById('google-gis-client-id');
-      if (el) el.content = cfg.googleClientId;
-      window.__GOOGLE_CLIENT_ID = cfg.googleClientId;
-      if (window.google && window.google.accounts) {
+  window.__loadGoogleConfig = function() {
+    if (!window.__googleConfigReady) {
+      window.__googleConfigReady = fetch('/api/config/public', {
+        cache: 'no-store', signal: AbortSignal.timeout(12000)
+      }).then(function(response) {
+        if (!response.ok) throw new Error('Google configuration is unavailable');
+        return response.json();
+      }).then(function(config) {
+        if (!config?.googleClientId) throw new Error('Google sign-in is not configured');
+        var meta = document.getElementById('google-gis-client-id');
+        if (meta) meta.content = config.googleClientId;
+        window.__GOOGLE_CLIENT_ID = config.googleClientId;
         window.__initGIS();
-      }
+      }).catch(function() {
+        window.__googleConfigReady = null;
+      });
     }
-  }).catch(function(){});
-
-  // Eagerly inject Google Identity Services SDK
-  var s = document.createElement('script');
-  s.src = 'https://accounts.google.com/gsi/client';
-  s.async = true; s.defer = true;
-  s.onload = function() {
-    if (window.__GOOGLE_CLIENT_ID || (document.getElementById('google-gis-client-id')||{}).content) {
-      window.__initGIS();
-    }
+    return window.__googleConfigReady;
   };
-  document.head.appendChild(s);
+
+  let googleSdkReady;
+  window.__loadGoogleSdk = function() {
+    if (window.google?.accounts?.id) return Promise.resolve();
+    if (!googleSdkReady) {
+      googleSdkReady = new Promise(function(resolve) {
+        const script = document.createElement('script');
+        const timer = setTimeout(failed, 12000);
+        function failed() {
+          clearTimeout(timer);
+          script.remove();
+          googleSdkReady = null;
+          resolve();
+        }
+        script.src = 'https://accounts.google.com/gsi/client';
+        script.async = true;
+        script.onerror = failed;
+        script.onload = function() {
+          clearTimeout(timer);
+          if (!window.google?.accounts?.id) return failed();
+          window.__initGIS();
+          resolve();
+        };
+        document.head.appendChild(script);
+      });
+    }
+    return googleSdkReady;
+  };
+  window.__loadGoogleConfig();
+  window.__loadGoogleSdk();
 })();
 </script>
 <script src="/assets/privacy-choices.js" defer></script>
@@ -11346,6 +11370,8 @@ async function verifyCertificateEmail(event) {
 function openCertificateLogin() {
   openAuthModal('signup');
   document.getElementById('dh-auth-modal').classList.add('certificate-login');
+  window.__loadGoogleConfig();
+  window.__loadGoogleSdk();
   document.getElementById('dh-auth-title').textContent = 'Continue with Google';
   document.getElementById('dh-auth-subtitle').textContent = 'Choose ' + certificateClaimEmail + ' in the Google account picker. If another account is shown, select Use another account.';
 }
@@ -11894,14 +11920,17 @@ window.__triggerGoogleOneTap = function() {
 };
 
 window.handleGoogleAuth = async function() {
-  if (window.__googleConfigReady) await window.__googleConfigReady;
-  if (typeof window.__initGIS === 'function') window.__initGIS();
-  if (window.__gisInitialized && window.google && window.google.accounts && window.google.accounts.id) {
-    window.__oneTapPromptActive = false;
-    window.__triggerGoogleOneTap();
-    return;
+  await Promise.all([window.__loadGoogleConfig(), window.__loadGoogleSdk()]);
+  if (window.__initGIS()) {
+    window.__renderGoogleButtons();
+    const googleButton = document.getElementById('dh-google-btn-slot');
+    if (googleButton?.style.display === 'flex') {
+      googleButton.querySelector('iframe')?.focus();
+      toast('Select the Google button to continue.');
+      return;
+    }
   }
-  toast('Google sign-in is unavailable. Please try again later.');
+  toast('Google sign-in could not load. Select Continue with Google to retry.');
 };
 
 window.onGoogleCredentialResponse = async function(response) {
