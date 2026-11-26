@@ -73,3 +73,33 @@ test('signed-in participants can retry failed configuration and SDK loads', asyn
   assert.ok(!calls.includes('prompt'));
   assert.equal(slot.style.display, 'flex');
 });
+
+test('auth retries only after Render explicitly rejects a cold-start request', async () => {
+  const { context } = setup();
+  let delay;
+  let wake;
+  const retryScheduled = Promise.withResolvers();
+  context.setTimeout = (callback, milliseconds) => {
+    delay = milliseconds;
+    wake = callback;
+    retryScheduled.resolve();
+  };
+  const sleeping = { status: 429, headers: new Headers({ 'x-render-routing': 'hibernate-rate-limited', 'retry-after': '50' }) };
+  const success = { status: 201 };
+  let attempts = 0;
+  let showedWake = false;
+  const pending = context.__fetchAuth(async () => ++attempts === 1 ? sleeping : success, () => { showedWake = true; });
+  await retryScheduled.promise;
+  assert.equal(attempts, 1);
+  assert.equal(delay, 50000);
+  assert.equal(showedWake, true);
+  wake();
+  assert.equal(await pending, success);
+  assert.equal(attempts, 2);
+
+  for (const response of [{ status: 502 }, { status: 429, headers: new Headers({ 'cf-mitigated': 'challenge' }) }]) {
+    attempts = 0;
+    assert.equal(await context.__fetchAuth(async () => { attempts++; return response; }), response);
+    assert.equal(attempts, 1);
+  }
+});
