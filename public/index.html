@@ -11264,7 +11264,7 @@ new MutationObserver(()=>{P.querySelectorAll('span').forEach(up);R.querySelector
 let myCertificateRequest;
 let certificateClaimEmail = '';
 
-async function submitCertificateEmail(event) {
+function submitCertificateEmail(event) {
   event.preventDefault();
   if (location.protocol === 'file:') {
     location.href = 'https://devharbour.in/my-certificate';
@@ -11272,21 +11272,15 @@ async function submitCertificateEmail(event) {
   }
   certificateClaimEmail = document.getElementById('mycert-email').value.trim().toLowerCase();
   document.getElementById('mycert-email-code').value = '';
-  const button = event.currentTarget.querySelector('button[type="submit"]');
   const seal = document.querySelector('.dh-ii-envelope-seal svg');
-  button.disabled = true;
-  try {
-    if (!matchMedia('(prefers-reduced-motion: reduce)').matches && seal?.animate) {
-      await seal.animate([
-        { transform: 'scale(1)' },
-        { transform: 'scale(1.15) rotate(-7deg)', offset: .55 },
-        { transform: 'scale(1)' }
-      ], { duration: 260, easing: 'ease-out' }).finished;
-    }
-    await loadMyCertificateView(true);
-  } finally {
-    button.disabled = false;
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches && seal?.animate) {
+    seal.animate([
+      { transform: 'scale(1)' },
+      { transform: 'scale(1.15) rotate(-7deg)', offset: .55 },
+      { transform: 'scale(1)' }
+    ], { duration: 260, easing: 'ease-out' });
   }
+  loadMyCertificateView(true);
 }
 function openCertificateSignup() {
   openAuthModal('signup');
@@ -11381,10 +11375,12 @@ async function loadMyCertificateView(openSignIn = false) {
   const canvas = $cert('mycert-preview');
   const link = $cert('mycert-verify-link');
   if (!claimForm) return;
+  const submit = claimForm.querySelector('button[type="submit"]');
   myCertificateRequest?.abort();
   const request = new AbortController();
   myCertificateRequest = request;
   claimForm.removeAttribute('aria-busy');
+  submit.disabled = false;
   details.hidden = canvas.hidden = true;
   $cert('mycert-email-verification').hidden = true;
   sample.hidden = false;
@@ -11405,7 +11401,7 @@ async function loadMyCertificateView(openSignIn = false) {
   const auth = getAuthHeaders();
   claimForm.hidden = false;
   const signedInEmail = currentUser?.email?.trim().toLowerCase();
-  if (!certificateClaimEmail || signedInEmail !== certificateClaimEmail) {
+  if (!certificateClaimEmail || !auth.Authorization || signedInEmail !== certificateClaimEmail) {
     message.textContent = certificateClaimEmail
       ? 'Confirm that you own the registration email you entered.'
       : 'Enter the email address you used to register for Innovative India.';
@@ -11414,10 +11410,38 @@ async function loadMyCertificateView(openSignIn = false) {
   }
   message.textContent = 'Checking your registration…';
   claimForm.setAttribute('aria-busy', 'true');
+  submit.disabled = true;
+  let timedOut = false;
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    request.abort();
+  }, 15000);
+  let response;
+  let result;
   try {
-    const response = await fetch('/api/certificates/my-certificate', { headers: { ...auth, 'X-Certificate-Email': certificateClaimEmail }, signal: request.signal, cache: 'no-store' });
-    const result = await response.json();
+    response = await fetch('/api/certificates/my-certificate', { headers: { ...auth, 'X-Certificate-Email': certificateClaimEmail }, signal: request.signal, cache: 'no-store' });
     if (request.signal.aborted) return;
+    if (response.status === 429) {
+      message.textContent = 'The certificate service is busy. Please try again in a moment.';
+      return;
+    }
+    result = await response.json();
+  } catch {
+    if (myCertificateRequest === request) {
+      message.textContent = timedOut
+        ? 'Checking your registration took too long. Please try again.'
+        : 'We could not check your registration. Please try again.';
+    }
+    return;
+  } finally {
+    clearTimeout(timeout);
+    if (myCertificateRequest === request) {
+      claimForm.removeAttribute('aria-busy');
+      submit.disabled = false;
+    }
+  }
+  if (request.signal.aborted) return;
+  try {
     if (response.status === 401) {
       message.textContent = 'Your session has ended. Sign in to continue.';
       requestCertificateOwnership(openSignIn);
@@ -11445,21 +11469,19 @@ async function loadMyCertificateView(openSignIn = false) {
     $cert('mycert-linkedin').href = shareUrl.href;
     $cert('mycert-linkedin-caption').value = certificateLinkedInCaption(link.href);
     $cert('mycert-share').hidden = typeof navigator.share !== 'function';
+    details.hidden = false;
     try {
       await drawMyCertificate(cert, blank, canvas, request.signal);
     } catch {
       if (!request.signal.aborted) message.textContent = 'The preview could not load. You can still download your PDF.';
     }
     if (request.signal.aborted) return;
-    details.hidden = false;
     const download = $cert('btn-download-mycert-pdf');
     if (!matchMedia('(prefers-reduced-motion: reduce)').matches && download.animate) {
       download.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 170, easing: 'ease-out' });
     }
   } catch {
     if (!request.signal.aborted) message.textContent = 'The certificate preview could not be loaded. Please try again.';
-  } finally {
-    if (myCertificateRequest === request) claimForm.removeAttribute('aria-busy');
   }
 }
 
