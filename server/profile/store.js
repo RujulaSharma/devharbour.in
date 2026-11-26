@@ -20,12 +20,16 @@ const defaults = {
   pins: {},
   version: 0,
 };
-async function getProfile(id) {
-  return (
-    (await profilePrisma().developerProfile.findUnique({
-      where: { userId: id },
-    })) || { ...defaults, userId: id }
-  );
+async function getProfile(id, account) {
+  const p = profilePrisma();
+  let profile = await p.developerProfile.findUnique({ where: { userId: id } });
+  const user = account || await db.getUserById(id);
+  const provisioning = require('./provisioning');
+  if (!profile && user) {
+    await provisioning.insertMissingProfiles([user]);
+    profile = await p.developerProfile.findUnique({ where: { userId: id } });
+  }
+  return provisioning.withAccountFields(profile || { ...defaults, userId: id }, user);
 }
 async function blocked(a, b) {
   if (!a || a === b) return false;
@@ -42,7 +46,7 @@ async function blocked(a, b) {
   );
 }
 async function access(user, viewer, options = {}) {
-  const profile = await getProfile(user.id);
+  const profile = await getProfile(user.id, user);
   const rawOwner = Boolean(viewer && viewer.id === user.id);
   const asVisitor = Boolean(options.asVisitor && rawOwner);
   const effectiveViewer = asVisitor ? null : viewer;
@@ -75,6 +79,8 @@ async function ensureSignupProfile(userId, { publicProfile = false, isMinor = fa
   const p = profilePrisma();
   const existing = await p.developerProfile.findUnique({ where: { userId } });
   if (existing) return existing;
+  const user = await db.getUserById(userId);
+  const account = user ? require('./provisioning').accountFields(user) : { city: '', links: {} };
   const makePublic = Boolean(publicProfile && !isMinor);
   const privacy = makePublic
     ? {
@@ -109,6 +115,7 @@ async function ensureSignupProfile(userId, { publicProfile = false, isMinor = fa
         discovery: makePublic,
         recruitment: false,
         cover: "scenic",
+        city: account.city,
         details: {
           isMinor: Boolean(isMinor),
           showDeveloperId: true,
@@ -117,7 +124,7 @@ async function ensureSignupProfile(userId, { publicProfile = false, isMinor = fa
           shareInProgressLearning: false,
         },
         privacy,
-        links: {},
+        links: account.links,
         pins: {},
       },
     });

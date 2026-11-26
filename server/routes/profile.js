@@ -49,7 +49,7 @@ router.get(
   wrap(async (req, res) => {
     const user = await owned(req);
     const [profile, entries, skills, connections, uploads] = await Promise.all([
-      store.getProfile(user.id),
+      store.getProfile(user.id, user),
       store.entries(user.id),
       store.skills(user.id),
       store.connections(user.id),
@@ -100,7 +100,7 @@ router.get(
     const user = await owned(req),
       id = user.id;
     if (["overview", "certificates"].includes(req.params.module))
-      await require("../innovative_certificates").syncProfileCertificate(id, req.token);
+      await require("../profile/certificates").syncProfileCertificates(id, req.token);
     const modules = {
       overview: () => progress.overview(user),
       coding: () => progress.coding(id),
