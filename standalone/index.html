@@ -35,31 +35,55 @@
     }
   };
 
-  // Fetch non-secret public config from server to retrieve configured GOOGLE_CLIENT_ID
-  window.__googleConfigReady = fetch('/api/config/public').then(function(r){
-    if (!r.ok) throw new Error('Google sign-in configuration is unavailable');
-    return r.json();
-  }).then(function(cfg){
-    if (cfg && cfg.googleClientId) {
-      var el = document.getElementById('google-gis-client-id');
-      if (el) el.content = cfg.googleClientId;
-      window.__GOOGLE_CLIENT_ID = cfg.googleClientId;
-      if (window.google && window.google.accounts) {
+  window.__loadGoogleConfig = function() {
+    if (!window.__googleConfigReady) {
+      window.__googleConfigReady = fetch('/api/config/public', {
+        cache: 'no-store', signal: AbortSignal.timeout(12000)
+      }).then(function(response) {
+        if (!response.ok) throw new Error('Google configuration is unavailable');
+        return response.json();
+      }).then(function(config) {
+        if (!config?.googleClientId) throw new Error('Google sign-in is not configured');
+        var meta = document.getElementById('google-gis-client-id');
+        if (meta) meta.content = config.googleClientId;
+        window.__GOOGLE_CLIENT_ID = config.googleClientId;
         window.__initGIS();
-      }
+      }).catch(function() {
+        window.__googleConfigReady = null;
+      });
     }
-  }).catch(function(){});
-
-  // Eagerly inject Google Identity Services SDK
-  var s = document.createElement('script');
-  s.src = 'https://accounts.google.com/gsi/client';
-  s.async = true; s.defer = true;
-  s.onload = function() {
-    if (window.__GOOGLE_CLIENT_ID || (document.getElementById('google-gis-client-id')||{}).content) {
-      window.__initGIS();
-    }
+    return window.__googleConfigReady;
   };
-  document.head.appendChild(s);
+
+  let googleSdkReady;
+  window.__loadGoogleSdk = function() {
+    if (window.google?.accounts?.id) return Promise.resolve();
+    if (!googleSdkReady) {
+      googleSdkReady = new Promise(function(resolve) {
+        const script = document.createElement('script');
+        const timer = setTimeout(failed, 12000);
+        function failed() {
+          clearTimeout(timer);
+          script.remove();
+          googleSdkReady = null;
+          resolve();
+        }
+        script.src = 'https://accounts.google.com/gsi/client';
+        script.async = true;
+        script.onerror = failed;
+        script.onload = function() {
+          clearTimeout(timer);
+          if (!window.google?.accounts?.id) return failed();
+          window.__initGIS();
+          resolve();
+        };
+        document.head.appendChild(script);
+      });
+    }
+    return googleSdkReady;
+  };
+  window.__loadGoogleConfig();
+  window.__loadGoogleSdk();
 })();
 </script>
 <script>/* Optional analytics only. This is not an advertising CMP; no ad tags are loaded. */
@@ -11379,7 +11403,7 @@ new MutationObserver(()=>{P.querySelectorAll('span').forEach(up);R.querySelector
 let myCertificateRequest;
 let certificateClaimEmail = '';
 
-async function submitCertificateEmail(event) {
+function submitCertificateEmail(event) {
   event.preventDefault();
   if (location.protocol === 'file:') {
     location.href = 'https://devharbour.in/my-certificate';
@@ -11387,21 +11411,15 @@ async function submitCertificateEmail(event) {
   }
   certificateClaimEmail = document.getElementById('mycert-email').value.trim().toLowerCase();
   document.getElementById('mycert-email-code').value = '';
-  const button = event.currentTarget.querySelector('button[type="submit"]');
   const seal = document.querySelector('.dh-ii-envelope-seal svg');
-  button.disabled = true;
-  try {
-    if (!matchMedia('(prefers-reduced-motion: reduce)').matches && seal?.animate) {
-      await seal.animate([
-        { transform: 'scale(1)' },
-        { transform: 'scale(1.15) rotate(-7deg)', offset: .55 },
-        { transform: 'scale(1)' }
-      ], { duration: 260, easing: 'ease-out' }).finished;
-    }
-    await loadMyCertificateView(true);
-  } finally {
-    button.disabled = false;
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches && seal?.animate) {
+    seal.animate([
+      { transform: 'scale(1)' },
+      { transform: 'scale(1.15) rotate(-7deg)', offset: .55 },
+      { transform: 'scale(1)' }
+    ], { duration: 260, easing: 'ease-out' });
   }
+  loadMyCertificateView(true);
 }
 function openCertificateSignup() {
   openAuthModal('signup');
@@ -11467,6 +11485,8 @@ async function verifyCertificateEmail(event) {
 function openCertificateLogin() {
   openAuthModal('signup');
   document.getElementById('dh-auth-modal').classList.add('certificate-login');
+  window.__loadGoogleConfig();
+  window.__loadGoogleSdk();
   document.getElementById('dh-auth-title').textContent = 'Continue with Google';
   document.getElementById('dh-auth-subtitle').textContent = 'Choose ' + certificateClaimEmail + ' in the Google account picker. If another account is shown, select Use another account.';
 }
@@ -11496,10 +11516,12 @@ async function loadMyCertificateView(openSignIn = false) {
   const canvas = $cert('mycert-preview');
   const link = $cert('mycert-verify-link');
   if (!claimForm) return;
+  const submit = claimForm.querySelector('button[type="submit"]');
   myCertificateRequest?.abort();
   const request = new AbortController();
   myCertificateRequest = request;
   claimForm.removeAttribute('aria-busy');
+  submit.disabled = false;
   details.hidden = canvas.hidden = true;
   $cert('mycert-email-verification').hidden = true;
   sample.hidden = false;
@@ -11520,7 +11542,7 @@ async function loadMyCertificateView(openSignIn = false) {
   const auth = getAuthHeaders();
   claimForm.hidden = false;
   const signedInEmail = currentUser?.email?.trim().toLowerCase();
-  if (!certificateClaimEmail || signedInEmail !== certificateClaimEmail) {
+  if (!certificateClaimEmail || !auth.Authorization || signedInEmail !== certificateClaimEmail) {
     message.textContent = certificateClaimEmail
       ? 'Confirm that you own the registration email you entered.'
       : 'Enter the email address you used to register for Innovative India.';
@@ -11529,10 +11551,38 @@ async function loadMyCertificateView(openSignIn = false) {
   }
   message.textContent = 'Checking your registration…';
   claimForm.setAttribute('aria-busy', 'true');
+  submit.disabled = true;
+  let timedOut = false;
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    request.abort();
+  }, 15000);
+  let response;
+  let result;
   try {
-    const response = await fetch('/api/certificates/my-certificate', { headers: { ...auth, 'X-Certificate-Email': certificateClaimEmail }, signal: request.signal, cache: 'no-store' });
-    const result = await response.json();
+    response = await fetch('/api/certificates/my-certificate', { headers: { ...auth, 'X-Certificate-Email': certificateClaimEmail }, signal: request.signal, cache: 'no-store' });
     if (request.signal.aborted) return;
+    if (response.status === 429) {
+      message.textContent = 'The certificate service is busy. Please try again in a moment.';
+      return;
+    }
+    result = await response.json();
+  } catch {
+    if (myCertificateRequest === request) {
+      message.textContent = timedOut
+        ? 'Checking your registration took too long. Please try again.'
+        : 'We could not check your registration. Please try again.';
+    }
+    return;
+  } finally {
+    clearTimeout(timeout);
+    if (myCertificateRequest === request) {
+      claimForm.removeAttribute('aria-busy');
+      submit.disabled = false;
+    }
+  }
+  if (request.signal.aborted) return;
+  try {
     if (response.status === 401) {
       message.textContent = 'Your session has ended. Sign in to continue.';
       requestCertificateOwnership(openSignIn);
@@ -11560,21 +11610,19 @@ async function loadMyCertificateView(openSignIn = false) {
     $cert('mycert-linkedin').href = shareUrl.href;
     $cert('mycert-linkedin-caption').value = certificateLinkedInCaption(link.href);
     $cert('mycert-share').hidden = typeof navigator.share !== 'function';
+    details.hidden = false;
     try {
       await drawMyCertificate(cert, blank, canvas, request.signal);
     } catch {
       if (!request.signal.aborted) message.textContent = 'The preview could not load. You can still download your PDF.';
     }
     if (request.signal.aborted) return;
-    details.hidden = false;
     const download = $cert('btn-download-mycert-pdf');
     if (!matchMedia('(prefers-reduced-motion: reduce)').matches && download.animate) {
       download.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 170, easing: 'ease-out' });
     }
   } catch {
     if (!request.signal.aborted) message.textContent = 'The certificate preview could not be loaded. Please try again.';
-  } finally {
-    if (myCertificateRequest === request) claimForm.removeAttribute('aria-busy');
   }
 }
 
@@ -11987,14 +12035,17 @@ window.__triggerGoogleOneTap = function() {
 };
 
 window.handleGoogleAuth = async function() {
-  if (window.__googleConfigReady) await window.__googleConfigReady;
-  if (typeof window.__initGIS === 'function') window.__initGIS();
-  if (window.__gisInitialized && window.google && window.google.accounts && window.google.accounts.id) {
-    window.__oneTapPromptActive = false;
-    window.__triggerGoogleOneTap();
-    return;
+  await Promise.all([window.__loadGoogleConfig(), window.__loadGoogleSdk()]);
+  if (window.__initGIS()) {
+    window.__renderGoogleButtons();
+    const googleButton = document.getElementById('dh-google-btn-slot');
+    if (googleButton?.style.display === 'flex') {
+      googleButton.querySelector('iframe')?.focus();
+      toast('Select the Google button to continue.');
+      return;
+    }
   }
-  toast('Google sign-in is unavailable. Please try again later.');
+  toast('Google sign-in could not load. Select Continue with Google to retry.');
 };
 
 window.onGoogleCredentialResponse = async function(response) {

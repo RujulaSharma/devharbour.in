@@ -21,7 +21,7 @@ function profilePrisma() {
     });
     return pgClient;
   }
-  if (process.env.NODE_ENV !== "test" && process.env.VERCEL && !pool) {
+  if (process.env.NODE_ENV === "production" && !pool) {
     throw Object.assign(new Error("Profile database is not configured."), {
       status: 503,
     });
