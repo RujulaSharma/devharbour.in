@@ -8267,7 +8267,7 @@ function show(id, fromUserAction, updateHistory = fromUserAction){
     loadMyCertificateView();
   }
   if (id === 'settings' && fromUserAction && updateHistory && typeof window.renderSettingsSubRoute === 'function') {
-    window.renderSettingsSubRoute('appearance');
+    window.renderSettingsSubRoute(location.pathname === '/theme' ? 'appearance' : 'account');
   }
   if (id === 'home' && typeof window.renderDashboardGoalsAndReadiness === 'function') {
     window.renderDashboardGoalsAndReadiness();
@@ -16774,7 +16774,8 @@ window.addEventListener('popstate', function() {
   };
 
   window.renderSettingsSubRoute = function (sub) {
-    renderSettingsHub(location.pathname === "/theme" ? "appearance" : sub || "account");
+    const path = location.pathname.replace(/\/+$/, "");
+    renderSettingsHub(path === "/theme" ? "appearance" : path === "/settings" ? "account" : sub || "account");
   };
 
   // Delegate settings navigation clicks from navbar & cards
