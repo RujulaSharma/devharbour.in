@@ -6290,6 +6290,7 @@ html[data-theme="dark"] .dp-stat-icon.rank {
 #study-together :focus-visible{outline:2px solid #7149a3;outline-offset:3px}
 @media(prefers-reduced-motion:reduce){#study-together button{transition:none}}
 </style>
+<style>#site-navbar .nav-account li[hidden]{display:none!important}</style>
 </head>
 <body>
 <dialog id="site-notification-dialog" aria-labelledby="site-notification-heading" style="margin:auto;width:min(90vw,28rem);padding:1.5rem;border:1px solid var(--line);border-radius:1.25rem;background:var(--card);color:var(--ink)">
@@ -9735,9 +9736,9 @@ function updateAuthUI() {
   updateNotificationBadge();
   // Optional profile rendering must never interrupt authentication controls.
   try { Promise.resolve(window.renderProfilePage?.()).catch(() => {}); } catch {}
-  window.renderDashboardGoalsAndReadiness?.();
+  try { Promise.resolve(window.renderDashboardGoalsAndReadiness?.()).catch(() => {}); } catch {}
   const pendingEmail = readPendingVerificationEmail();
-  window.refreshProjectLikesForAccount?.();
+  try { Promise.resolve(window.refreshProjectLikesForAccount?.()).catch(() => {}); } catch {}
   if (pendingEmail && currentUser?.email?.trim().toLowerCase() === pendingEmail && currentUser.emailVerified) {
     try { localStorage.removeItem(pendingVerificationKey); } catch {}
   }
