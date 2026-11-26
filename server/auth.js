@@ -48,6 +48,9 @@ function canUseSessionCookie(req) {
   const origin = req.headers.origin;
   if (!origin) return true;
   const appOrigin = process.env.APP_BASE_URL?.replace(/\/$/, '');
+  const productionOrigins = new Set(['https://devharbour.in', 'https://www.devharbour.in']);
+  const host = (req.get?.('host') || '').split(':')[0];
+  if (['devharbour.in', 'www.devharbour.in'].includes(host) && productionOrigins.has(origin)) return true;
   return origin === appOrigin || origin === req.protocol + '://' + req.get?.('host');
 }
 
@@ -56,14 +59,16 @@ function setSessionCookie(req, res, token, expiresAt) {
   res.setHeader('Cache-Control', 'private, no-store');
   res.cookie(SESSION_COOKIE, token, {
     httpOnly: true, secure: process.env.NODE_ENV === 'production' || req.secure,
-    sameSite: 'strict', expires: new Date(expiresAt), path: '/api'
+    sameSite: 'strict', expires: new Date(expiresAt), path: '/api',
+    ...(['devharbour.in', 'www.devharbour.in'].includes((req.get?.('host') || '').split(':')[0]) ? { domain: 'devharbour.in' } : {})
   });
 }
 
 function clearSessionCookie(req, res) {
   if (canUseSessionCookie(req)) res.clearCookie(SESSION_COOKIE, {
     httpOnly: true, secure: process.env.NODE_ENV === 'production' || req.secure,
-    sameSite: 'strict', path: '/api'
+    sameSite: 'strict', path: '/api',
+    ...(['devharbour.in', 'www.devharbour.in'].includes((req.get?.('host') || '').split(':')[0]) ? { domain: 'devharbour.in' } : {})
   });
 }
 

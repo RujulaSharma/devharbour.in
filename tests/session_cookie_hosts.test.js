@@ -1,0 +1,3 @@
+const test=require('node:test'),assert=require('node:assert/strict');
+const {setSessionCookie,clearSessionCookie}=require('../server/auth');
+test('production hostname aliases share and clear persistent session cookie',()=>{for(const host of ['devharbour.in','www.devharbour.in']){const req={headers:{origin:'https://'+host,'sec-fetch-site':'same-origin'},get:()=>host,protocol:'https',secure:true};let options;const res={setHeader(){},cookie(n,t,o){options=o},clearCookie(n,o){options=o}};setSessionCookie(req,res,'a'.repeat(64),new Date(Date.now()+86400000));assert.equal(options.domain,'devharbour.in');assert.equal(options.httpOnly,true);assert.equal(options.secure,true);clearSessionCookie(req,res);assert.equal(options.domain,'devharbour.in')}});
