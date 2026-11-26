@@ -6391,8 +6391,8 @@ html[data-theme="dark"] .dp-stat-icon.rank {
       <li><a href="/my-certificate" data-page="my-certificate"><span class="nav-option-title">Certificates</span><span class="nav-option-description">Claim, download, or verify certificates.</span></a></li>
       <li><div class="nav-option-planned"><span class="nav-option-title">Achievements</span><span class="nav-option-description">Explore your milestones and awards.</span><span class="nav-option-status">Coming soon</span></div></li>
       <li><a href="/theme"><span class="nav-option-title">Theme</span><span class="nav-option-description">Manage your account preferences.</span></a></li>
-      <li><a href="/settings/profile" data-page="settings"><span class="nav-option-title">Profile Settings</span><span class="nav-option-description">Edit public bio, skills, and resume.</span></a></li>
-      <li><a href="/settings/privacy" data-page="settings"><span class="nav-option-title">Privacy &amp; Visibility</span><span class="nav-option-description">Control who sees your profile sections.</span></a></li>
+      <li><a href="/profile/settings" data-dp-nav-settings-profile><span class="nav-option-title">Profile Settings</span><span class="nav-option-description">Edit public bio, skills, and resume.</span></a></li>
+      <li><a href="/profile/settings/privacy" data-dp-nav-settings-privacy><span class="nav-option-title">Privacy &amp; Visibility</span><span class="nav-option-description">Control who sees your profile sections.</span></a></li>
       <li><button type="button" data-menu-action="session"><span class="nav-option-title">Logout</span><span class="nav-option-description">Sign out securely.</span></button></li>
     </ul>
   </details>
@@ -16780,7 +16780,7 @@ window.addEventListener('popstate', function() {
 
   window.renderSettingsSubRoute = function (sub) {
     const path = location.pathname.replace(/\/+$/, "");
-    renderSettingsHub(path === "/theme" ? "appearance" : path === "/settings" ? "account" : sub || "account");
+    renderSettingsHub(path === "/theme" ? "appearance" : path.endsWith("/privacy") ? "privacy" : ["/profile/settings", "/settings/profile"].includes(path) ? "profile" : "account");
   };
 
   // Delegate settings navigation clicks from navbar & cards
@@ -16811,6 +16811,15 @@ window.addEventListener('popstate', function() {
   });
 
   document.addEventListener("click", (e) => {
+    if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+    const settingsLink = e.target.closest('a[href="/profile/settings"],a[href="/settings/profile"],a[href="/profile/settings/privacy"],a[href="/settings/privacy"]');
+    if (settingsLink) {
+      e.preventDefault(); e.stopImmediatePropagation();
+      document.querySelectorAll('.nav-account[open]').forEach(menu => menu.open = false);
+      if (settingsLink.getAttribute('href').endsWith('/privacy')) window.openPrivacySettings();
+      else window.openProfileSettings();
+      return;
+    }
     const theme = e.target.closest('[data-v="settings"], a[href="/theme"]');
     if (!theme) return;
     e.preventDefault(); e.stopImmediatePropagation();
