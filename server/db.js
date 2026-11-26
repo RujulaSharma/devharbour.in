@@ -1696,6 +1696,7 @@ function issueCertificate({ credentialId, participantId, recipientName, recipien
 }
 
 function insertParticipant(candidate) {
+  const { isEligible = 1 } = candidate;
   const stmt = db.prepare(`
     INSERT INTO event_participants (
       event_slug, team_id, team_name, candidate_role, candidate_name, candidate_email, candidate_mobile, candidate_location, candidate_organisation, is_eligible
@@ -1711,7 +1712,7 @@ function insertParticipant(candidate) {
     candidate.candidateMobile || '',
     candidate.candidateLocation || '',
     candidate.candidateOrganisation || '',
-    candidate.isEligible !== undefined ? candidate.isEligible : 1
+    typeof isEligible === 'boolean' ? Number(isEligible) : isEligible
   );
 }
 
