@@ -59,8 +59,17 @@
     const isJson = (res.headers.get("content-type") || "").includes("application/json");
     const body = isJson ? await res.json().catch(() => ({})) : await res.text().catch(() => "");
     if (!res.ok) {
-      const err = new Error(body?.error || `Request failed (${res.status})`);
+      const retryHeader = Number(res.headers.get("retry-after"));
+      const bodyRetry = typeof body === "object" && body !== null ? Number(body.retryAfter) : 0;
+      const retryAfter = Number.isFinite(retryHeader) && retryHeader > 0
+        ? Math.ceil(retryHeader)
+        : Number.isFinite(bodyRetry) && bodyRetry > 0 ? Math.ceil(bodyRetry) : 0;
+      const serverMessage = typeof body === "object" && body !== null ? body.error : null;
+      const err = new Error(serverMessage || (res.status === 429
+        ? "Too many requests. Please try again shortly."
+        : `Request failed (${res.status})`));
       err.status = res.status;
+      err.retryAfter = retryAfter;
       throw err;
     }
     return body;
@@ -140,6 +149,7 @@
     loading: false,
     error: null,
     settingsTab: "appearance",
+    profileRetryAt: 0,
   };
 
   const formatDateShort = (val) => {
@@ -1331,8 +1341,24 @@
     return res;
   }
 
+  // Navigation and account updates may both request a forced refresh. Only one
+  // profile load should be in flight; replay navigation only when its target changes.
+  let activeProfileRenderKey = null;
+  let queuedProfileRenderKey = null;
+  function profileRenderKey() {
+    return JSON.stringify([
+      state.mode, state.targetUsername, state.visitorPreview, state.activeTab,
+      state.activityYear, state.timelineType,
+    ]);
+  }
+
   async function renderDeveloperProfile(forceRefresh = false) {
-    if (state.loading && !forceRefresh) return;
+    const renderKey = profileRenderKey();
+    if (state.loading) {
+      if (renderKey !== activeProfileRenderKey) queuedProfileRenderKey = renderKey;
+      return;
+    }
+    activeProfileRenderKey = renderKey;
     state.loading = true;
     state.error = null;
     root.innerHTML = `<div class="dp-wrap"><div class="dp-card"><p class="dp-muted" style="margin:0;">Loading developer profile…</p></div></div>`;
@@ -1376,21 +1402,32 @@
       }
       root.innerHTML = buildProfileShell(vm, tabData);
     } catch (err) {
+      const rateLimited = err.status === 429;
+      const retrySeconds = rateLimited ? Math.max(1, err.retryAfter || 60) : 0;
+      if (rateLimited) state.profileRetryAt = Date.now() + retrySeconds * 1000;
+      const explanation = rateLimited
+        ? `Too many requests. Please wait ${retrySeconds} seconds before retrying.`
+        : err.message || "This developer profile is private or could not be found.";
       root.innerHTML = `
         <div class="dp-wrap">
           <section class="dp-card" style="text-align:center;padding:48px 24px;">
             <div style="width:52px;height:52px;margin:0 auto 14px;border-radius:14px;background:var(--dp-lavender-soft);color:var(--dp-lavender);display:grid;place-items:center;">${icon("lock")}</div>
-            <h2 style="margin:0 0 8px;">Profile Unavailable</h2>
-            <p class="dp-muted" style="max-width:440px;margin:0 auto 20px;">${esc(err.message || "This developer profile is private or could not be found.")}</p>
+            <h2 style="margin:0 0 8px;">${rateLimited ? "Profile Temporarily Unavailable" : "Profile Unavailable"}</h2>
+            <p class="dp-muted" style="max-width:440px;margin:0 auto 20px;">${esc(explanation)}</p>
             <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
               <button type="button" class="dp-btn" data-dp-action="go-home">${icon("home")} Go to Dashboard</button>
-              <button type="button" class="dp-btn dp-btn-primary" data-dp-action="browse-directory">${icon("search")} Explore Developers</button>
+              <button type="button" class="dp-btn dp-btn-primary" data-dp-action="retry-profile">${icon("activity")} Retry Profile</button>
             </div>
           </section>
         </div>
       `;
     } finally {
       state.loading = false;
+      activeProfileRenderKey = null;
+      if (queuedProfileRenderKey) {
+        queuedProfileRenderKey = null;
+        void renderDeveloperProfile(true);
+      }
     }
   }
 
@@ -2430,6 +2467,17 @@
     if (!actBtn) return;
     const act = actBtn.dataset.dpAction;
     const vm = state.publicData;
+
+    if (act === "retry-profile") {
+      const remaining = Math.ceil((state.profileRetryAt - Date.now()) / 1000);
+      if (remaining > 0) {
+        notify(`Please wait ${remaining} seconds before retrying your profile.`);
+        return;
+      }
+      state.profileRetryAt = 0;
+      await renderDeveloperProfile(true);
+      return;
+    }
 
     if (act === "close-day") {
       state.selectedDay = null;
