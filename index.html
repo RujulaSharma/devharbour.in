@@ -35,11 +35,21 @@
     }
   };
 
+  window.__fetchAuth = async function(send, onWake) {
+    const response = await send();
+    if (response.status !== 429 || response.headers?.get('x-render-routing') !== 'hibernate-rate-limited') return response;
+    const retryAfter = Number(response.headers.get('retry-after')) || 0;
+    if (retryAfter > 60) return response;
+    onWake?.();
+    await new Promise(resolve => setTimeout(resolve, Math.max(45000, retryAfter * 1000)));
+    return send();
+  };
+
   window.__loadGoogleConfig = function() {
     if (!window.__googleConfigReady) {
-      window.__googleConfigReady = fetch('/api/config/public', {
+      window.__googleConfigReady = window.__fetchAuth(() => fetch('/api/config/public', {
         cache: 'no-store', signal: AbortSignal.timeout(12000)
-      }).then(function(response) {
+      })).then(function(response) {
         if (!response.ok) throw new Error('Google configuration is unavailable');
         return response.json();
       }).then(function(config) {
@@ -9810,16 +9820,16 @@ function handleSignup(e) {
   if (submit.disabled) return;
   submit.disabled = true;
 
-  fetch('/api/auth/signup', {
+  window.__fetchAuth(() => fetch('/api/auth/signup', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ fullName: name, username: user, email, password: pass, location: loc, bio, publicProfile: document.getElementById('su-public-profile')?.checked === true })
-  })
+  }), () => { msg.textContent = 'The signup service is starting. Please keep this page open.'; })
     .then(async (r) => {
       const data = await r.json().catch(() => ({}));
-      return { ok: r.ok, status: r.status, data };
+      return { ok: r.ok, status: r.status, challenged: r.headers.get('cf-mitigated') === 'challenge', data };
     })
-    .then(({ ok, data }) => {
+    .then(({ ok, status, challenged, data }) => {
       if (data.requiresVerification) {
         document.getElementById('su-pass').value = '';
         openEmailVerification(data.email || email, data.message);
@@ -9827,7 +9837,7 @@ function handleSignup(e) {
       }
       if (!ok || !data.token || !data.user) {
         msg.className = 'dh-status-msg error';
-        msg.textContent = data.error || 'Failed to create account.';
+        msg.textContent = challenged ? 'The site security check interrupted signup. Reload this page and try again.' : data.error || (status === 429 || status >= 500 ? 'Signup is temporarily unavailable. Please try again in a moment.' : 'Failed to create account.');
         return;
       }
       const { token, user: userObj } = data;
@@ -13873,13 +13883,17 @@ window.onGoogleCredentialResponse = async function(response) {
   const expectedEmail = certificateModal.matches('.open.certificate-login') ? certificateClaimEmail : '';
   try {
     toast('Authenticating with Google...');
-    const res = await fetch('/api/auth/google', {
+    const res = await window.__fetchAuth(() => fetch('/api/auth/google', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ credential: response.credential, referral: pendingStudyReferral() })
-    });
-    const data = await res.json();
-    if (res.ok && data.user) {
+    }), () => toast('The sign-in service is starting. Please keep this page open.'));
+    if (res.headers.get('cf-mitigated') === 'challenge') {
+      toast('The site security check interrupted sign-in. Reload this page and try again.');
+      return;
+    }
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.user && data.token) {
       if (expectedEmail && data.user.email?.trim().toLowerCase() !== expectedEmail) {
         const instruction = 'That Google account does not match the registration email. Choose ' + expectedEmail + ' to continue.';
         document.getElementById('dh-auth-subtitle').textContent = instruction;
