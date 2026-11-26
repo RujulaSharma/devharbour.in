@@ -197,7 +197,8 @@ async function updateStreak(userId) {
 async function createSession(userId, googleVerifiedEmail = null) {
   const id = crypto.randomUUID();
   const token = crypto.randomBytes(32).toString('hex');
-  const expiryDays = parseInt(process.env.TOKEN_EXPIRY_DAYS || '7', 10);
+  const configuredDays = Number(process.env.TOKEN_EXPIRY_DAYS || 30);
+  const expiryDays = Number.isFinite(configuredDays) && configuredDays >= 1 ? Math.min(configuredDays, 90) : 30;
   const expiresAt = new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000).toISOString();
 
   await query(`
