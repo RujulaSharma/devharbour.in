@@ -101,6 +101,8 @@ app.get('/api/config/public', (req, res) => {
   });
 });
 
+app.use('/api/orcathon-certificate', require('./routes/orcathon-certificate'));
+
 // SPA Fallback
 app.get('/u/:username', async (req, res) => {
   const indexPath = path.join(publicDir, 'index.html');

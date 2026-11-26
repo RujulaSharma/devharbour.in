@@ -311,7 +311,7 @@ async function certificateList(user) {
         ? "/api/certificates/innovative-india/verify/" +
           encodeURIComponent(c.credential_id)
         : "/api/certificates/verify/" + encodeURIComponent(c.credential_id),
-    downloadUrl: "/my-certificate",
+    downloadUrl: c.event_slug === "orca-coders-orcathon-2026" ? "/orcathon-certificate/" : "/my-certificate",
   }));
 }
 async function workspace(userId) {

@@ -86,6 +86,10 @@ router.get('/download/:credentialId', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Certificate not found in registry.' });
     }
 
+    if (cert.event_slug === 'orca-coders-orcathon-2026') {
+      const participant = await db.findParticipantByEmail(cert.recipient_email, cert.event_slug);
+      if (!participant || ![1, true].includes(participant.is_eligible)) return res.status(403).json({error:'Certificate eligibility unavailable.'});
+    }
     // Ownership Enforcement: User must own the certificate or be an admin
     const certEmail = (cert.recipient_email || '').toLowerCase().trim();
     const userEmail = (req.user.email || '').toLowerCase().trim();
@@ -133,6 +137,8 @@ router.post('/claim', requireAuth, rateLimit({ windowMs: 60000, max: 30 }), asyn
     if (req.body?.email && String(req.body.email).trim().toLowerCase() !== cleanEmail) {
       return res.status(403).json({ error: 'You may only claim your own certificate.' });
     }
+    const approved = await db.findParticipantByEmail(cleanEmail, eventSlug);
+    if (!approved || ![1, true].includes(approved.is_eligible)) return res.status(403).json({error:'Your verified email is not eligible for Orcathon.'});
     const existingCert = await db.getIssuedCertificateByEmail(cleanEmail, eventSlug);
     if (existingCert) {
       const isOwner = req.user?.emailVerified && req.user.email.toLowerCase() === (existingCert.recipient_email || '').toLowerCase();

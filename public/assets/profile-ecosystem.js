@@ -899,6 +899,7 @@
                     </div>
                     <div class="dp-cert-right">
                       <span class="dp-verified-pill">${icon("checkCircle")} Verified</span>
+                      ${isOwner && c.downloadUrl ? `<a class="dp-btn dp-btn-sm" href="${esc(safeHref(c.downloadUrl))}">Open Certificate</a>` : ""}
                       ${verifyUrl ? `<a class="dp-btn dp-btn-sm" href="${esc(verifyUrl)}" target="${verifyUrl.startsWith("/") ? "_self" : "_blank"}" rel="noopener noreferrer">Verify ${icon("externalLink")}</a>` : ""}
                     </div>
                   </div>`;
