@@ -8063,7 +8063,8 @@ function setSidebarExpanded(expanded) {
   sidebarToggle.setAttribute('aria-expanded', String(expanded));
   sidebarToggle.setAttribute('aria-label', expanded ? 'Collapse sidebar' : 'Expand sidebar');
   sidebar.querySelectorAll('.nv .sidebar-label').forEach(label => {
-    const button = label.closest('button');
+    const button = label.closest('button, a');
+    if (!button) return;
     if (expanded) button.removeAttribute('title');
     else button.title = label.textContent;
   });
