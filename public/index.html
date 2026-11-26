@@ -96,7 +96,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/assets/devharbour-icon-180.png">
 <title>Dev Harbour — Learn. Build. Compete. Grow.</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Michroma&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@300;400;500;600;700;800&family=Michroma&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#d3d6db;--card:#f1f0f4;--blk:#3d3754;--ink:#1f1c2c;--mut:#756f85;--soft:#e4e2ea;--line:rgba(74,66,99,.14);--r:26px;--font:'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif;--t:.3s cubic-bezier(.2,.7,.2,1)}
 *{box-sizing:border-box;margin:0}
@@ -4331,6 +4331,7 @@ html[data-theme="dark"] .dh-submit-btn{color:#0b0b0b}
 @media(max-width:760px){.dh-ii-grid{grid-template-columns:minmax(0,1fr)}}
 </style>
 <link rel="stylesheet" href="/assets/profile-page.css">
+<link rel="stylesheet" href="/assets/profile-ecosystem.css">
 <style>#v-timer{container-type:inline-size}
 .study-layout>*{min-width:0}
 @container(min-width:1120px){.study-layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(20rem,1fr);gap:1rem;align-items:start}.study-layout #study-together{width:100%;margin-top:0}}
@@ -4469,6 +4470,8 @@ html[data-theme="dark"] .dh-submit-btn{color:#0b0b0b}
       <li><a href="/my-certificate" data-page="my-certificate"><span class="nav-option-title">Certificates</span><span class="nav-option-description">Claim, download, or verify certificates.</span></a></li>
       <li><div class="nav-option-planned"><span class="nav-option-title">Achievements</span><span class="nav-option-description">Explore your milestones and awards.</span><span class="nav-option-status">Coming soon</span></div></li>
       <li><a href="/settings" data-page="settings"><span class="nav-option-title">Theme</span><span class="nav-option-description">Manage your account preferences.</span></a></li>
+      <li><a href="/settings/profile" data-page="settings"><span class="nav-option-title">Profile Settings</span><span class="nav-option-description">Edit public bio, skills, and resume.</span></a></li>
+      <li><a href="/settings/privacy" data-page="settings"><span class="nav-option-title">Privacy &amp; Visibility</span><span class="nav-option-description">Control who sees your profile sections.</span></a></li>
       <li><button type="button" data-menu-action="session"><span class="nav-option-title">Logout</span><span class="nav-option-description">Sign out securely.</span></button></li>
     </ul>
   </details>
@@ -4968,7 +4971,8 @@ requestAnimationFrame(loop);
  <div class="c s4"><div class="h"><h3>Month goals:</h3></div><ul class="gl" id="gl"></ul></div>
  <div class="s8"><div class="sec" style="margin-top:0">Up next</div><div class="tk" id="tk"></div></div>
 </div>
-<div class="sec">Featured projects</div><div class="pjs" id="lp"></div></section>
+<div class="sec">Featured projects</div><div class="pjs" id="lp"></div>
+<div class="g" id="dh-home-goals-widget" hidden style="margin-top:20px;"></div></section>
 
 <section class="view" id="v-learn">
   <div class="dh-learn-hero">
@@ -5656,6 +5660,7 @@ requestAnimationFrame(loop);
       <div class="btns">
         <a href="https://chat.whatsapp.com/Dt87L7lU5SOBSfKDKuNS8s" target="_blank" rel="noopener noreferrer" class="bt d" style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none">Join WhatsApp ↗</a>
         <button class="bt" style="background:var(--soft)" data-v="learn">Explore Courses</button>
+        <a href="/profile" class="bt" style="background:var(--soft);display:inline-flex;align-items:center;justify-content:center;text-decoration:none" data-dp-nav-profile>Developer Directory →</a>
       </div>
     </div>
   </div>
@@ -6343,6 +6348,12 @@ function show(id, fromUserAction, updateHistory = fromUserAction){
   if(typeof gtag==='function'){try{gtag('event','page_view',{page_title:id.charAt(0).toUpperCase()+id.slice(1)+' — DevHarbour',page_path:'/'+id})}catch(e){}}
   if (id === 'my-certificate' && typeof loadMyCertificateView === 'function') {
     loadMyCertificateView();
+  }
+  if (id === 'settings' && fromUserAction && updateHistory && typeof window.renderSettingsSubRoute === 'function') {
+    window.renderSettingsSubRoute('appearance');
+  }
+  if (id === 'home' && typeof window.renderDashboardGoalsAndReadiness === 'function') {
+    window.renderDashboardGoalsAndReadiness();
   }
   const viewEl = document.getElementById('v-'+id);
   if (viewEl) {
@@ -7358,8 +7369,21 @@ window.openDeveloperModal = function(devOrKey) {
   if (mTags) {
     mTags.innerHTML = tags.map(t => `<span class="dh-dev-tag">${esc(t)}</span>`).join('');
   }
+  const vpBtn = document.getElementById('dh-dev-view-profile-btn');
+  if (vpBtn) {
+    vpBtn.hidden = !dev.username;
+    vpBtn.dataset.username = dev.username || '';
+  }
 
   modal.classList.add('open');
+};
+
+window.viewModalDeveloperProfile = function() {
+  const uname = activeModalDev?.username || document.getElementById('dh-dev-view-profile-btn')?.dataset.username;
+  closeDeveloperModal();
+  if (uname && typeof window.openPublicProfile === 'function') {
+    window.openPublicProfile(uname);
+  }
 };
 
 window.closeDeveloperModal = function(e) {
@@ -7473,7 +7497,7 @@ function renderAllLeaderboardViews() {
               <span class="dev-av">${esc(initial)}</span>
               <div class="dev-name-wrap">
                 <span class="dev-name">${esc(name)}</span>
-                <span class="dev-handle">${u.username ? '@' + esc(u.username) : ''}</span>
+                ${u.username ? `<a href="/u/${encodeURIComponent(u.username)}" class="dev-handle" style="text-decoration:underline;text-underline-offset:2px;" onclick="event.preventDefault();event.stopPropagation();window.openPublicProfile?.('${esc(u.username)}')">@${esc(u.username)}</a>` : '<span class="dev-handle"></span>'}
               </div>
             </div>
             <span>${solved} <small class="lb-streak">${leaderboardCrystal}${streak}d</small></span>
@@ -7790,6 +7814,7 @@ function updateNotificationBadge() {
 function updateAuthUI() {
   updateNotificationBadge();
   window.renderProfilePage?.();
+  window.renderDashboardGoalsAndReadiness?.();
   const pendingEmail = readPendingVerificationEmail();
   window.refreshProjectLikesForAccount?.();
   if (pendingEmail && currentUser?.email?.trim().toLowerCase() === pendingEmail && currentUser.emailVerified) {
@@ -7917,7 +7942,7 @@ function handleSignup(e) {
   fetch('/api/auth/signup', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fullName: name, username: user, email, password: pass, location: loc, bio })
+    body: JSON.stringify({ fullName: name, username: user, email, password: pass, location: loc, bio, publicProfile: document.getElementById('su-public-profile')?.checked === true })
   })
     .then(async (r) => {
       const data = await r.json().catch(() => ({}));
@@ -8363,6 +8388,7 @@ async function toggleProjectLike(title, event, projectId = '') {
   }
 }
 
+const featuredProjectOwners = new Map();
 let projectLikesAccount;
 let projectLikesRefresh = 0;
 
@@ -8375,6 +8401,7 @@ async function refreshFeaturedLikes(revision) {
     const voted = new Set(data.votedProjectIds || []);
     for (const project of data.projects || []) {
       featuredProjectIds.set(project.title, project.id);
+      if (project.owner?.username) featuredProjectOwners.set(project.title, project.owner);
       if (pendingProjectVotes.has(project.title)) continue;
       serverVotes[project.title] = project.votes_count ?? project.votesCount ?? 0;
       if (voted.has(project.id)) likedProjects.add(project.title);
@@ -8531,6 +8558,7 @@ function rp(){
         <div class="f">
           ${tags}
           <span class="tag">Verified</span>
+          ${featuredProjectOwners.get(j[0])?.username ? `<a href="/u/${encodeURIComponent(featuredProjectOwners.get(j[0]).username)}" onclick="event.preventDefault();window.openPublicProfile?.('${esc(featuredProjectOwners.get(j[0]).username)}')">@${esc(featuredProjectOwners.get(j[0]).username)}</a>` : ''}
           ${viewUrl !== '#' ? `<a href="${esc(viewUrl)}" target="_blank" rel="noopener noreferrer">View Project ↗</a>` : ''}
         </div>
         ${meta ? `
@@ -10077,7 +10105,34 @@ if (typeof originalShow === 'function') {
 /* search */
 const idx=[...P.map(p=>[p[0],'Learning path','learn']),...C.map((c,i)=>[c[0],'Challenge','practice']),['Study Timer & Flip Clock','Timer','timer'],...J.map(j=>[j[0],'Project','projects']),...Array.from(document.querySelectorAll('.hack-card h3'), title => [title.textContent, 'Hackathon', 'hack']),['Settings — Light / Dark mode','Settings','settings']];
 const sr=$('sr');$('sb').onclick=()=>{sr.classList.add('open');$('si').focus();rs2()};
-function rs2(){const q=$('si').value.toLowerCase(),l=idx.filter(x=>x[0].toLowerCase().includes(q)).slice(0,7);$('sres').innerHTML=l.length?l.map(x=>`<a href="#" data-v="${x[2]}" onclick="return false"><span>${x[0]}</span><small>${x[1]}</small></a>`).join(''):'<p class="mut" style="padding:12px">No results.</p>'}
+let devSearchTimer = null;
+function renderSearchMatches(q, devs = []){
+  const l=idx.filter(x=>x[0].toLowerCase().includes(q)).slice(0,6);
+  const items = [
+    ...l.map(x=>`<a href="#" data-v="${x[2]}" onclick="return false"><span>${x[0]}</span><small>${x[1]}</small></a>`),
+    ...devs.slice(0,4).map(d=>{
+      const uname = d.user?.username || '';
+      const name = d.user?.fullName || uname;
+      return uname ? `<a href="/u/${encodeURIComponent(uname)}" data-dp-profile-link="${esc(uname)}"><span>${esc(name)} (@${esc(uname)})</span><small>Developer</small></a>` : '';
+    }).filter(Boolean)
+  ];
+  $('sres').innerHTML=items.length?items.join(''):'<p class="mut" style="padding:12px">No results.</p>';
+}
+function rs2(){
+  const q=$('si').value.trim().toLowerCase();
+  renderSearchMatches(q, []);
+  clearTimeout(devSearchTimer);
+  if(q.length>=2){
+    devSearchTimer=setTimeout(async()=>{
+      try{
+        const r=await fetch('/api/profile/discover?search='+encodeURIComponent(q));
+        if(!r.ok)return;
+        const data=await r.json();
+        if($('si').value.trim().toLowerCase()===q) renderSearchMatches(q, data.developers||[]);
+      }catch{}
+    }, 180);
+  }
+}
 $('si').oninput=rs2;sr.onclick=e=>{if(e.target===sr||e.target.closest('a'))sr.classList.remove('open')};
 addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key=='k'){e.preventDefault();$('sb').click()}if(e.key=='Escape')sr.classList.remove('open')});
 show('home');
@@ -10446,6 +10501,7 @@ new MutationObserver(()=>{P.querySelectorAll('span').forEach(up);R.querySelector
         <span>Cheer developer</span>
         <span class="dh-cheer-count" id="dh-dev-modal-cheers">142</span>
       </button>
+      <button type="button" class="dp-btn dp-btn-primary" id="dh-dev-view-profile-btn" style="flex:1;justify-content:center;" onclick="viewModalDeveloperProfile()" hidden>View Public Profile →</button>
     </div>
   </div>
 </div>
@@ -10582,6 +10638,10 @@ new MutationObserver(()=>{P.querySelectorAll('span').forEach(up);R.querySelector
         <label>Password (min 8 characters)</label>
         <input type="password" id="su-pass" required placeholder="••••••••" autocomplete="new-password">
       </div>
+      <label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--mut);margin:8px 0 12px;line-height:1.4;cursor:pointer;">
+        <input type="checkbox" id="su-public-profile" style="margin-top:2px;accent-color:#9270D4;">
+        <span>Create a public developer profile at <code>devharbour.in/u/username</code> so teammates can discover your skills &amp; projects. You can switch to Private anytime in Privacy Settings.</span>
+      </label>
       <button type="submit" class="dh-submit-btn" id="su-submit">Create Account →</button>
       <div class="dh-status-msg" id="su-msg"></div>
     </form>
@@ -12117,6 +12177,10 @@ function submitContactForm() {
     const id = new URLSearchParams(location.search).get('id') || route.split('/')[1];
     show(id ? 'verify-certificate' : 'my-certificate', true, false);
     if (id) showVerificationResult(id);
+  } else if (route.startsWith('u/') || route === 'profile') {
+    show('profile', true, false);
+  } else if (route === 'settings/profile' || route === 'settings/privacy' || route === 'settings') {
+    show('settings', true, false);
   } else if (route === 'about') {
     show('about', true, false);
   } else if (route === 'contact') {
@@ -12136,6 +12200,14 @@ window.addEventListener('popstate', function() {
   if (!p && !window.location.hash) {
     const intro = document.getElementById('intro');
     if (!intro || intro.classList.contains('out')) window.location.reload();
+    return;
+  }
+  if (p.startsWith('u/') || p === 'profile') {
+    show('profile', true, false);
+    return;
+  }
+  if (p === 'settings/profile' || p === 'settings/privacy') {
+    show('settings', true, false);
     return;
   }
   if (['my-certificate', 'verify-certificate', 'about', 'contact', 'terms', 'privacy', 'certificate', 'sitemap', 'home', 'learn', 'practice', 'timer', 'projects', 'hack', 'work', 'comm', 'settings', 'profile'].includes(p)) {

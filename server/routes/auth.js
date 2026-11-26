@@ -60,6 +60,15 @@ router.post('/signup', rateLimit({ windowMs: 60000, max: 10 }), async (req, res)
       bio: bio || ''
     });
 
+    if (process.env.PROFILE_ECOSYSTEM_ENABLED !== 'false') {
+      try {
+        await require('../profile/store').ensureSignupProfile(user.id, {
+          publicProfile: req.body.publicProfile === true,
+          isMinor: Boolean(req.body.isMinor)
+        });
+      } catch {}
+    }
+
     // Generate cryptographically secure 6-digit OTP for Email Verification
     const otp = generateOtp();
     const challengeId = crypto.randomUUID();
@@ -314,7 +323,17 @@ router.post('/google', rateLimit({ windowMs: 60000, max: 10 }), async (req, res)
     }
 
     await db.markEmailVerified(user.id);
-    if (isNewSignup) await rewardVerifiedReferral(req.body.referral, user);
+    if (isNewSignup) {
+      await rewardVerifiedReferral(req.body.referral, user);
+      if (process.env.PROFILE_ECOSYSTEM_ENABLED !== 'false') {
+        try {
+          await require('../profile/store').ensureSignupProfile(user.id, {
+            publicProfile: req.body?.publicProfile === true,
+            isMinor: Boolean(req.body?.isMinor)
+          });
+        } catch {}
+      }
+    }
 
     const { token, expiresAt } = await db.createSession(user.id, email);
     const totalXp = await db.getUserTotalXp(user.id);

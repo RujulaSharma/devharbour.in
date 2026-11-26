@@ -357,6 +357,116 @@ function initSchema() {
   if (!db.prepare('PRAGMA table_info(event_participants)').all().some(column => column.name === 'certificate_credential_id')) {
     db.exec('ALTER TABLE event_participants ADD COLUMN certificate_credential_id TEXT');
   }
+  if (!db.prepare('PRAGMA table_info(projects)').all().some(column => column.name === 'views_count')) {
+    db.exec('ALTER TABLE projects ADD COLUMN views_count INTEGER DEFAULT 0');
+  }
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS developer_profiles (
+      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      headline TEXT NOT NULL DEFAULT '',
+      college TEXT NOT NULL DEFAULT '',
+      company TEXT NOT NULL DEFAULT '',
+      title TEXT NOT NULL DEFAULT '',
+      city TEXT NOT NULL DEFAULT '',
+      state TEXT NOT NULL DEFAULT '',
+      country TEXT NOT NULL DEFAULT '',
+      cover TEXT NOT NULL DEFAULT 'lavender',
+      visibility TEXT NOT NULL DEFAULT 'private' CHECK (visibility IN ('public', 'members', 'private')),
+      discovery INTEGER NOT NULL DEFAULT 0,
+      recruitment INTEGER NOT NULL DEFAULT 0,
+      details TEXT NOT NULL DEFAULT '{}',
+      privacy TEXT NOT NULL DEFAULT '{}',
+      links TEXT NOT NULL DEFAULT '{}',
+      pins TEXT NOT NULL DEFAULT '{}',
+      version INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS developer_profiles_visibility_discovery_idx ON developer_profiles(visibility, discovery);
+
+    CREATE TABLE IF NOT EXISTS profile_entries (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      kind TEXT NOT NULL,
+      data TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS profile_entries_user_id_kind_created_at_idx ON profile_entries(user_id, kind, created_at);
+
+    CREATE TABLE IF NOT EXISTS profile_skills (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      category TEXT NOT NULL,
+      proficiency TEXT NOT NULL DEFAULT 'Beginner',
+      pinned INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(user_id, name)
+    );
+    CREATE INDEX IF NOT EXISTS profile_skills_user_id_category_idx ON profile_skills(user_id, category);
+
+    CREATE TABLE IF NOT EXISTS profile_activity (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      event_key TEXT NOT NULL,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      reference TEXT,
+      occurred_at TEXT NOT NULL,
+      UNIQUE(user_id, event_key)
+    );
+    CREATE INDEX IF NOT EXISTS profile_activity_user_id_occurred_at_id_idx ON profile_activity(user_id, occurred_at, id);
+
+    CREATE TABLE IF NOT EXISTS profile_goals (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      metric TEXT NOT NULL,
+      target INTEGER NOT NULL,
+      baseline INTEGER NOT NULL DEFAULT 0,
+      deadline TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS profile_goals_user_id_created_at_idx ON profile_goals(user_id, created_at);
+
+    CREATE TABLE IF NOT EXISTS profile_media (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      kind TEXT NOT NULL,
+      object_path TEXT UNIQUE NOT NULL,
+      mime TEXT NOT NULL,
+      bytes INTEGER NOT NULL,
+      label TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS profile_media_user_id_kind_idx ON profile_media(user_id, kind);
+
+    CREATE TABLE IF NOT EXISTS profile_connections (
+      id TEXT PRIMARY KEY,
+      from_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      to_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      kind TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      message TEXT NOT NULL DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(from_id, to_id, kind)
+    );
+    CREATE INDEX IF NOT EXISTS profile_connections_to_id_kind_status_idx ON profile_connections(to_id, kind, status);
+
+    CREATE TABLE IF NOT EXISTS profile_notifications (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      event_key TEXT NOT NULL,
+      title TEXT NOT NULL,
+      read INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(user_id, event_key)
+    );
+    CREATE INDEX IF NOT EXISTS profile_notifications_user_id_read_created_at_idx ON profile_notifications(user_id, read, created_at);
+  `);
   db.exec(`
     CREATE UNIQUE INDEX IF NOT EXISTS innovative_india_certificate_owner
       ON issued_certificates(owner_user_id) WHERE event_slug = 'innovative-india-2026' AND owner_user_id IS NOT NULL;
@@ -993,7 +1103,7 @@ function getProjects({ category = 'All', search = '', status = 'approved' } = {}
   let query = `
     SELECT
       p.id, p.title, p.description, p.category, p.tech_stack_json,
-      p.repo_url, p.demo_url, p.votes_count, p.bookmarks_count, p.status, p.created_at,
+      p.repo_url, p.demo_url, p.votes_count, p.bookmarks_count, COALESCE(p.views_count, 0) as views_count, p.status, p.created_at,
       u.id as owner_id, u.username as owner_username, u.full_name as owner_name, u.avatar_url as owner_avatar
     FROM projects p
     JOIN users u ON p.user_id = u.id
@@ -1022,6 +1132,7 @@ function getProjects({ category = 'All', search = '', status = 'approved' } = {}
     demoUrl: r.demo_url,
     votesCount: r.votes_count,
     bookmarksCount: r.bookmarks_count,
+    viewsCount: r.views_count || 0,
     status: r.status,
     createdAt: r.created_at,
     owner: {
@@ -1037,7 +1148,7 @@ function getProjectById(projectId) {
   const r = db.prepare(`
     SELECT
       p.id, p.user_id, p.title, p.description, p.category, p.tech_stack_json,
-      p.repo_url, p.demo_url, p.votes_count, p.bookmarks_count, p.status, p.created_at,
+      p.repo_url, p.demo_url, p.votes_count, p.bookmarks_count, COALESCE(p.views_count, 0) as views_count, p.status, p.created_at,
       u.username as owner_username, u.full_name as owner_name, u.avatar_url as owner_avatar
     FROM projects p
     JOIN users u ON p.user_id = u.id
@@ -1056,6 +1167,7 @@ function getProjectById(projectId) {
     demoUrl: r.demo_url,
     votesCount: r.votes_count,
     bookmarksCount: r.bookmarks_count,
+    viewsCount: r.views_count || 0,
     status: r.status,
     createdAt: r.created_at,
     owner: {
@@ -1065,6 +1177,16 @@ function getProjectById(projectId) {
       avatarUrl: r.owner_avatar
     }
   };
+}
+
+function incrementProjectViews(projectId) {
+  if (!db || !projectId) return 0;
+  try {
+    db.prepare('UPDATE projects SET views_count = COALESCE(views_count, 0) + 1 WHERE id = ?').run(projectId);
+    return Number(db.prepare('SELECT views_count FROM projects WHERE id = ?').get(projectId)?.views_count || 0);
+  } catch {
+    return 0;
+  }
 }
 
 function createProject({ userId, title, description, category, techStack = [], repoUrl, demoUrl = '' }) {
@@ -1192,13 +1314,17 @@ function checkAndUnlockAchievements(userId) {
 }
 
 function getUserAchievements(userId) {
-  return db.prepare(`
+  const rows = db.prepare(`
     SELECT a.id, a.key, a.title, a.description, a.badge_icon, a.xp_bonus, ua.unlocked_at
     FROM user_achievements ua
     JOIN achievements a ON ua.achievement_id = a.id
     WHERE ua.user_id = ?
     ORDER BY ua.unlocked_at DESC
   `).all(userId);
+  return rows.map(r => ({
+    ...r,
+    badge_type: r.xp_bonus >= 250 ? 'gold' : r.xp_bonus >= 100 ? 'silver' : 'bronze'
+  }));
 }
 
 // User Settings
@@ -1616,9 +1742,13 @@ function getUserSummaryStats(userId) {
 
 function getUserProjects(userId, status = 'approved') {
   if (!db) return [];
-  const rows = db.prepare('SELECT id, title, description, category, tech_stack_json, repo_url, demo_url, votes_count FROM projects WHERE user_id = ? AND status = ?').all(userId, status);
+  const rows = db.prepare('SELECT id, title, description, category, tech_stack_json, repo_url, demo_url, votes_count, bookmarks_count, COALESCE(views_count, 0) as views_count, created_at FROM projects WHERE user_id = ? AND status = ? ORDER BY votes_count DESC, created_at DESC').all(userId, status);
   return rows.map(p => ({
     ...p,
+    votesCount: p.votes_count || 0,
+    bookmarksCount: p.bookmarks_count || 0,
+    viewsCount: p.views_count || 0,
+    createdAt: p.created_at,
     techStack: JSON.parse(p.tech_stack_json || '[]')
   }));
 }
@@ -1924,6 +2054,7 @@ const exported = {
   updateUserPassword: delegate('updateUserPassword', updateUserPassword),
   getUserSummaryStats: delegate('getUserSummaryStats', getUserSummaryStats),
   getUserProjects: delegate('getUserProjects', getUserProjects),
+  incrementProjectViews: delegate('incrementProjectViews', incrementProjectViews),
   isEmailVerified: delegate('isEmailVerified', isEmailVerified),
   getUserCertificates: delegate('getUserCertificates', getUserCertificates),
   updateUserAvatar: delegate('updateUserAvatar', updateUserAvatar)

@@ -19,15 +19,23 @@ function allowed(visibility, owner, follower) {
     owner || visibility === "public" || (visibility === "followers" && follower)
   );
 }
+function sectionPrivacy(profile, key) {
+  const p = profile?.privacy || {};
+  if (p[key]) return p[key];
+  if (key === "location" || key === "availability" || key === "developerId")
+    return p.about || "private";
+  if (key === "achievements") return p.statistics || "private";
+  return "private";
+}
 function visibleSections(profile, owner, follower) {
   return Object.fromEntries(
     SECTIONS.map((k) => [
       k,
-      allowed(profile.privacy?.[k] || "private", owner, follower),
+      allowed(sectionPrivacy(profile, k), owner, follower),
     ]),
   );
 }
-function publicIdentity(user, profile) {
+function publicIdentity(user, profile, flags = {}) {
   return {
     id: user.id,
     username: user.username,
@@ -42,6 +50,8 @@ function publicIdentity(user, profile) {
     company: profile.company,
     cover: profile.cover,
     memberSince: user.created_at,
+    verified: Boolean(flags.verified),
+    emailVerified: Boolean(flags.emailVerified),
   };
 }
 function csrf(req, res, next) {
@@ -53,11 +63,15 @@ function csrf(req, res, next) {
       .json({ error: "Cross-site profile changes are not allowed." });
   const origin = req.headers.origin;
   if (origin) {
-    const allowedOrigins = new Set([
-      "https://devharbour.in",
-      "https://www.devharbour.in",
-      process.env.APP_BASE_URL,
-    ]);
+    const allowedOrigins = new Set(
+      [
+        "https://devharbour.in",
+        "https://www.devharbour.in",
+        process.env.APP_BASE_URL,
+        process.env.VERCEL_URL ? "https://" + process.env.VERCEL_URL : "",
+        process.env.RENDER_EXTERNAL_URL,
+      ].filter(Boolean),
+    );
     if (process.env.NODE_ENV !== "production")
       allowedOrigins.add(req.protocol + "://" + req.get("host"));
     if (!allowedOrigins.has(origin))
@@ -69,4 +83,11 @@ function csrf(req, res, next) {
     });
   next();
 }
-module.exports = { allowed, visibleSections, publicIdentity, levelTitle, csrf };
+module.exports = {
+  allowed,
+  sectionPrivacy,
+  visibleSections,
+  publicIdentity,
+  levelTitle,
+  csrf,
+};

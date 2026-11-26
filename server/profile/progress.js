@@ -65,6 +65,7 @@ async function overview(user) {
     badges,
     events,
     activityDays,
+    courseProgress,
   ] = await Promise.all([
     db.getUserTotalXp(id),
     scalar(
@@ -76,7 +77,7 @@ async function overview(user) {
       "SELECT count(*) AS value FROM submissions WHERE user_id=$1 AND status='passed'",
       [id],
     ),
-    scalar("SELECT count(*) AS value FROM projects WHERE user_id=$1", [id]),
+    scalar("SELECT count(*) AS value FROM projects WHERE user_id=$1 AND status='approved'", [id]),
     scalar(
       "SELECT count(*) AS value FROM lesson_progress WHERE user_id=$1 AND status='completed'",
       [id],
@@ -96,7 +97,11 @@ async function overview(user) {
       `SELECT DISTINCT ${daySql()} AS day FROM xp_ledger WHERE user_id=$1 AND ${meaningfulXp()}`,
       [id],
     ),
+    learning(id),
   ]);
+  const coursesCompleted = courseProgress.filter(
+    (c) => Number(c.total_lessons) > 0 && Number(c.completed_lessons) >= Number(c.total_lessons),
+  ).length;
   const streak = streaks(activityDays.map((x) => x.day));
   const level = db.calculateLevel(totalXp);
   const nextXp = 100 * level * level,
@@ -129,6 +134,7 @@ async function overview(user) {
       : 0,
     projects,
     lessons,
+    coursesCompleted,
     certificates,
     badges,
     hackathons: events,
@@ -251,11 +257,11 @@ async function coding(userId) {
     ),
   ]);
   return {
-    difficulty,
-    topics,
-    languages,
+    difficulty: difficulty.map((r) => ({ ...r, solved: Number(r.solved || 0) })),
+    topics: topics.map((r) => ({ ...r, solved: Number(r.solved || 0) })),
+    languages: languages.map((r) => ({ ...r, submissions: Number(r.submissions || 0) })),
     recent,
-    monthly,
+    monthly: monthly.map((r) => ({ ...r, solved: Number(r.solved || 0) })),
     gradingAvailable: false,
     notice:
       "Statistics use recorded submissions. Official server grading is currently unavailable; running samples does not create accepted results.",
@@ -264,10 +270,17 @@ async function coding(userId) {
   };
 }
 async function learning(userId) {
-  return rows(
-    `SELECT c.id,c.title,c.category,count(l.id) AS total_lessons,sum(CASE WHEN lp.status='completed' THEN 1 ELSE 0 END) AS completed_lessons,sum(coalesce(lp.reading_seconds,0)) AS reading_seconds FROM courses c JOIN lessons l ON l.course_id=c.id LEFT JOIN lesson_progress lp ON lp.lesson_id=l.id AND lp.user_id=$1 GROUP BY c.id,c.title,c.category ORDER BY c.title`,
+  const list = await rows(
+    `SELECT c.id,c.title,c.category,count(l.id) AS total_lessons,coalesce(sum(CASE WHEN lp.status='completed' THEN 1 ELSE 0 END),0) AS completed_lessons,coalesce(sum(coalesce(lp.reading_seconds,0)),0) AS reading_seconds FROM courses c JOIN lessons l ON l.course_id=c.id LEFT JOIN lesson_progress lp ON lp.lesson_id=l.id AND lp.user_id=$1 GROUP BY c.id,c.title,c.category ORDER BY c.title`,
     [userId],
   );
+  return list.map((r) => ({
+    ...r,
+    total_lessons: Number(r.total_lessons || 0),
+    completed_lessons: Number(r.completed_lessons || 0),
+    reading_seconds: Number(r.reading_seconds || 0),
+    completed: Number(r.total_lessons || 0) > 0 && Number(r.completed_lessons || 0) >= Number(r.total_lessons || 0),
+  }));
 }
 async function eventHistory(user) {
   return (

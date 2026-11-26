@@ -17,6 +17,8 @@ const CATEGORIES = [
 const PROFICIENCIES = ["Beginner", "Intermediate", "Advanced", "Expert"];
 const SECTIONS = [
   "about",
+  "location",
+  "availability",
   "skills",
   "education",
   "experience",
@@ -26,8 +28,10 @@ const SECTIONS = [
   "links",
   "projects",
   "statistics",
+  "achievements",
   "hackathons",
   "learning",
+  "developerId",
 ];
 const LINK_KEYS = [
   "github",
@@ -122,6 +126,7 @@ function profile(input) {
   if ("cover" in input)
     out.cover = choice(input.cover, [
       "lavender",
+      "scenic",
       "mesh",
       "midnight",
       "minimal",
@@ -143,6 +148,11 @@ function profile(input) {
       "collaboration",
       "remote",
       "coverSelected",
+      "showDeveloperId",
+      "showQrCode",
+      "allowResumeDownload",
+      "shareInProgressLearning",
+      "isMinor",
     ])
       if (k in input.details) out.details[k] = bool(input.details[k]);
     if (
@@ -180,7 +190,7 @@ function profile(input) {
   if (input.pins) {
     object(input.pins);
     out.pins = {};
-    for (const k of ["projects", "badges", "certificates"]) {
+    for (const k of ["projects", "badges", "achievements", "certificates"]) {
       if (input.pins[k]) {
         if (!Array.isArray(input.pins[k]) || input.pins[k].length > 6)
           throw invalid("At most six pinned items.");
@@ -293,6 +303,7 @@ function account(input) {
   }
   if ("bio" in input) out.bio = text(input.bio, 500);
   if ("location" in input) out.location = text(input.location, 70);
+  if ("avatarUrl" in input) out.avatarUrl = url(input.avatarUrl);
   if ("username" in input) {
     const u = text(input.username, 30, true).toLowerCase();
     if (!/^[a-z0-9_-]{3,30}$/.test(u))

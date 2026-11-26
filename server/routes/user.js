@@ -7,7 +7,7 @@ const { requireAuth } = require('../auth');
 router.get('/settings', requireAuth, async (req, res) => {
   try {
     const settings = await db.getUserSettings(req.user.id);
-    if (process.env.PROFILE_ECOSYSTEM_ENABLED === 'true' && settings) {
+    if (process.env.PROFILE_ECOSYSTEM_ENABLED !== 'false' && settings) {
       const profile = await require('../profile/store').getProfile(req.user.id);
       settings.profile_public = profile.visibility === 'public' ? 1 : 0;
     }
@@ -18,14 +18,14 @@ router.get('/settings', requireAuth, async (req, res) => {
 });
 
 // POST /api/user/settings
-router.post('/settings', requireAuth, (req,res,next) => process.env.PROFILE_ECOSYSTEM_ENABLED === 'true' ? require('../profile/policy').csrf(req,res,next) : next(), async (req, res) => {
+router.post('/settings', requireAuth, (req,res,next) => process.env.PROFILE_ECOSYSTEM_ENABLED !== 'false' ? require('../profile/policy').csrf(req,res,next) : next(), async (req, res) => {
   try {
     const { theme, emailNotifications, profilePublic } = req.body;
     const allowedThemes = ['light', 'dark', 'mercury'];
     const safeTheme = (theme && allowedThemes.includes(theme)) ? theme : 'light';
     const safeEmailNotif = emailNotifications === false || emailNotifications === 0 || emailNotifications === '0' ? 0 : 1;
     let safeProfilePub = profilePublic === false || profilePublic === 0 || profilePublic === '0' ? 0 : 1;
-    if (process.env.PROFILE_ECOSYSTEM_ENABLED === 'true') {
+    if (process.env.PROFILE_ECOSYSTEM_ENABLED !== 'false') {
       const store = require('../profile/store');
       const profile = await store.getProfile(req.user.id);
       if (profilePublic !== undefined) {
@@ -94,10 +94,28 @@ router.get('/profile/:username', async (req, res) => {
       return res.status(404).json({ error: 'Developer profile not found.' });
     }
 
-    if (process.env.PROFILE_ECOSYSTEM_ENABLED === 'true') {
-      // The legacy public endpoint must not bypass the new per-section privacy policy.
+    if (process.env.PROFILE_ECOSYSTEM_ENABLED !== 'false') {
+      // The legacy public endpoint must not bypass the per-section privacy policy.
       const result = await require('../profile/store').publicData(user, req.user);
-      return res.json({user:{...result.user,...(result.sections.about?{bio:result.bio}:{}),...(result.sections.links?{githubUrl:result.links.github||'',portfolioUrl:result.links.portfolio||''}:{})},stats:{},projects:[],achievements:[]});
+      const progress = require('../profile/progress');
+      const overview = result.sections.statistics ? await progress.overview(user) : null;
+      const projects = result.sections.projects ? await db.getUserProjects(user.id, 'approved') : [];
+      const achievements = result.sections.achievements ? result.achievements : [];
+      return res.json({
+        user: {
+          ...result.user,
+          ...(result.sections.about ? { bio: result.bio } : {}),
+          ...(result.sections.links ? { githubUrl: result.links.github || '', portfolioUrl: result.links.portfolio || '' } : {}),
+          ...(overview ? { totalXp: overview.totalXp, level: overview.level, streakDays: overview.currentStreak } : {}),
+        },
+        stats: overview ? {
+          solvedChallenges: overview.problems,
+          projectsCount: projects.length,
+          achievementsCount: achievements.length,
+        } : {},
+        projects,
+        achievements,
+      });
     }
 
     const settings = await db.getUserSettings(user.id);
