@@ -168,14 +168,15 @@
       const dev = params.get("developer");
       return { view: "profile", username: dev || null, tab, asVisitor: params.get("asVisitor") === "1" };
     }
-    if (pathname === "/settings/profile") {
+    if (pathname === "/profile/settings" || pathname === "/settings/profile") {
       return { view: "settings", settingsTab: "profile" };
     }
-    if (pathname === "/settings/privacy") {
+    if (pathname === "/profile/settings/privacy" || pathname === "/settings/privacy") {
       return { view: "settings", settingsTab: "privacy" };
     }
+    if (pathname === "/theme") return { view: "settings", settingsTab: "appearance" };
     if (pathname === "/settings") {
-      return { view: "settings", settingsTab: params.get("section") || "appearance" };
+      return { view: "settings", settingsTab: params.get("section") || "account" };
     }
     return null;
   }
@@ -1940,7 +1941,7 @@
   }
 
   // =========================================================================
-  // Settings Views: /settings/profile & /settings/privacy
+  // Settings Views: /profile/settings & /profile/settings/privacy
   // =========================================================================
   async function renderSettingsHub(activeSubTab = null) {
     const settingsView = document.getElementById("v-settings");
@@ -1978,14 +1979,16 @@
       shell.querySelectorAll("[data-dp-settab]").forEach((btn) => {
         btn.addEventListener("click", () => {
           const next = btn.dataset.dpSettab;
-          const targetPath = next === "profile" ? "/settings/profile" : next === "privacy" ? "/settings/privacy" : "/settings";
+          const targetPath = next === "profile" ? "/profile/settings" : next === "privacy" ? "/profile/settings/privacy" : "/theme";
           if (location.pathname !== targetPath) history.pushState(null, "", targetPath);
           renderSettingsHub(next);
         });
       });
     }
 
+    shell.querySelector(".dp-settings-nav").hidden = state.settingsTab === "appearance";
     shell.querySelectorAll("[data-dp-settab]").forEach((b) => {
+      b.hidden = b.dataset.dpSettab === "appearance";
       b.classList.toggle("active", b.dataset.dpSettab === state.settingsTab);
     });
     const pApp = shell.querySelector("#dp-settings-pane-appearance");
@@ -1996,6 +1999,11 @@
     pPriv.hidden = state.settingsTab !== "privacy";
 
     if (state.settingsTab === "appearance") return;
+    if (state.settingsTab === "account") {
+      pProf.hidden = false; pPriv.hidden = true;
+      pProf.innerHTML = '<section class="dp-card"><h1>Settings</h1><p>Manage your account and developer profile.</p><p><a href="/profile/settings" data-dp-nav-settings-profile>Profile settings →</a></p><p><a href="/profile/settings/privacy" data-dp-nav-settings-privacy>Privacy and visibility →</a></p><p><a href="/theme">Theme and appearance →</a></p></section>';
+      return;
+    }
 
     const targetPane = state.settingsTab === "profile" ? pProf : pPriv;
     if (!getToken() || !getViewer()) {
@@ -2319,7 +2327,7 @@
       host.innerHTML = `
         <div class="c s6" style="display:flex;flex-direction:column;gap:12px;">
           <div class="h"><h3>Profile Readiness</h3><span class="tag">${pct}%</span></div>
-          <p class="mut" style="margin:0;font-size:13px;">Complete your profile in <a href="/settings/profile" data-dp-nav-settings-profile>Profile Settings</a> to stand out in the directory.</p>
+          <p class="mut" style="margin:0;font-size:13px;">Complete your profile in <a href="/profile/settings" data-dp-nav-settings-profile>Profile Settings</a> to stand out in the directory.</p>
           <div class="dp-progress-track"><div class="dp-progress-fill" style="width:${pct}%"></div></div>
           <div style="display:flex;flex-wrap:wrap;gap:6px;">
             ${(rRes.checks || []).map((c) => `<span class="tag" style="${c.done ? "background:var(--dp-lavender-soft);color:var(--dp-lavender-deep);" : ""}">${c.done ? "✓" : "○"} ${esc(c.label)}</span>`).join("")}
@@ -2615,18 +2623,18 @@
 
   window.openProfileSettings = function () {
     if (typeof show === "function") show("settings", true, false);
-    if (location.pathname !== "/settings/profile") history.pushState(null, "", "/settings/profile");
+    if (location.pathname !== "/profile/settings") history.pushState(null, "", "/profile/settings");
     renderSettingsHub("profile");
   };
 
   window.openPrivacySettings = function () {
     if (typeof show === "function") show("settings", true, false);
-    if (location.pathname !== "/settings/privacy") history.pushState(null, "", "/settings/privacy");
+    if (location.pathname !== "/profile/settings/privacy") history.pushState(null, "", "/profile/settings/privacy");
     renderSettingsHub("privacy");
   };
 
   window.renderSettingsSubRoute = function (sub) {
-    renderSettingsHub(sub || "appearance");
+    renderSettingsHub(location.pathname === "/theme" ? "appearance" : sub || "account");
   };
 
   // Delegate settings navigation clicks from navbar & cards
@@ -2643,19 +2651,27 @@
       }
       return;
     }
-    const setProfLink = e.target.closest("[data-dp-nav-settings-profile], a[href='/settings/profile']");
+    const setProfLink = e.target.closest("[data-dp-nav-settings-profile], a[href='/profile/settings']");
     if (setProfLink && !e.metaKey && !e.ctrlKey) {
       e.preventDefault();
       window.openProfileSettings();
       return;
     }
-    const setPrivLink = e.target.closest("[data-dp-nav-settings-privacy], a[href='/settings/privacy']");
+    const setPrivLink = e.target.closest("[data-dp-nav-settings-privacy], a[href='/profile/settings/privacy']");
     if (setPrivLink && !e.metaKey && !e.ctrlKey) {
       e.preventDefault();
       window.openPrivacySettings();
     }
   });
 
+  document.addEventListener("click", (e) => {
+    const theme = e.target.closest('[data-v="settings"], a[href="/theme"]');
+    if (!theme) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    history.pushState(null, "", "/theme");
+    if (typeof show === "function") show("settings", true, false);
+    renderSettingsHub("appearance");
+  }, true);
   // Handle initial route on load + popstate
   function syncFromLocation() {
     const parsed = parseRouteFromUrl();
