@@ -683,9 +683,14 @@ async function getUserAchievements(userId) {
     FROM user_achievements ua
     JOIN achievements a ON ua.achievement_id = a.id
     WHERE ua.user_id = $1
-    ORDER BY a.xp_bonus ASC;
+    ORDER BY ua.unlocked_at DESC;
   `, [userId]);
-  return res.rows;
+  return res.rows.map(r => ({
+    ...r,
+    xp_bonus: Number(r.xp_bonus ?? r.xp_reward ?? 50),
+    badge_icon: r.badge_icon || r.icon || 'trophy',
+    badge_type: r.badge_type || (Number(r.xp_bonus ?? r.xp_reward ?? 50) >= 250 ? 'gold' : Number(r.xp_bonus ?? r.xp_reward ?? 50) >= 100 ? 'silver' : 'bronze')
+  }));
 }
 
 async function checkAndUnlockAchievements(userId) {
@@ -1214,13 +1219,30 @@ async function getUserCertificates(email) {
 
 async function getUserProjects(userId, status = 'approved') {
   const res = await query(
-    'SELECT id, title, description, category, tech_stack_json, repo_url, demo_url, votes_count FROM projects WHERE user_id = $1 AND status = $2',
+    'SELECT * FROM projects WHERE user_id = $1 AND status = $2 ORDER BY votes_count DESC, created_at DESC',
     [userId, status]
   );
   return res.rows.map(p => ({
     ...p,
-    techStack: typeof p.tech_stack_json === 'string' ? JSON.parse(p.tech_stack_json || '[]') : (p.tech_stack_json || [])
+    votesCount: Number(p.votes_count || 0),
+    bookmarksCount: Number(p.bookmarks_count || 0),
+    viewsCount: Number(p.views_count || 0),
+    createdAt: p.created_at,
+    techStack: typeof p.tech_stack_json === 'string' ? JSON.parse(p.tech_stack_json || '[]') : (Array.isArray(p.tech_stack) ? p.tech_stack : (p.tech_stack_json || []))
   }));
+}
+
+async function incrementProjectViews(projectId) {
+  if (!projectId) return 0;
+  try {
+    const res = await query(
+      'UPDATE projects SET views_count = COALESCE(views_count, 0) + 1 WHERE id = $1 RETURNING views_count',
+      [projectId]
+    );
+    return Number(res.rows[0]?.views_count || 0);
+  } catch {
+    return 0;
+  }
 }
 
 module.exports = {
@@ -1302,6 +1324,7 @@ module.exports = {
   completePasswordReset,
   getUserSummaryStats,
   getUserProjects,
+  incrementProjectViews,
   isEmailVerified,
   getUserCertificates,
   updateUserAvatar

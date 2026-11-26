@@ -41,16 +41,20 @@ async function blocked(a, b) {
     }),
   );
 }
-async function access(user, viewer) {
-  const profile = await getProfile(user.id),
-    owner = viewer?.id === user.id;
-  if (await blocked(viewer?.id, user.id))
-    return { owner: false, read: false, sections: {}, profile };
+async function access(user, viewer, options = {}) {
+  const profile = await getProfile(user.id);
+  const rawOwner = Boolean(viewer && viewer.id === user.id);
+  const asVisitor = Boolean(options.asVisitor && rawOwner);
+  const effectiveViewer = asVisitor ? null : viewer;
+  const owner = Boolean(!asVisitor && rawOwner);
+  if (!asVisitor && (await blocked(effectiveViewer?.id, user.id)))
+    return { owner: false, read: false, sections: {}, profile, asVisitor };
   const follower =
-    !!viewer &&
+    !asVisitor &&
+    !!effectiveViewer &&
     !!(await profilePrisma().profileConnection.findFirst({
       where: {
-        fromId: viewer.id,
+        fromId: effectiveViewer.id,
         toId: user.id,
         kind: "follow",
         status: "accepted",
@@ -58,11 +62,67 @@ async function access(user, viewer) {
     }));
   return {
     owner,
+    rawOwner,
+    asVisitor,
     read: allowed(profile.visibility, owner, follower),
     sections: visibleSections(profile, owner, follower),
     profile,
     follower,
   };
+}
+async function ensureSignupProfile(userId, { publicProfile = false, isMinor = false } = {}) {
+  if (!userId) return null;
+  const p = profilePrisma();
+  const existing = await p.developerProfile.findUnique({ where: { userId } });
+  if (existing) return existing;
+  const makePublic = Boolean(publicProfile && !isMinor);
+  const privacy = makePublic
+    ? {
+        about: "public",
+        location: "public",
+        availability: "public",
+        statistics: "public",
+        projects: "public",
+        skills: "public",
+        achievements: "public",
+        activity: "public",
+        links: "public",
+        developerId: "public",
+        education: "private",
+        experience: "private",
+        certificates: "private",
+        resume: "private",
+        hackathons: "private",
+        learning: "private",
+      }
+    : Object.fromEntries(v.SECTIONS.map((s) => [s, "private"]));
+  const created = await p.$transaction(async (tx) => {
+    await tx.$executeRawUnsafe(
+      "INSERT INTO user_settings (user_id,profile_public) VALUES ($2,$1) ON CONFLICT (user_id) DO UPDATE SET profile_public=EXCLUDED.profile_public",
+      makePublic ? 1 : 0,
+      userId,
+    );
+    return tx.developerProfile.create({
+      data: {
+        userId,
+        visibility: makePublic ? "public" : "private",
+        discovery: makePublic,
+        recruitment: false,
+        cover: "scenic",
+        details: {
+          isMinor: Boolean(isMinor),
+          showDeveloperId: true,
+          showQrCode: true,
+          allowResumeDownload: false,
+          shareInProgressLearning: false,
+        },
+        privacy,
+        links: {},
+        pins: {},
+      },
+    });
+  });
+  return created;
 }
 async function save(id, input) {
   v.object(input);
@@ -73,9 +133,11 @@ async function save(id, input) {
     throw v.invalid("A profile version is required.");
   if (profile.pins) {
     const user = await db.getUserById(id);
+    const achievementIds = (await db.getUserAchievements(id)).map((x) => x.id);
     const owned = {
       projects: (await db.getUserProjects(id, "approved")).map((x) => x.id),
-      badges: (await db.getUserAchievements(id)).map((x) => x.id),
+      badges: achievementIds,
+      achievements: achievementIds,
       certificates: (await db.getUserCertificates(user.email)).map(
         (x) => x.credential_id,
       ),
@@ -130,6 +192,7 @@ async function save(id, input) {
       fullName: "full_name",
       bio: "bio",
       location: "location",
+      avatarUrl: "avatar_url",
       username: "username",
     };
     for (const [key, value] of Object.entries(account))
@@ -278,27 +341,112 @@ async function connect(viewer, target, kind, message = "") {
   });
   return item;
 }
-async function publicData(user, viewer) {
-  const state = await access(user, viewer);
-  if (!state.read)
+async function publicData(user, viewer, options = {}) {
+  const state = await access(user, viewer, options);
+  if (!state.read) {
+    if (options.allowPrivatePreview && state.asVisitor) {
+      return {
+        previewPrivate: true,
+        visibility: state.profile.visibility,
+        user: {
+          id: user.id,
+          username: user.username,
+          fullName: user.full_name,
+        },
+        profile: { visibility: state.profile.visibility },
+        sections: {},
+        followers: 0,
+        following: 0,
+        skills: [],
+        education: [],
+        experience: [],
+        achievements: [],
+        links: {},
+        bio: "",
+        resume: null,
+        viewerConnection: {
+          isOwner: false,
+          isVisitorPreview: true,
+          followingStatus: "none",
+          isFollowedBy: false,
+          collaborationStatus: "none",
+        },
+      };
+    }
     throw Object.assign(
       new Error("Developer profile is unavailable or private."),
       { status: 404 },
     );
-  const { profile, sections } = state;
+  }
+  const { profile, sections, owner, asVisitor } = state;
   const p = profilePrisma();
-  const counts = await connections(user.id);
+  const [counts, emailVerified, certs, avatarMedia, coverMedia] = await Promise.all([
+    connections(user.id),
+    db.isEmailVerified(user.id),
+    db.getUserCertificates(user.email),
+    p.profileMedia.findFirst({
+      where: { userId: user.id, kind: "avatar" },
+      orderBy: { createdAt: "desc" },
+    }),
+    p.profileMedia.findFirst({
+      where: { userId: user.id, kind: "cover" },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
+  const hasValidCert = Array.isArray(certs) && certs.some((c) => String(c.status || "").toLowerCase() === "valid");
+  const details = profile.details || {};
+  let viewerConnection = {
+    isOwner: owner,
+    isVisitorPreview: Boolean(asVisitor),
+    followingStatus: "none",
+    isFollowedBy: false,
+    collaborationStatus: "none",
+  };
+  if (!owner && !asVisitor && viewer && viewer.id !== user.id) {
+    const [outConns, revFollow] = await Promise.all([
+      p.profileConnection.findMany({
+        where: { fromId: viewer.id, toId: user.id },
+      }),
+      p.profileConnection.findFirst({
+        where: { fromId: user.id, toId: viewer.id, kind: "follow", status: "accepted" },
+      }),
+    ]);
+    const fConn = outConns.find((c) => c.kind === "follow");
+    const cConn = outConns.find((c) => c.kind === "collaboration");
+    viewerConnection = {
+      isOwner: false,
+      isVisitorPreview: false,
+      followingStatus: fConn?.status || "none",
+      isFollowedBy: Boolean(revFollow),
+      collaborationStatus: cConn?.status || "none",
+    };
+  }
   const result = {
-    user: publicIdentity(user, profile),
+    user: publicIdentity(user, profile, {
+      verified: Boolean(emailVerified && hasValidCert),
+      emailVerified: Boolean(emailVerified),
+    }),
     profile: {
       visibility: profile.visibility,
       headline: profile.headline,
       cover: profile.cover,
-      details: {
-        openToWork: !!profile.details.openToWork,
-        openToInternship: !!profile.details.openToInternship,
-        collaboration: !!profile.details.collaboration,
-      },
+      details: sections.availability
+        ? {
+            openToWork: !!details.openToWork,
+            openToInternship: !!details.openToInternship,
+            collaboration: !!details.collaboration,
+            remote: !!details.remote,
+            availability: details.availability || "",
+            targetRole: details.targetRole || "",
+            preferredWorkType: details.preferredWorkType || "",
+            preferredLocation: details.preferredLocation || "",
+            shareInProgressLearning: !!details.shareInProgressLearning,
+          }
+        : {},
+    },
+    media: {
+      avatarMediaId: avatarMedia?.id || null,
+      coverMediaId: coverMedia?.id || null,
     },
     sections,
     followers: counts.followers,
@@ -306,11 +454,14 @@ async function publicData(user, viewer) {
     skills: [],
     education: [],
     experience: [],
+    achievements: [],
     links: {},
     bio: "",
     resume: null,
+    developerId: null,
+    viewerConnection,
   };
-  if (!sections.about) {
+  if (!sections.location) {
     delete result.user.city;
     delete result.user.state;
     delete result.user.country;
@@ -320,8 +471,19 @@ async function publicData(user, viewer) {
     delete result.user.company;
     delete result.user.title;
   }
-  result.profile.pins = { certificates: profile.pins?.certificates || [] };
+  result.profile.pins = {
+    projects: profile.pins?.projects || [],
+    certificates: profile.pins?.certificates || [],
+    achievements: profile.pins?.achievements || profile.pins?.badges || [],
+    badges: profile.pins?.badges || profile.pins?.achievements || [],
+  };
   if (sections.about) result.bio = user.bio || "";
+  if (sections.developerId && details.showDeveloperId !== false) {
+    result.developerId = {
+      code: "DH-" + String(user.id || "").replace(/^usr-/i, "").toUpperCase(),
+      showQrCode: details.showQrCode !== false,
+    };
+  }
   if (sections.skills) result.skills = await skills(user.id);
   if (sections.links) result.links = profile.links;
   if (sections.education || sections.experience) {
@@ -331,12 +493,33 @@ async function publicData(user, viewer) {
     if (sections.experience)
       result.experience = all.filter((x) => x.kind === "experience");
   }
+  if (sections.achievements) {
+    const unlocked = await db.getUserAchievements(user.id);
+    result.achievements = unlocked.map((a) => ({
+      id: a.id,
+      key: a.key || a.id,
+      title: a.title,
+      description: a.description,
+      badgeIcon: a.badge_icon || a.icon || "trophy",
+      badgeType: a.badge_type || (Number(a.xp_bonus || 50) >= 250 ? "gold" : Number(a.xp_bonus || 50) >= 100 ? "silver" : "bronze"),
+      xpBonus: Number(a.xp_bonus || 50),
+      unlockedAt: a.unlocked_at,
+    }));
+  }
   if (sections.resume) {
     const media = await p.profileMedia.findFirst({
       where: { userId: user.id, kind: "resume" },
       orderBy: { createdAt: "desc" },
     });
-    if (media) result.resume = { id: media.id, label: media.label };
+    const downloadAllowed = details.allowResumeDownload !== false;
+    if (media || downloadAllowed) {
+      result.resume = {
+        id: media?.id || null,
+        label: media?.label || "Dev Harbour Developer Resume (PDF)",
+        downloadAllowed,
+        hasUploadedPdf: Boolean(media),
+      };
+    }
   }
   return result;
 }
@@ -350,6 +533,7 @@ module.exports = {
   saveSkill,
   blocked,
   access,
+  ensureSignupProfile,
   connections,
   connect,
   publicData,

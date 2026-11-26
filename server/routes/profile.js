@@ -9,7 +9,7 @@ const media = require("../profile/media");
 const v = require("../profile/validation");
 const policy = require("../profile/policy");
 const router = express.Router();
-const enabled = () => process.env.PROFILE_ECOSYSTEM_ENABLED === "true";
+const enabled = () => process.env.PROFILE_ECOSYSTEM_ENABLED !== "false";
 const wrap = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
 router.use((_req, res, next) => {
@@ -147,28 +147,32 @@ router.get(
     );
   }),
 );
+async function activityDayItems(userId, day) {
+  const end = new Date(Date.parse(day + "T00:00:00Z") + 86400000)
+    .toISOString()
+    .slice(0, 10);
+  const result = await progress.rows(
+    `SELECT id,amount,source_type,reference_id,note,created_at FROM xp_ledger WHERE user_id=$1 AND ${progress.daySql()} >= $2 AND ${progress.daySql()} < $3 AND ${progress.meaningfulXp()} ORDER BY created_at DESC LIMIT 100`,
+    [userId, day, end],
+  );
+  return {
+    date: day,
+    items: result.map((r) => ({
+      id: r.id,
+      xp: Number(r.amount || 0),
+      type: r.source_type,
+      title: r.note || r.source_type.replace(/_/g, " "),
+      date: r.created_at,
+    })),
+    limited: result.length === 100,
+  };
+}
 router.get(
   "/me/activity/:date",
   requireAuth,
   wrap(async (req, res) => {
     const day = v.date(req.params.date);
-    const end = new Date(Date.parse(day + "T00:00:00Z") + 86400000)
-      .toISOString()
-      .slice(0, 10);
-    const result = await progress.rows(
-      `SELECT id,amount,source_type,created_at FROM xp_ledger WHERE user_id=$1 AND ${progress.daySql()} >= $2 AND ${progress.daySql()} < $3 AND ${progress.meaningfulXp()} ORDER BY created_at DESC LIMIT 100`,
-      [req.user.id, day, end],
-    );
-    res.json({
-      date: day,
-      items: result.map((r) => ({
-        id: r.id,
-        xp: r.amount,
-        type: r.source_type,
-        date: r.created_at,
-      })),
-      limited: result.length === 100,
-    });
+    res.json(await activityDayItems(req.user.id, day));
   }),
 );
 router.post(
@@ -409,58 +413,108 @@ router.patch(
 );
 router.get(
   "/discover",
-  requireAuth,
   wrap(async (req, res) => {
-    const search = v.text(req.query.search || "", 60);
-    const profiles = await profilePrisma().developerProfile.findMany({
-      where: {
-        visibility: "public",
-        discovery: true,
-        ...(req.query.recruitment === "true" ? { recruitment: true } : {}),
-        ...(search
-          ? {
-              OR: [
-                { headline: { contains: search, mode: "insensitive" } },
-                {
-                  AND: [
-                    { college: { contains: search, mode: "insensitive" } },
-                    { privacy: { path: ["education"], equals: "public" } },
-                  ],
-                },
-                {
-                  AND: [
-                    { company: { contains: search, mode: "insensitive" } },
-                    { privacy: { path: ["experience"], equals: "public" } },
-                  ],
-                },
-              ],
-            }
-          : {}),
-      },
-      select: {
-        userId: true,
-        headline: true,
-        college: true,
-        company: true,
-        user: { select: { username: true, fullName: true } },
-      },
-      take: 30,
-      orderBy: { updatedAt: "desc" },
-    });
-    const blocks = await profilePrisma().profileConnection.findMany({
-      where: {
-        kind: "block",
-        OR: [{ fromId: req.user.id }, { toId: req.user.id }],
-      },
-      select: { fromId: true, toId: true },
-    });
-    const excluded = new Set(blocks.flatMap((b) => [b.fromId, b.toId]));
-    excluded.add(req.user.id);
-    res.json({
-      developers: profiles
-        .filter((p) => !excluded.has(p.userId))
-        .map((p) => ({ ...p, college: undefined, company: undefined })),
-    });
+    const search = v.text(req.query.search || "", 60).toLowerCase();
+    const skillFilter = v.text(req.query.skill || "", 40).toLowerCase();
+    const locationFilter = v.text(req.query.location || "", 60).toLowerCase();
+    const p = profilePrisma();
+    const [profiles, allPublicSkills] = await Promise.all([
+      p.developerProfile.findMany({
+        where: {
+          visibility: "public",
+          discovery: true,
+          ...(req.query.recruitment === "true" ? { recruitment: true } : {}),
+        },
+        select: {
+          userId: true,
+          headline: true,
+          college: true,
+          company: true,
+          title: true,
+          city: true,
+          state: true,
+          country: true,
+          details: true,
+          privacy: true,
+          user: { select: { id: true, username: true, fullName: true, avatarUrl: true } },
+        },
+        take: 100,
+        orderBy: { updatedAt: "desc" },
+      }),
+      p.profileSkill.findMany({
+        orderBy: [{ pinned: "desc" }, { name: "asc" }],
+        take: 500,
+      }),
+    ]);
+    let excluded = new Set();
+    let followingSet = new Set();
+    if (req.user) {
+      const [blocks, myFollowing] = await Promise.all([
+        p.profileConnection.findMany({
+          where: {
+            kind: "block",
+            OR: [{ fromId: req.user.id }, { toId: req.user.id }],
+          },
+          select: { fromId: true, toId: true },
+        }),
+        p.profileConnection.findMany({
+          where: { fromId: req.user.id, kind: "follow", status: "accepted" },
+          select: { toId: true },
+        }),
+      ]);
+      excluded = new Set(blocks.flatMap((b) => [b.fromId, b.toId]));
+      excluded.add(req.user.id);
+      followingSet = new Set(myFollowing.map((x) => x.toId));
+    }
+    const skillsByUser = new Map();
+    for (const sk of allPublicSkills) {
+      if (!skillsByUser.has(sk.userId)) skillsByUser.set(sk.userId, []);
+      skillsByUser.get(sk.userId).push(sk);
+    }
+    const developers = [];
+    for (const row of profiles) {
+      if (excluded.has(row.userId)) continue;
+      const sections = policy.visibleSections(row, false, false);
+      const userSkills = sections.skills ? (skillsByUser.get(row.userId) || []).map((s) => s.name) : [];
+      const locText = sections.location ? [row.city, row.state, row.country].filter(Boolean).join(", ") : "";
+      const eduText = sections.education ? row.college : "";
+      const expText = sections.experience ? [row.company, row.title].filter(Boolean).join(" ") : "";
+      if (search) {
+        const hay = [
+          row.user?.username,
+          row.user?.fullName,
+          row.headline,
+          locText,
+          eduText,
+          expText,
+          ...userSkills,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(search)) continue;
+      }
+      if (skillFilter && !userSkills.some((s) => s.toLowerCase().includes(skillFilter))) continue;
+      if (locationFilter && !locText.toLowerCase().includes(locationFilter)) continue;
+      const followerCount = await p.profileConnection.count({
+        where: { toId: row.userId, kind: "follow", status: "accepted" },
+      });
+      developers.push({
+        userId: row.userId,
+        headline: row.headline || "",
+        user: row.user,
+        city: sections.location ? row.city || "" : "",
+        country: sections.location ? row.country || "" : "",
+        location: locText,
+        skills: userSkills.slice(0, 5),
+        openToWork: sections.availability ? Boolean(row.details?.openToWork) : false,
+        openToInternship: sections.availability ? Boolean(row.details?.openToInternship) : false,
+        followers: followerCount,
+        isFollowing: followingSet.has(row.userId),
+      });
+      if (developers.length >= 30) break;
+    }
+    res.json({ developers });
   }),
 );
 router.post(
@@ -827,28 +881,277 @@ router.get(
     res.type("html").send(await require("../profile/exports").publicHtml(user));
   }),
 );
+function sortPinned(items, pinnedIds = [], idKey = "id") {
+  if (!Array.isArray(items) || !pinnedIds?.length) return items;
+  const rank = new Map(pinnedIds.map((id, i) => [id, i]));
+  return [...items].sort((a, b) => {
+    const ai = rank.has(a[idKey]) ? rank.get(a[idKey]) : 9999;
+    const bi = rank.has(b[idKey]) ? rank.get(b[idKey]) : 9999;
+    return ai - bi;
+  });
+}
+async function publicCertificatesForUser(user, pins = []) {
+  const validPlatform = (await progress.certificateList(user))
+    .filter((c) => String(c.status || "").toLowerCase() === "valid")
+    .map((c) => ({ ...c, source: "platform", pinned: pins.includes(c.id) }));
+  const extEntries = (await store.entries(user.id))
+    .filter((e) => e.kind === "external-certificate")
+    .map((e) => ({
+      id: e.id,
+      title: e.data.title || "External Certificate",
+      type: e.data.issuer || "External",
+      issuer: e.data.issuer || "",
+      issueDate: e.data.issueDate || "",
+      status: "valid",
+      verificationUrl: e.data.credentialUrl || "",
+      source: "external",
+      pinned: pins.includes(e.id),
+    }));
+  return sortPinned([...validPlatform, ...extEntries], pins);
+}
+async function publicLearningForUser(userId, profile, isOwner) {
+  const all = await progress.learning(userId);
+  if (isOwner || profile?.details?.shareInProgressLearning) return all;
+  return all.filter((c) => c.completed);
+}
 router.get(
   "/public/:username",
   wrap(async (req, res) => {
     const user = await db.getUserByUsername(req.params.username);
     if (!user)
       return res.status(404).json({ error: "Developer profile not found." });
-    const result = await store.publicData(user, req.user);
+    const asVisitor = req.query.asVisitor === "1";
+    const result = await store.publicData(user, req.user, {
+      asVisitor,
+      allowPrivatePreview: asVisitor,
+    });
+    if (result.previewPrivate) return res.json(result);
     if (result.sections.statistics)
       result.stats = await progress.overview(user);
-    if (result.sections.projects)
-      result.projects = await db.getUserProjects(user.id, "approved");
+    if (result.sections.projects) {
+      const rawProjects = await db.getUserProjects(user.id, "approved");
+      result.projects = sortPinned(rawProjects, result.profile.pins?.projects || []);
+    }
     if (result.sections.activity)
       result.activity = await progress.activity(user.id, "rolling");
     if (result.sections.certificates)
-      result.certificates = (await progress.certificateList(user)).filter((c) =>
-        (result.profile.pins?.certificates || []).includes(c.id),
+      result.certificates = await publicCertificatesForUser(
+        user,
+        result.profile.pins?.certificates || [],
+      );
+    if (result.sections.achievements && Array.isArray(result.achievements))
+      result.achievements = sortPinned(
+        result.achievements,
+        result.profile.pins?.achievements || result.profile.pins?.badges || [],
       );
     if (result.sections.hackathons)
       result.hackathons = await progress.eventHistory(user);
     if (result.sections.learning)
-      result.learning = await progress.learning(user.id);
+      result.learning = await publicLearningForUser(
+        user.id,
+        result.profile,
+        result.viewerConnection?.isOwner,
+      );
     res.json(result);
+  }),
+);
+router.get(
+  "/public/:username/tab/:tab",
+  wrap(async (req, res) => {
+    const user = await db.getUserByUsername(req.params.username);
+    if (!user)
+      return res.status(404).json({ error: "Developer profile not found." });
+    const asVisitor = req.query.asVisitor === "1";
+    const state = await store.access(user, req.user, { asVisitor });
+    if (!state.read)
+      return res.status(404).json({ error: "Developer profile is unavailable or private." });
+    const tab = v.choice(req.params.tab, [
+      "projects",
+      "coding",
+      "learning",
+      "achievements",
+      "certificates",
+      "activity",
+    ]);
+    const { profile, sections, owner } = state;
+    if (tab === "projects") {
+      if (!sections.projects) return res.json({ hidden: true, projects: [] });
+      const raw = await db.getUserProjects(user.id, "approved");
+      return res.json({ projects: sortPinned(raw, profile.pins?.projects || []) });
+    }
+    if (tab === "coding") {
+      if (!sections.statistics) return res.json({ hidden: true, coding: null });
+      return res.json({ coding: await progress.coding(user.id), stats: await progress.overview(user) });
+    }
+    if (tab === "learning") {
+      if (!sections.learning) return res.json({ hidden: true, learning: [] });
+      return res.json({
+        learning: await publicLearningForUser(user.id, profile, owner),
+      });
+    }
+    if (tab === "achievements") {
+      if (!sections.achievements) return res.json({ hidden: true, achievements: [] });
+      const list = (await db.getUserAchievements(user.id)).map((a) => ({
+        id: a.id,
+        key: a.key || a.id,
+        title: a.title,
+        description: a.description,
+        badgeIcon: a.badge_icon || a.icon || "trophy",
+        badgeType: a.badge_type || (Number(a.xp_bonus || 50) >= 250 ? "gold" : Number(a.xp_bonus || 50) >= 100 ? "silver" : "bronze"),
+        xpBonus: Number(a.xp_bonus || 50),
+        unlockedAt: a.unlocked_at,
+      }));
+      return res.json({
+        achievements: sortPinned(list, profile.pins?.achievements || profile.pins?.badges || []),
+      });
+    }
+    if (tab === "certificates") {
+      if (!sections.certificates) return res.json({ hidden: true, certificates: [] });
+      return res.json({
+        certificates: await publicCertificatesForUser(user, profile.pins?.certificates || []),
+      });
+    }
+    if (tab === "activity") {
+      if (!sections.activity) return res.json({ hidden: true, activity: null, timeline: { items: [], nextCursor: null } });
+      const year = req.query.year || "rolling";
+      if (
+        year !== "rolling" &&
+        (!/^\d{4}$/.test(year) || +year < 2020 || +year > new Date().getUTCFullYear())
+      )
+        throw v.invalid("Invalid activity year.");
+      const [activity, timeline] = await Promise.all([
+        progress.activity(user.id, year),
+        progress.timeline(user.id, { before: req.query.before, limit: req.query.limit || 20, type: req.query.type }),
+      ]);
+      return res.json({ activity, timeline });
+    }
+  }),
+);
+router.get(
+  "/public/:username/activity",
+  wrap(async (req, res) => {
+    const user = await db.getUserByUsername(req.params.username);
+    if (!user) return res.status(404).json({ error: "Developer profile not found." });
+    const state = await store.access(user, req.user, { asVisitor: req.query.asVisitor === "1" });
+    if (!state.read || !state.sections.activity)
+      return res.status(404).json({ error: "Activity is private." });
+    const year = req.query.year || "rolling";
+    if (
+      year !== "rolling" &&
+      (!/^\d{4}$/.test(year) || +year < 2020 || +year > new Date().getUTCFullYear())
+    )
+      throw v.invalid("Invalid activity year.");
+    const before = req.query.before;
+    if (before && (typeof before !== "string" || before.length > 400))
+      throw v.invalid("Invalid cursor.");
+    const [activity, timeline] = await Promise.all([
+      progress.activity(user.id, year),
+      progress.timeline(user.id, { before, limit: req.query.limit || 15, type: req.query.type }),
+    ]);
+    res.json({ ...activity, timeline });
+  }),
+);
+router.get(
+  "/public/:username/activity/:date",
+  wrap(async (req, res) => {
+    const user = await db.getUserByUsername(req.params.username);
+    if (!user) return res.status(404).json({ error: "Developer profile not found." });
+    const state = await store.access(user, req.user, { asVisitor: req.query.asVisitor === "1" });
+    if (!state.read || !state.sections.activity)
+      return res.status(404).json({ error: "Activity details are private." });
+    const day = v.date(req.params.date);
+    res.json(await activityDayItems(user.id, day));
+  }),
+);
+router.get(
+  "/public/:username/connections",
+  wrap(async (req, res) => {
+    const user = await db.getUserByUsername(req.params.username);
+    if (!user) return res.status(404).json({ error: "Developer profile not found." });
+    const state = await store.access(user, req.user, { asVisitor: req.query.asVisitor === "1" });
+    if (!state.read)
+      return res.status(404).json({ error: "Developer profile is unavailable or private." });
+    const kind = v.choice(req.query.kind || "follow", ["follow", "following"]);
+    const p = profilePrisma(),
+      outbound = kind === "following";
+    const items = await p.profileConnection.findMany({
+      where: {
+        [outbound ? "fromId" : "toId"]: user.id,
+        kind: "follow",
+        status: "accepted",
+      },
+      select: {
+        id: true,
+        createdAt: true,
+        [outbound ? "to" : "from"]: {
+          select: { id: true, username: true, fullName: true, avatarUrl: true },
+        },
+      },
+      take: 100,
+      orderBy: { createdAt: "desc" },
+    });
+    const list = [];
+    for (const row of items) {
+      const u = row[outbound ? "to" : "from"];
+      if (!u) continue;
+      if (!state.asVisitor && req.user && (await store.blocked(req.user.id, u.id))) continue;
+      const prof = await store.getProfile(u.id);
+      if (prof.visibility === "private" && u.id !== req.user?.id) continue;
+      list.push({
+        id: u.id,
+        username: u.username,
+        fullName: u.fullName,
+        avatarUrl: u.avatarUrl || "",
+        headline: prof.headline || "",
+        createdAt: row.createdAt,
+      });
+    }
+    res.json({ items: list });
+  }),
+);
+router.get(
+  "/public/:username/resume",
+  wrap(async (req, res) => {
+    const user = await db.getUserByUsername(req.params.username);
+    if (!user) return res.status(404).json({ error: "Developer profile not found." });
+    const state = await store.access(user, req.user, { asVisitor: req.query.asVisitor === "1" });
+    if (
+      !state.read ||
+      !state.sections.resume ||
+      (!state.owner && state.profile.details?.allowResumeDownload === false)
+    ) {
+      return res.status(403).json({ error: "This developer's resume is private." });
+    }
+    const bytes = await require("../profile/exports").pdf(user, {
+      kind: "resume",
+      publicSections: state.owner ? null : state.sections,
+    });
+    res
+      .type("application/pdf")
+      .attachment(`${user.username.replace(/[^a-zA-Z0-9_-]/g, "")}-resume.pdf`)
+      .send(Buffer.from(bytes));
+  }),
+);
+router.get(
+  "/public/:username/qr",
+  wrap(async (req, res) => {
+    const user = await db.getUserByUsername(req.params.username);
+    if (!user) return res.status(404).json({ error: "Developer profile not found." });
+    const state = await store.access(user, req.user, { asVisitor: req.query.asVisitor === "1" });
+    if (
+      !state.read ||
+      !state.sections.developerId ||
+      state.profile.details?.showQrCode === false
+    ) {
+      return res.status(404).json({ error: "QR badge unavailable." });
+    }
+    const { origin } = require("../profile/exports");
+    const QRCode = require("qrcode");
+    const svg = await QRCode.toString(
+      origin() + "/u/" + encodeURIComponent(user.username),
+      { type: "svg", margin: 1, color: { dark: "#191524", light: "#FFFFFF" } },
+    );
+    res.type("image/svg+xml").send(svg);
   }),
 );
 router.use((error, req, res, _next) => {

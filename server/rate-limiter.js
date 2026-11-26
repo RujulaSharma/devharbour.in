@@ -23,7 +23,7 @@ if (Redis && process.env.REDIS_URL) {
       connectTimeout: 2000,
       lazyConnect: true,
       enableOfflineQueue: false,
-      retryStrategy: attempt => Math.min(250 * attempt, 5000)
+      retryStrategy: attempt => (process.env.NODE_ENV === 'test' ? null : Math.min(250 * attempt, 5000))
     });
 
     redisClient.on('ready', () => {

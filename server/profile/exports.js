@@ -27,20 +27,31 @@ const RESUME_SECTIONS = [
   "certificates",
   "links",
 ];
-async function resumeData(user) {
+async function resumeData(user, publicSections = null) {
   const p = await store.getProfile(user.id);
+  const allow = (k) => !publicSections || Boolean(publicSections[k]);
+  const allEntries = await store.entries(user.id);
+  const allCerts = allow("certificates") ? await progress.certificateList(user) : [];
   return {
     name: user.full_name,
     headline: p.headline,
-    summary: user.bio || "",
-    location: [p.city, p.state, p.country].filter(Boolean).join(", "),
-    links: p.links,
-    skills: await store.skills(user.id),
-    entries: (await store.entries(user.id)).filter((x) =>
-      ["education", "experience", "external-certificate"].includes(x.kind),
+    summary: allow("about") ? user.bio || "" : "",
+    location: allow("location")
+      ? [p.city, p.state, p.country].filter(Boolean).join(", ")
+      : "",
+    links: allow("links") ? p.links : {},
+    skills: allow("skills") ? await store.skills(user.id) : [],
+    entries: allEntries.filter(
+      (x) =>
+        ["education", "experience", "external-certificate"].includes(x.kind) &&
+        allow(x.kind === "external-certificate" ? "certificates" : x.kind),
     ),
-    projects: await require("../db").getUserProjects(user.id, "approved"),
-    certificates: await progress.certificateList(user),
+    projects: allow("projects")
+      ? await require("../db").getUserProjects(user.id, "approved")
+      : [],
+    certificates: allCerts.filter(
+      (c) => !publicSections || String(c.status).toLowerCase() === "valid",
+    ),
   };
 }
 async function pdf(
@@ -51,9 +62,10 @@ async function pdf(
     snapshot,
     template = "ats",
     sections = RESUME_SECTIONS,
+    publicSections = null,
   } = {},
 ) {
-  const data = snapshot || (await resumeData(user)),
+  const data = snapshot || (await resumeData(user, publicSections)),
     document = await PDFDocument.create();
   document.registerFontkit(require("@pdf-lib/fontkit"));
   const font = await document.embedFont(
@@ -135,8 +147,11 @@ async function pdf(
   }
   for (const section of sections) {
     if (section === "summary") {
-      heading("Professional summary");
-      line(summary === undefined ? data.summary : summary);
+      const sumText = summary === undefined ? data.summary : summary;
+      if (sumText) {
+        heading("Professional summary");
+        line(sumText);
+      }
     }
     if (section === "skills" && data.skills.length) {
       heading("Skills (self-reported)");

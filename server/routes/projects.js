@@ -232,6 +232,20 @@ router.post('/:id/vote', requireAuth, async (req, res) => {
   }
 });
 
+// POST /api/projects/:id/view
+router.post('/:id/view', async (req, res) => {
+  try {
+    const project = await db.getProjectById(req.params.id);
+    if (!project || project.status !== 'approved') {
+      return res.status(404).json({ error: 'Project not found.' });
+    }
+    const viewsCount = await db.incrementProjectViews(project.id);
+    res.json({ viewsCount });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to record project view.' });
+  }
+});
+
 // POST /api/projects/:id/bookmark
 router.post('/:id/bookmark', requireAuth, async (req, res) => {
   try {

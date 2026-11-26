@@ -6,6 +6,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('node:path');
+const fs = require('node:fs');
 const { authMiddleware } = require('./auth');
 
 const authRoutes = require('./routes/auth');
@@ -101,13 +102,35 @@ app.get('/api/config/public', (req, res) => {
 });
 
 // SPA Fallback
-app.get('/u/:username', async (req,res,next) => {
-  if(process.env.PROFILE_ECOSYSTEM_ENABLED!=='true')return res.status(404).send('Profile not found');
+app.get('/u/:username', async (req, res) => {
+  const indexPath = path.join(publicDir, 'index.html');
+  if (process.env.PROFILE_ECOSYSTEM_ENABLED === 'false') {
+    return res.status(404).send('Profile not found');
+  }
   try {
-    const user=await require('./db').getUserByUsername(req.params.username);
-    if(!user)return res.status(404).send('Profile not found');
-    res.set('Cache-Control','private, no-store').type('html').send(await require('./profile/exports').publicHtml(user));
-  } catch(error) { if(error.status===404)return res.status(404).send('Profile not found');next(error); }
+    let html = fs.readFileSync(indexPath, 'utf8');
+    const { esc, origin } = require('./profile/exports');
+    const db = require('./db');
+    const store = require('./profile/store');
+    const user = await db.getUserByUsername(req.params.username);
+    if (user) {
+      try {
+        const state = await store.access(user, null);
+        if (state.read && state.profile.visibility === 'public') {
+          const title = `${esc(user.full_name)} (@${esc(user.username)}) | Dev Harbour`;
+          const desc = esc((state.profile.headline || (state.sections.about ? user.bio : '') || 'Developer portfolio on Dev Harbour').slice(0, 180));
+          const url = `${origin()}/u/${encodeURIComponent(user.username)}`;
+          const ogMeta = `<title>${title}</title><meta name="description" content="${desc}"><meta property="og:title" content="${title}"><meta property="og:description" content="${desc}"><meta property="og:url" content="${esc(url)}"><meta property="og:type" content="profile"><meta property="og:image" content="${esc(origin())}/assets/devharbour-logo.png">`;
+          html = html.replace(/<title>[\s\S]*?<\/title>/i, ogMeta);
+          return res.set('Cache-Control', 'private, no-store').type('html').send(html);
+        }
+      } catch {}
+    }
+    html = html.replace(/<title>[\s\S]*?<\/title>/i, '<title>Developer Profile | Dev Harbour</title><meta name="robots" content="noindex">');
+    return res.set('Cache-Control', 'private, no-store').type('html').send(html);
+  } catch {
+    return res.sendFile(indexPath);
+  }
 });
 app.use((req, res, next) => {
   if (req.method !== 'GET') return next();
