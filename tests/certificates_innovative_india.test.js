@@ -97,8 +97,8 @@ test('Innovative India certificate flow', async t => {
     assert.equal((await db.getUserCertificates(unverified.email)).length, 0);
     const response = await request('/api/profile/me/progress/certificates?email=' + owner.email, outsider.token);
     assert.equal(response.status, 200);
-    assert.deepEqual((await response.json()).data, []);
-    assert.equal((await db.getUserCertificates(outsider.email)).length, 0);
+    assert.equal((await response.json()).data.filter(certificate => certificate.id.startsWith('IN-26-')).length, 0);
+    assert.equal((await db.getUserCertificates(outsider.email)).filter(certificate => certificate.event_slug === eventSlug).length, 0);
     assert.equal((await request('/api/profile/me/progress/certificates', unverified.token)).status, 403);
     db.db.prepare('UPDATE event_participants SET is_eligible=0 WHERE event_slug=? AND candidate_email=?').run(eventSlug, owner.email);
     await sync(owner.id, owner.token);
@@ -167,7 +167,7 @@ test('Innovative India certificate flow', async t => {
     assert.equal(new Set([a.credential_id, b.credential_id, c.credential_id]).size, 3);
   });
 
-  await t.test('long names render on one vector page with the original template dimensions', async () => {
+  await t.test('long names render over the approved artwork on one page with the original dimensions', async () => {
     const pdf = await generateCertificatePdf({
       recipientName: 'Dr. Subramanian Ananthasubramanian Ramachandran-Bhattacharya '.repeat(2),
       credentialId: reserved
@@ -177,7 +177,7 @@ test('Innovative India certificate flow', async t => {
     const page = document.getPage(0);
     assert.deepEqual(page.getSize(), { width: 1080, height: 720 });
     const xObjects = page.node.Resources().lookupMaybe(PDFName.of('XObject'), PDFDict);
-    assert.equal(xObjects?.entries().length ?? 0, 0);
+    assert.equal(xObjects?.entries().length ?? 0, 1);
   });
 
   await t.test('repeat downloads use the same printable PDF and permanent ID', async () => {

@@ -7585,10 +7585,11 @@ requestAnimationFrame(loop);
         </form>
         <div id="mycert-details" hidden>
           <dl>
-            <dt>Registered name</dt><dd id="mycert-recipient-name"></dd>
+            <dt>Certificate name</dt><dd id="mycert-recipient-name"></dd>
             <dt>Credential ID</dt><dd id="mycert-credential-id"></dd>
           </dl>
           <button class="dh-cert-submit-btn" type="button" id="btn-download-mycert-pdf" onclick="downloadMyCertificatePdf()">Download PDF</button>
+          <p><a href="/innovative-certificate/">Edit name &amp; regenerate certificate</a></p>
           <div class="dh-ii-share" aria-label="Share your certificate">
             <a id="mycert-linkedin" target="_blank" rel="noopener noreferrer" onclick="copyCertificateLinkedInCaption()">Share on LinkedIn ↗</a>
             <button type="button" onclick="copyCertificateLinkedInCaption()">Copy LinkedIn caption</button>
@@ -7612,7 +7613,7 @@ requestAnimationFrame(loop);
           <span class="dh-ii-registrations"><span class="dh-ii-registration-dot" aria-hidden="true"></span>2,600 registrations</span>
         </div>
         <div class="dh-ii-art">
-          <img id="mycert-blank" src="/assets/innovative_india_certificate.webp?v=signature-2026" width="1080" height="720" alt="Blank Innovative India participation certificate in light lavender">
+          <img id="mycert-blank" src="/assets/innovative_india_certificate.webp?v=reference-2026" width="1080" height="720" alt="Blank Innovative India participation certificate in light lavender">
           <canvas id="mycert-preview" width="1620" height="1080" aria-label="Your personalized Innovative India certificate" role="img" hidden></canvas>
           <div id="mycert-shimmer" class="dh-ii-certificate-shimmer" aria-hidden="true"></div>
           <div id="mycert-envelope" class="dh-ii-envelope">
@@ -13426,7 +13427,7 @@ async function loadMyCertificateView(openSignIn = false) {
     }
     const cert = result.credential;
     $cert('mycert-heading').textContent = 'Your certificate is ready';
-    message.textContent = 'Your certificate uses the name saved when you signed up.';
+    message.textContent = 'Your certificate is ready. You can edit its display name in your certificate workspace.';
     $cert('mycert-recipient-name').textContent = cert.recipient_name;
     $cert('mycert-credential-id').textContent = cert.credential_id;
     link.href = cert.verification_url;
@@ -13493,7 +13494,7 @@ async function drawMyCertificate(cert, blank, canvas, signal) {
   const { width, height } = canvas;
   const ctx = canvas.getContext('2d');
   ctx.drawImage(blank, 0, 0, width, height);
-  const font = size => '700 ' + size + 'px "Certificate Garamond", "Certificate Devanagari", serif';
+  const font = size => '700 ' + size + 'px "Times New Roman", Times, "Certificate Devanagari", serif';
   const normalSize = width * 0.04;
   ctx.font = font(normalSize);
   const textWidth = ctx.measureText(cert.recipient_name).width;
@@ -13501,8 +13502,8 @@ async function drawMyCertificate(cert, blank, canvas, signal) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = '#000';
-  ctx.fillText(cert.recipient_name, width * 0.5, height * 0.579);
-  ctx.font = '700 ' + width * 0.014 + 'px Arial, sans-serif';
+  ctx.fillText(cert.recipient_name, width * 0.5, height * 0.58125);
+  ctx.font = '700 ' + width * (14.4 / 1080) + 'px Arial, sans-serif';
   ctx.fillStyle = '#101f3d';
   ctx.fillText(cert.credential_id, width * 0.73, height * 0.816);
   const envelope = document.getElementById('mycert-envelope');

@@ -1,0 +1,18 @@
+{
+  "orcathon": {
+    "template": "/assets/certificates/orcathon.png",
+    "width": 1024,
+    "height": 725,
+    "uppercase": true,
+    "name": { "x": 512, "baseline": 353, "size": 40, "maxWidth": 620, "color": "#240a3e" },
+    "credential": { "x": 512, "baseline": 598, "size": 12, "maxWidth": 174, "color": "#260c44", "font": "serif" }
+  },
+  "innovative-india": {
+    "template": "/assets/certificates/innovative-india.png",
+    "width": 1080,
+    "height": 720,
+    "uppercase": false,
+    "name": { "x": 540, "baseline": 418.5, "size": 43.2, "maxWidth": 594, "color": "#000000" },
+    "credential": { "x": 788.4, "baseline": 587.5, "size": 14.4, "maxWidth": 171, "color": "#101f3d", "font": "sans" }
+  }
+}

@@ -1,1 +1,36 @@
-<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Orcathon Participation Certificate | Dev Harbour</title><style>body{margin:0;background:#f8f7fc;color:#191524;font:16px system-ui}header,main{max-width:1200px;margin:auto;padding:24px}a{color:#6643ae}main{display:grid;grid-template-columns:3fr 2fr;gap:28px}.certificate,aside{background:white;border:1px solid #e8e3f2;border-radius:12px;padding:28px}.certificate{text-align:center;min-height:360px;display:flex;flex-direction:column;justify-content:center;outline:2px solid #9270d4;outline-offset:-12px}h1{font-family:Georgia;font-size:34px}#recipient{font:italic 32px Georgia;color:#6643ae}input{box-sizing:border-box;width:100%;padding:12px;border:1px solid #e8e3f2;border-radius:8px;margin:12px 0}button{background:#9270d4;color:white;border:0;border-radius:8px;padding:12px;cursor:pointer;margin:6px 0}button:disabled{opacity:.5}#status{padding:12px 0}small{display:block;overflow-wrap:anywhere}@media(max-width:760px){main{grid-template-columns:1fr}}</style><header><a href="/profile">← My Profile</a><h2>Orcathon Participation Certificate</h2></header><main><section class="certificate"><strong>DEV HARBOUR</strong><h1>Certificate of Participation</h1><h3>ORCA CODERS: ORCATHON 2026</h3><p>Presented to</p><div id="recipient">Loading…</div><p>For participating in ORCATHON 2026.</p><small id="credential"></small></section><aside><form id="name-form"><label for="name">Full name on your certificate</label><input id="name" maxlength="100" minlength="2" required><p>Your verified email determines eligibility. Editing this name does not change your account or event registration.</p><button id="save" disabled>Regenerate Certificate</button></form><p id="status" role="status">Checking eligibility…</p><button id="download" disabled>Download PDF</button><button id="share" disabled>Copy verification link</button><p><a href="/profile">View certificates on my profile</a></p></aside></main><script src="/assets/orcathon-certificate.js" defer></script></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Orcathon Participation Certificate | Dev Harbour</title>
+  <link rel="stylesheet" href="/assets/certificate-workspace.css?v=reference-2026">
+</head>
+<body>
+  <header>
+    <a href="/profile">← My Profile</a>
+    <h1>Orcathon Participation Certificate</h1>
+    <p>Your official certificate, ready to personalise and download.</p>
+  </header>
+  <main>
+    <figure class="certificate" aria-label="Orcathon participation certificate preview">
+      <svg id="certificate-preview" viewBox="0 0 1024 725" role="img" aria-label="Orcathon participation certificate"></svg>
+    </figure>
+    <aside>
+      <h2>Your certificate</h2>
+      <p id="status" role="status" aria-live="polite">Checking eligibility…</p>
+      <form id="name-form" hidden>
+        <label for="name">Name on your certificate</label>
+        <input id="name" name="name" autocomplete="name" maxlength="100" minlength="2" required>
+        <p class="privacy-note">Editing this name changes your certificate only. Your verified email and event registration stay the same.</p>
+        <button id="save" disabled>Save name &amp; regenerate</button>
+      </form>
+      <button id="download" type="button" disabled hidden>Download PDF</button>
+      <button id="share" type="button" class="secondary" disabled>Copy verification link</button>
+      <p class="back-link"><a href="/profile">View certificates on my profile</a></p>
+    </aside>
+  </main>
+  <script src="/assets/certificate-workspace.js?v=reference-2026" defer></script>
+  <script src="/assets/orcathon-certificate.js?v=reference-2026" defer></script>
+</body>
+</html>
