@@ -74,6 +74,21 @@ async function issueCertificate(database, user, requestedId) {
   }
 }
 
+async function syncProfileCertificate(userId, token) {
+  if (!token) return;
+  const database = db.getCertificateDatabase();
+  const session = await database.getSession(token);
+  if (!session || session.user_id !== userId) return;
+  const user = await database.getUserById(userId);
+  if (!user?.certificate_name?.trim()) return;
+  const email = user.email.trim().toLowerCase();
+  if (email.endsWith('@gmail.com') && session.google_verified_email !== email) return;
+  if (!(await database.isEmailVerified(user.id))) return;
+  const participant = await db.findParticipantByEmail(email, EVENT);
+  if (!participant || ![1, true].includes(participant.is_eligible)) return;
+  return issueCertificate(database, user, null);
+}
+
 function publicCredential(cert) {
   return {
     credential_id: cert.credential_id,
@@ -164,4 +179,4 @@ async function verifyCertificate(req, res, input) {
   }
 }
 
-module.exports = { myCertificate, verifyCertificate, issueCertificate };
+module.exports = { myCertificate, verifyCertificate, issueCertificate, syncProfileCertificate };

@@ -99,6 +99,8 @@ router.get(
   wrap(async (req, res) => {
     const user = await owned(req),
       id = user.id;
+    if (["overview", "certificates"].includes(req.params.module))
+      await require("../innovative_certificates").syncProfileCertificate(id, req.token);
     const modules = {
       overview: () => progress.overview(user),
       coding: () => progress.coding(id),

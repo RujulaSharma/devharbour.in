@@ -24,8 +24,8 @@ test('Innovative India certificate flow', async t => {
     ...options,
     headers: { ...(options.headers || {}), ...(token && { Authorization: 'Bearer ' + token }) }
   });
-  const signup = async (username, fullName, { eligible = true, verified = true } = {}) => {
-    const email = username + '@gmail.com';
+  const signup = async (username, fullName, { eligible = true, verified = true, domain = 'gmail.com' } = {}) => {
+    const email = username + '@' + domain;
     if (eligible) await db.insertParticipant({ eventSlug, candidateName: 'Roster name', candidateEmail: email });
     const response = await request('/api/auth/signup', null, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -53,6 +53,91 @@ test('Innovative India certificate flow', async t => {
     }
   });
 
+  await t.test('eligible profiles issue and display a stable certificate without a separate claim', async () => {
+    const owner = await signup('certificate_profile', 'Profile Participant');
+    const profile = '/api/profile/me/progress/';
+    const user = await db.getUserById(owner.id);
+    const progress = require('../server/profile/progress');
+    assert.deepEqual(await progress.certificateList(user), []);
+    assert.equal((await request(profile + 'certificates')).status, 401);
+    const passwordOnly = await request(profile + 'certificates', owner.passwordToken);
+    assert.equal(passwordOnly.status, 200);
+    assert.deepEqual((await passwordOnly.json()).data, []);
+    assert.equal((await db.getUserCertificates(owner.email)).length, 0);
+
+    const responses = await Promise.all(['certificates', 'overview', 'certificates'].map(module => request(profile + module, owner.token)));
+    for (const response of responses) assert.equal(response.status, 200);
+    const [certificates, overview, repeated] = await Promise.all(responses.map(response => response.json()));
+    assert.equal(certificates.data.length, 1);
+    const certificate = certificates.data[0];
+    assert.match(certificate.id, /^IN-26-\d{7}$/);
+    assert.equal(certificate.title, 'Innovative India 2026');
+    assert.equal(certificate.downloadUrl, '/innovative-certificate/');
+    assert.equal(certificate.status, 'Valid');
+    assert.equal(repeated.data[0].id, certificate.id);
+    assert.equal(overview.data.certificates, 1);
+    const issued = await db.getUserCertificates(owner.email);
+    assert.equal(issued.length, 1);
+    assert.equal(issued[0].owner_user_id, owner.id);
+    assert.equal(issued[0].recipient_name, 'Profile Participant');
+    assert.equal((await credential(owner.token)).credential_id, certificate.id);
+  });
+
+  await t.test('profile issuance requires the owner session, verification and the Innovative roster', async () => {
+    const sync = require('../server/innovative_certificates').syncProfileCertificate;
+    const owner = await signup('certificate_profile_guard', 'Guarded Participant');
+    const outsider = await signup('certificate_profile_outsider', 'Outside Participant', { eligible: false });
+    const unverified = await signup('certificate_profile_unverified', 'Unverified Participant', { verified: false });
+    await db.insertParticipant({ eventSlug: 'orca-coders-orcathon-2026', candidateName: 'Other event', candidateEmail: outsider.email });
+    await sync(owner.id, null);
+    await sync(owner.id, 'invalid-token');
+    await sync(owner.id, outsider.token);
+    await sync(unverified.id, unverified.token);
+    assert.equal((await db.getUserCertificates(owner.email)).length, 0);
+    assert.equal((await db.getUserCertificates(unverified.email)).length, 0);
+    const response = await request('/api/profile/me/progress/certificates?email=' + owner.email, outsider.token);
+    assert.equal(response.status, 200);
+    assert.deepEqual((await response.json()).data, []);
+    assert.equal((await db.getUserCertificates(outsider.email)).length, 0);
+    assert.equal((await request('/api/profile/me/progress/certificates', unverified.token)).status, 403);
+    db.db.prepare('UPDATE event_participants SET is_eligible=0 WHERE event_slug=? AND candidate_email=?').run(eventSlug, owner.email);
+    await sync(owner.id, owner.token);
+    assert.equal((await db.getUserCertificates(owner.email)).length, 0);
+  });
+
+  await t.test('verified non-Gmail participants see their certificate while public display stays opt-in', async () => {
+    const owner = await signup('certificate_profile_private', 'Private Participant', { domain: 'example.test' });
+    const before = await (await request('/api/profile/me', owner.passwordToken)).json();
+    assert.equal(before.profile.visibility, 'private');
+    assert.equal(before.profile.privacy.certificates, 'private');
+    const certificateResponse = await request('/api/profile/me/progress/certificates', owner.passwordToken);
+    assert.equal(certificateResponse.status, 200);
+    const certificate = (await certificateResponse.json()).data[0];
+    assert.match(certificate.id, /^IN-26-\d{7}$/);
+    const after = await (await request('/api/profile/me', owner.passwordToken)).json();
+    assert.deepEqual(after.profile, before.profile);
+    const publicPath = '/api/profile/public/certificate_profile_private';
+    assert.equal((await request(publicPath)).status, 404);
+    const update = async (version, privacy) => {
+      const response = await request('/api/profile/me', owner.passwordToken, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ version, visibility: 'public', privacy: { certificates: privacy } })
+      });
+      assert.equal(response.status, 200);
+      return (await response.json()).profile;
+    };
+    let profile = await update(after.profile.version, 'private');
+    let publicProfile = await (await request(publicPath)).json();
+    assert.equal(publicProfile.certificates, undefined);
+    profile = await update(profile.version, 'public');
+    publicProfile = await (await request(publicPath)).json();
+    assert.equal(publicProfile.certificates[0].id, certificate.id);
+    assert.ok(!JSON.stringify(publicProfile).includes(owner.email));
+    await update(profile.version, 'private');
+    publicProfile = await (await request(publicPath)).json();
+    assert.equal(publicProfile.certificates, undefined);
+  });
+
   let first;
   let second;
   await t.test('profile edits cannot overwrite the exact signup name or the imported ID', async () => {
@@ -68,6 +153,8 @@ test('Innovative India certificate flow', async t => {
     const cert = await credential(first.token);
     assert.equal(cert.recipient_name, signupName);
     assert.equal(cert.credential_id, reserved);
+    const profile = await request('/api/profile/me/progress/certificates', first.token);
+    assert.equal((await profile.json()).data[0].id, reserved);
   });
 
   await t.test('concurrent requests issue one stable ID per eligible account', async () => {
@@ -140,6 +227,8 @@ test('Innovative India certificate flow', async t => {
     assert.ok(!('recipient_email' in verified.credential));
     assert.ok(!('recipient_name' in verified.credential));
     db.db.prepare("UPDATE issued_certificates SET status = 'Revoked' WHERE credential_id = ?").run(reserved);
+    await request('/api/profile/me/progress/certificates', first.token);
+    assert.equal(db.db.prepare('SELECT status FROM issued_certificates WHERE credential_id=?').get(reserved).status, 'Revoked');
     assert.equal((await (await request(verify + reserved)).json()).verified, false);
     assert.equal((await request(download, first.token)).status, 404);
   });
