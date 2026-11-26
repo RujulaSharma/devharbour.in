@@ -1353,6 +1353,8 @@
   }
 
   async function renderDeveloperProfile(forceRefresh = false) {
+    // Respect the server's cooldown, including queued navigation refreshes.
+    if (Date.now() < state.profileRetryAt) return;
     const renderKey = profileRenderKey();
     if (state.loading) {
       if (renderKey !== activeProfileRenderKey) queuedProfileRenderKey = renderKey;
