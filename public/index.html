@@ -6193,6 +6193,9 @@ html[data-theme="dark"] .dp-stat-icon.rank {
     padding: 18px;
   }
 }
+
+/* Component display rules must respect route-specific hidden panels. */
+.dp-settings-shell [hidden] { display: none !important; }
 </style>
 <!-- profile-bundle-style:end -->
 <style>#v-timer{container-type:inline-size}
@@ -9676,7 +9679,8 @@ function updateNotificationBadge() {
 
 function updateAuthUI() {
   updateNotificationBadge();
-  window.renderProfilePage?.();
+  // Optional profile rendering must never interrupt authentication controls.
+  try { Promise.resolve(window.renderProfilePage?.()).catch(() => {}); } catch {}
   window.renderDashboardGoalsAndReadiness?.();
   const pendingEmail = readPendingVerificationEmail();
   window.refreshProjectLikesForAccount?.();
@@ -10123,7 +10127,7 @@ window.handleSaveProfile = handleSaveProfile;
 async function handleLogout() {
   const headers = getAuthHeaders();
   try {
-    const response = await fetch('/api/auth/logout', { method: 'POST', headers });
+    const response = await fetch('/api/auth/logout', { method: 'POST', headers, signal: AbortSignal.timeout(15000) });
     if (!response.ok && response.status !== 401) throw new Error('Logout failed');
   } catch {
     toast('Could not sign out. Please check your connection and try again.');
