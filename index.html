@@ -9889,18 +9889,21 @@ function handleLogin(e) {
   msg.textContent = 'Signing in…';
 
   const submit = document.getElementById('li-submit');
+  if (submit.disabled) return;
   submit.disabled = true;
   const challenge = loginChallengeId;
-  fetch(challenge ? '/api/auth/login/verify' : '/api/auth/login', {
+  window.__fetchAuth(() => fetch(challenge ? '/api/auth/login/verify' : '/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    signal: AbortSignal.timeout(20000),
     body: JSON.stringify(challenge ? { challengeId: challenge, code: document.getElementById('li-code').value } : { login: loginVal, password: pass })
-  })
+  }), () => { msg.textContent = 'The sign-in service is starting. Please keep this page open.'; })
     .then(async (r) => {
       const data = await r.json().catch(() => ({}));
-      return { ok: r.ok, status: r.status, data };
+      return { ok: r.ok, status: r.status, challenged: r.headers.get('cf-mitigated') === 'challenge', data };
     })
-    .then(({ ok, data }) => {
+    .then(({ ok, status, challenged, data }) => {
       if (ok && data.requiresLoginCode && data.challengeId) {
         loginChallengeId = data.challengeId;
         document.getElementById('li-pass').value = '';
@@ -9930,7 +9933,7 @@ function handleLogin(e) {
           return;
         }
         msg.className = 'dh-status-msg error';
-        msg.textContent = (data && data.error) ? data.error : 'Invalid username or password.';
+        msg.textContent = challenged ? 'The site security check interrupted sign-in. Reload this page and try again.' : data.error || (status === 429 ? 'Sign-in is temporarily busy. Please wait a minute and try again.' : status >= 500 ? 'Sign-in is temporarily unavailable. Please try again shortly.' : 'Invalid username or password.');
       }
     })
     .catch(() => {
@@ -10143,29 +10146,42 @@ function handleSaveProfile(e) {
 window.handleSaveProfile = handleSaveProfile;
 
 async function handleLogout() {
+  if (authLogoutPending) return;
+  authLogoutPending = true;
   const headers = getAuthHeaders();
+  const revision = ++authSessionRevision;
+  clearTimeout(authSessionRetryTimer);
+  authSessionRetryTimer = null;
   try {
-    const response = await fetch('/api/auth/logout', { method: 'POST', headers, signal: AbortSignal.timeout(15000) });
-    if (!response.ok && response.status !== 401) throw new Error('Logout failed');
+    const response = await window.__fetchAuth(() => fetch('/api/auth/logout', {
+      method: 'POST', headers, credentials: 'include', signal: AbortSignal.timeout(20000)
+    }), () => toast('The sign-out service is starting. Please keep this page open.'));
+    if (revision !== authSessionRevision || getAuthHeaders().Authorization !== headers.Authorization) return;
+    if (!response.ok && response.status !== 401) {
+      toast(response.headers.get('cf-mitigated') === 'challenge'
+        ? 'The site security check interrupted sign-out. Reload this page and try again.'
+        : response.status === 429
+          ? 'Sign-out is temporarily busy. Please wait a minute and try again.'
+          : 'The sign-out service is temporarily unavailable. Please try again shortly.');
+      return;
+    }
+    window.google?.accounts?.id?.disableAutoSelect();
+    window.__oneTapPromptActive = false;
+    clearCachedAuthSession();
+    closeProfileModal();
+    toast('Signed out.');
   } catch {
     toast('Could not sign out. Please check your connection and try again.');
-    return;
+  } finally {
+    authLogoutPending = false;
   }
-  authSessionRevision++;
-  window.google?.accounts?.id?.disableAutoSelect();
-  window.__oneTapPromptActive = false;
-  localStorage.removeItem('dh_token');
-  localStorage.removeItem('dh-auth-token');
-  localStorage.removeItem('dh_current_user');
-  localStorage.removeItem('dh-current-user');
-  currentUser = null;
-  updateAuthUI();
-  closeProfileModal();
-  toast('Signed out.');
 }
 window.handleLogout = handleLogout;
 
 function clearCachedAuthSession() {
+  clearTimeout(authSessionRetryTimer);
+  authSessionRetryTimer = null;
+  authSessionRetryCount = 0;
   for (const key of ['dh_token', 'dh-auth-token', 'dh_current_user', 'dh-current-user']) {
     localStorage.removeItem(key);
   }
@@ -10174,8 +10190,25 @@ function clearCachedAuthSession() {
 }
 
 let authSessionRevision = 0;
+let authSessionRetryTimer = null;
+let authSessionRetryCount = 0;
+let authSessionCheckPending = false;
+let authLogoutPending = false;
+
+function scheduleAuthSessionRetry(response, isCurrent) {
+  if (!isCurrent() || authSessionRetryCount >= 2 || response?.headers.get('cf-mitigated') === 'challenge') return;
+  const retryAfter = Number(response?.headers.get('retry-after'));
+  if (retryAfter > 300) return;
+  const delay = Math.max(45000, Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 0);
+  authSessionRetryCount++;
+  authSessionRetryTimer = setTimeout(() => {
+    authSessionRetryTimer = null;
+    if (isCurrent()) checkAuthSession();
+  }, delay);
+}
 
 async function checkAuthSession() {
+  if (authSessionCheckPending || authLogoutPending || authSessionRetryTimer) return;
   if (location.protocol === 'file:') {
     clearCachedAuthSession();
     return;
@@ -10187,18 +10220,22 @@ async function checkAuthSession() {
   }
   const revision = authSessionRevision;
   const isCurrent = () => revision === authSessionRevision && getAuthHeaders().Authorization === headers.Authorization;
+  authSessionCheckPending = true;
   try {
-    let response = await fetch('/api/auth/me', { headers, cache: 'no-store', credentials: 'include', signal: AbortSignal.timeout(20000) });
+    let response = await window.__fetchAuth(() => fetch('/api/auth/me', { headers, cache: 'no-store', credentials: 'include', signal: AbortSignal.timeout(20000) }));
     const retryWithCookie = response.status === 401 && headers.Authorization && isCurrent();
     if (retryWithCookie) {
-      response = await fetch('/api/auth/me', { cache: 'no-store' });
+      response = await window.__fetchAuth(() => fetch('/api/auth/me', { cache: 'no-store', credentials: 'include', signal: AbortSignal.timeout(20000) }));
     }
     if (!isCurrent()) return;
     if (response.status === 401) {
       clearCachedAuthSession();
       return;
     }
-    if (!response.ok) return;
+    if (!response.ok) {
+      if (response.status === 429 || response.status >= 500) scheduleAuthSessionRetry(response, isCurrent);
+      return;
+    }
     const { user } = await response.json();
     if (!user || !isCurrent()) return;
     if (retryWithCookie) {
@@ -10206,20 +10243,37 @@ async function checkAuthSession() {
       localStorage.removeItem('dh-auth-token');
     }
     currentUser = user;
+    authSessionRetryCount = 0;
     localStorage.setItem('dh_current_user', JSON.stringify(user));
     localStorage.setItem('dh-current-user', JSON.stringify(user));
     updateAuthUI();
     if (leaderboardViewerId !== user.id && ['/', '/practice', '/leaderboard'].includes(location.pathname)) rl();
   } catch {
     // Leave the session intact if the connection is briefly unavailable.
-    if (isCurrent()) updateAuthUI();
+    scheduleAuthSessionRetry(null, isCurrent);
+  } finally {
+    authSessionCheckPending = false;
   }
 }
 document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) checkAuthSession();
   if (!document.hidden && ['/', '/practice', '/leaderboard'].includes(location.pathname)) rl();
 });
+window.addEventListener('online', () => {
+  authSessionRetryCount = 0;
+  checkAuthSession();
+});
 window.checkAuthSession = checkAuthSession;
-checkAuthSession();
+function initializeAuthControls() {
+  // Account controls must work even when session restoration is still pending.
+  updateAuthUI();
+  checkAuthSession();
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeAuthControls, { once: true });
+} else {
+  initializeAuthControls();
+}
 
 function getProjectLikes(projectKey) {
   return serverVotes[projectKey] || 0;
