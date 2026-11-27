@@ -865,10 +865,15 @@ router.get("/id/:developerId", wrap(async (req, res) => {
   res.json({ card: await requestedIdCard(req) });
 }));
 router.get(["/id/:developerId/card.svg", "/id/:developerId/download"], wrap(async (req, res) => {
+  const side = req.query.side || "front";
+  const format = req.path.endsWith("/download") ? req.query.format || "svg" : "svg";
+  if (!["front", "back"].includes(side) || !["svg", "png"].includes(format))
+    return res.status(400).json({ error: "Choose a front or back card in SVG or PNG format." });
   const card = await requestedIdCard(req);
-  res.type("image/svg+xml").set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox");
-  if (req.path.endsWith("/download")) res.attachment(card.developerId + ".svg");
-  res.send(await require("../profile/id-card").svg(card));
+  const svg = await require("../profile/id-card").svg(card, { side });
+  res.type(format === "png" ? "image/png" : "image/svg+xml").set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox");
+  if (req.path.endsWith("/download")) res.attachment(card.developerId + "-" + side + "." + format);
+  res.send(format === "png" ? await require("sharp")(Buffer.from(svg)).resize(1440, 1960).png().toBuffer() : svg);
 }));
 router.get("/me/id-card", requireAuth, wrap(async (req, res) => {
   const cards = require("../profile/id-card");

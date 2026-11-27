@@ -5,19 +5,40 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
   <title>Developer ID Card | Dev Harbour</title>
-  <link rel="stylesheet" href="/assets/developer-id.css?v=1">
+  <link rel="stylesheet" href="/assets/developer-id.css?v=cyber-3d-2026">
 </head>
 <body>
-  <header><a class="brand" href="/">DEV HARBOUR</a><a href="/profile">My Profile</a></header>
+  <header><a class="brand" href="/">DEV HARBOUR<span>BUILD YOUR NEXT CHAPTER</span></a><a class="nav-profile" href="/profile">My Profile</a></header>
   <main>
-    <div class="page-heading"><p class="eyebrow">DEVELOPER IDENTITY</p><h1>Your Dev Harbour ID card</h1><p id="status" role="status" aria-live="polite">Loading saved profile details…</p></div>
+    <div class="page-heading"><p class="eyebrow">THE DEV HARBOUR COLLECTIVE</p><h1>Your developer pass.</h1><p id="status" role="status" aria-live="polite">Loading your identity…</p></div>
     <section id="card-content" hidden>
-      <figure class="card-preview"><img id="card-preview" alt="Dev Harbour developer ID card"></figure>
-      <div class="card-actions"><button id="download" type="button">Download ID card (SVG)</button><a id="profile-link" href="/profile">View profile</a></div>
-      <section class="details" aria-labelledby="details-title"><h2 id="details-title">Card details</h2><dl id="card-details"></dl></section>
+      <div class="identity-layout">
+        <div class="card-stage" id="card-stage" tabindex="0" aria-label="Interactive 3D developer card. Use the left or right arrow key to flip.">
+          <div class="stage-orbit" aria-hidden="true"></div>
+          <div class="card-object" id="card-object">
+            <div class="card-edge" aria-hidden="true"></div>
+            <figure class="card-face card-front"><img id="card-preview" alt="Front of your Dev Harbour developer card"><span class="card-glare" aria-hidden="true"></span></figure>
+            <figure class="card-face card-back" aria-hidden="true"><img id="card-back" alt="Back of your Dev Harbour developer card"><span class="card-glare" aria-hidden="true"></span></figure>
+          </div>
+          <div class="card-shadow" aria-hidden="true"></div>
+          <p class="interaction-hint">Move to tilt <span>·</span> Flip to explore</p>
+        </div>
+        <aside class="card-panel">
+          <div class="panel-heading"><span class="panel-kicker">YOUR DIGITAL IDENTITY</span><span class="edition">DH / 01</span></div>
+          <h2 id="member-name">Developer</h2><p id="member-username"></p>
+          <div class="card-actions">
+            <button id="flip" class="flip-button" type="button" aria-pressed="false">Show back</button>
+            <button id="download" class="download-button" type="button">Download front PNG</button>
+            <button id="download-svg" class="svg-button" type="button">Download SVG</button>
+          </div>
+          <div class="details" aria-labelledby="details-title"><h3 id="details-title">The details behind the card</h3><dl id="card-details"></dl></div>
+          <p class="photo-help" id="photo-help" hidden>Add a photo in your profile to make this card yours.</p>
+          <a id="profile-link" class="profile-link" href="/profile">View profile</a>
+        </aside>
+      </div>
     </section>
     <p id="error-help" hidden><a href="/profile">Sign in or return to your profile</a></p>
   </main>
-  <script src="/assets/developer-id.js?v=1" defer></script>
+  <script src="/assets/developer-id.js?v=cyber-3d-2026" defer></script>
 </body>
 </html>

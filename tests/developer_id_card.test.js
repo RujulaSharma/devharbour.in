@@ -56,7 +56,7 @@ test('Developer ID parameter page and downloads use saved data and profile priva
     assert.equal((await request(endpoint.toLowerCase(), alice)).status, 200);
   });
   await t.test('private profiles deny anonymous and other-user JSON and SVG access', async () => {
-    for (const suffix of ['', '/card.svg', '/download']) {
+    for (const suffix of ['', '/card.svg', '/download', '/card.svg?side=back', '/download?side=back&format=png']) {
       assert.equal((await request(endpoint + suffix)).status, 404);
       assert.equal((await request(endpoint + suffix, bob)).status, 404);
     }
@@ -70,13 +70,31 @@ test('Developer ID parameter page and downloads use saved data and profile priva
     assert.match(download.headers.get('content-disposition'), new RegExp(alice.code));
     const svg = await preview.text();
     const image = await require('sharp')(Buffer.from(svg)).metadata();
-    assert.deepEqual({ width: image.width, height: image.height }, { width: 1000, height: 560 });
+    assert.deepEqual({ width: image.width, height: image.height }, { width: 720, height: 980 });
     assert.equal(await download.text(), svg);
-    assert.match(svg, /Alice &lt;Builder&gt; &amp; Co/);
+    assert.match(svg, /ALICE &lt;BUILDER&gt; &amp; CO/);
     assert.ok(!svg.includes('<Builder>'));
     assert.match(svg, new RegExp(alice.code));
     assert.equal((await request('/api/profile/me/id-card', alice)).status, 200);
     assert.equal((await request('/api/profile/me/id-card')).status, 401);
+  });
+  await t.test('front and back downloads are self-contained and PNG is ready to save', async () => {
+    for (const side of ['front', 'back']) {
+      const response = await request(endpoint + '/card.svg?side=' + side, alice);
+      const svg = await response.text();
+      assert.match(svg, new RegExp('Dev Harbour ' + (side === 'front' ? 'front' : 'reverse') + ' developer card'));
+      assert.ok(!svg.includes('<image href="http'));
+      await require('sharp')(Buffer.from(svg)).png().toBuffer();
+      const png = await request(endpoint + '/download?format=png&side=' + side, alice);
+      assert.equal(png.status, 200);
+      assert.match(png.headers.get('content-type'), /^image\/png/);
+      assert.match(png.headers.get('content-disposition'), new RegExp(alice.code + '-' + side + '\\.png'));
+      const image = await require('sharp')(Buffer.from(await png.arrayBuffer())).metadata();
+      assert.deepEqual({ width: image.width, height: image.height }, { width: 1440, height: 1960 });
+    }
+    for (const query of ['?format=pdf', '?side=unknown', '?side[]=back', '?format[]=png']) {
+      assert.equal((await request(endpoint + '/download' + query, alice)).status, 400);
+    }
   });
   await t.test('public ID access respects statistics, location and QR settings', async () => {
     await preferences({ visibility: 'public', city: 'Private City', headline: 'Saved headline', privacy: { developerId: 'public', statistics: 'private', location: 'private' }, details: { showDeveloperId: true, showQrCode: false } });
@@ -90,6 +108,10 @@ test('Developer ID parameter page and downloads use saved data and profile priva
     assert.ok(!svg.includes('XP'));
     assert.ok(!svg.includes('Private City'));
     assert.ok(!svg.includes('<svg x='));
+    const back = await (await request(endpoint + '/card.svg?side=back')).text();
+    assert.ok(!back.includes('XP'));
+    assert.ok(!back.includes('Private City'));
+    assert.ok(!back.includes('<svg x='));
     await preferences({ details: { showDeveloperId: false } });
     assert.equal((await request()).status, 404);
     assert.equal((await request(endpoint + '/download')).status, 404);
