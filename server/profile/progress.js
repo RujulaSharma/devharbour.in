@@ -82,10 +82,7 @@ async function overview(user) {
       "SELECT count(*) AS value FROM lesson_progress WHERE user_id=$1 AND status='completed'",
       [id],
     ),
-    scalar(
-      "SELECT count(*) AS value FROM issued_certificates WHERE lower(recipient_email)=lower($1) AND lower(status)='valid'",
-      [user.email],
-    ),
+    certificateList(user).then(list => list.length),
     scalar("SELECT count(*) AS value FROM user_achievements WHERE user_id=$1", [
       id,
     ]),
@@ -300,7 +297,20 @@ async function eventHistory(user) {
   }));
 }
 async function certificateList(user) {
-  return (await db.getUserCertificates(user.email)).map((c) => ({
+  const issued = await db.getUserCertificates(user.email);
+  const registryEvents = new Set(['orca-coders-orcathon-2026', 'innovative-india-2026']);
+  const events = [...new Set(issued.map(c => c.event_slug))].filter(event => registryEvents.has(event));
+  const eligible = new Map(await Promise.all(events.map(async event => {
+    const participant = await db.findParticipantByEmail(user.email, event);
+    return [event, Boolean(participant && [1, true].includes(participant.is_eligible))];
+  })));
+  const email = String(user.email || '').trim().toLowerCase();
+  return issued.filter(c =>
+    String(c.recipient_email || '').trim().toLowerCase() === email &&
+    String(c.status || '').toLowerCase() === 'valid' &&
+    (!c.owner_user_id || c.owner_user_id === user.id) &&
+    (!registryEvents.has(c.event_slug) || eligible.get(c.event_slug))
+  ).map((c) => ({
     id: c.credential_id,
     title: c.event_slug === "orca-coders-orcathon-2026" ? "Orcathon 2026 — Participation" : c.event_slug === "innovative-india-2026" ? "Innovative India 2026" : c.event_slug,
     type: c.certificate_type,
