@@ -9884,6 +9884,11 @@ function handleLogin(e) {
   const pass = document.getElementById('li-pass').value;
   const msg = document.getElementById('li-msg');
   msg.className = 'dh-status-msg';
+  if (!loginChallengeId && (!loginVal || !pass)) {
+    msg.className = 'dh-status-msg error';
+    msg.textContent = 'Enter your email or username and password.';
+    return;
+  }
   msg.textContent = 'Signing in…';
 
   const submit = document.getElementById('li-submit');
@@ -9895,10 +9900,11 @@ function handleLogin(e) {
     body: JSON.stringify(challenge ? { challengeId: challenge, code: document.getElementById('li-code').value } : { login: loginVal, password: pass })
   })
     .then(async (r) => {
-      const data = await r.json().catch(() => ({}));
+      const payload = await r.json().catch(() => null);
+      const data = payload && typeof payload === 'object' && !Array.isArray(payload) ? payload : {};
       return { ok: r.ok, status: r.status, data };
     })
-    .then(({ ok, data }) => {
+    .then(({ ok, status, data }) => {
       if (ok && data.requiresLoginCode && data.challengeId) {
         loginChallengeId = data.challengeId;
         document.getElementById('li-pass').value = '';
@@ -9928,7 +9934,17 @@ function handleLogin(e) {
           return;
         }
         msg.className = 'dh-status-msg error';
-        msg.textContent = (data && data.error) ? data.error : 'Invalid username or password.';
+        if (status === 429) {
+          msg.textContent = 'Too many sign-in attempts. Please try again shortly.';
+        } else if (status >= 500 || status === 404 || status === 405 || ok) {
+          msg.textContent = 'Sign in is temporarily unavailable. Please try again later.';
+        } else if (typeof data.error === 'string' && data.error) {
+          msg.textContent = data.error;
+        } else if (status === 401) {
+          msg.textContent = challenge ? 'Incorrect or expired sign-in code.' : 'Invalid username or password.';
+        } else {
+          msg.textContent = 'Unable to sign in. Please try again.';
+        }
       }
     })
     .catch(() => {
