@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Developer ID Card | Dev Harbour</title>
+  <link rel="stylesheet" href="/assets/developer-id.css?v=1">
+</head>
+<body>
+  <header><a class="brand" href="/">DEV HARBOUR</a><a href="/profile">My Profile</a></header>
+  <main>
+    <div class="page-heading"><p class="eyebrow">DEVELOPER IDENTITY</p><h1>Your Dev Harbour ID card</h1><p id="status" role="status" aria-live="polite">Loading saved profile details…</p></div>
+    <section id="card-content" hidden>
+      <figure class="card-preview"><img id="card-preview" alt="Dev Harbour developer ID card"></figure>
+      <div class="card-actions"><button id="download" type="button">Download ID card (SVG)</button><a id="profile-link" href="/profile">View profile</a></div>
+      <section class="details" aria-labelledby="details-title"><h2 id="details-title">Card details</h2><dl id="card-details"></dl></section>
+    </section>
+    <p id="error-help" hidden><a href="/profile">Sign in or return to your profile</a></p>
+  </main>
+  <script src="/assets/developer-id.js?v=1" defer></script>
+</body>
+</html>

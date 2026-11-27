@@ -105,6 +105,9 @@ app.use('/api/innovative-certificate', require('./routes/innovative-certificate'
 app.use('/api/orcathon-certificate', require('./routes/orcathon-certificate'));
 
 // SPA Fallback
+app.get('/id/:developerId', (_req, res) => {
+  res.set('Cache-Control', 'private, no-store').sendFile(path.join(publicDir, 'id', 'index.html'));
+});
 app.get('/u/:username', async (req, res) => {
   const indexPath = path.join(publicDir, 'index.html');
   if (process.env.PROFILE_ECOSYSTEM_ENABLED === 'false') {

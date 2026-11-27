@@ -854,27 +854,27 @@ router.post(
       .send(Buffer.from(bytes));
   }),
 );
-router.get(
-  "/me/id-card",
-  requireAuth,
-  wrap(async (req, res) => {
-    const user = await owned(req),
-      stats = await progress.overview(user);
-    const { esc, origin } = require("../profile/exports");
-    const QRCode = require("qrcode");
-    const qr = await QRCode.toString(
-      origin() + "/u/" + encodeURIComponent(user.username),
-      { type: "svg", margin: 0 },
-    );
-    const inner = qr.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "");
-    res
-      .type("image/svg+xml")
-      .set("Content-Disposition", 'attachment; filename="devharbour-card.svg"')
-      .send(
-        `<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560"><rect width="1000" height="560" rx="32" fill="#f6f0ff"/><rect x="30" y="30" width="940" height="500" rx="24" fill="white" stroke="#e2d5f0"/><g fill="#30253f" font-family="Arial,sans-serif"><text x="70" y="100" font-size="24">DEV HARBOUR · DEVELOPER CARD</text><text x="70" y="200" font-size="40">${esc(user.full_name)}</text><text x="70" y="250" font-size="26">@${esc(user.username)}</text><text x="70" y="320" font-size="24">Level ${stats.level} · ${esc(stats.title)}</text><text x="70" y="370" font-size="22">${stats.totalXp} XP</text><text x="70" y="430" font-size="15">${esc(user.id)}</text><text x="70" y="490" font-size="15">Community profile card · Not an official identity document</text></g><svg x="740" y="180" width="160" height="160" viewBox="${qr.match(/viewBox="([^"]+)"/)[1]}">${inner}</svg></svg>`,
-      );
-  }),
-);
+async function requestedIdCard(req) {
+  if (req.authUnavailable) throw Object.assign(new Error("Session check temporarily unavailable."), { status: 503 });
+  const cards = require("../profile/id-card");
+  const user = await cards.findUser(req.params.developerId);
+  if (!user) throw Object.assign(new Error("Developer ID card is private or unavailable."), { status: 404 });
+  return cards.details(user, req.user, { asVisitor: req.query.asVisitor === "1" });
+}
+router.get("/id/:developerId", wrap(async (req, res) => {
+  res.json({ card: await requestedIdCard(req) });
+}));
+router.get(["/id/:developerId/card.svg", "/id/:developerId/download"], wrap(async (req, res) => {
+  const card = await requestedIdCard(req);
+  res.type("image/svg+xml").set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox");
+  if (req.path.endsWith("/download")) res.attachment(card.developerId + ".svg");
+  res.send(await require("../profile/id-card").svg(card));
+}));
+router.get("/me/id-card", requireAuth, wrap(async (req, res) => {
+  const cards = require("../profile/id-card");
+  const card = await cards.details(await owned(req), req.user);
+  res.type("image/svg+xml").attachment("devharbour-card.svg").send(await cards.svg(card));
+}));
 router.get(
   "/public-html/:username",
   wrap(async (req, res) => {

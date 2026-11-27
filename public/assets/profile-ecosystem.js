@@ -556,20 +556,21 @@
     let identityCard = "";
     if (sections.developerId && developerId?.code) {
       const qrSrc = `/api/profile/public/${encodeURIComponent(user.username)}/qr${state.visitorPreview ? "?asVisitor=1" : ""}`;
+      const idPage = `/id/${encodeURIComponent(developerId.code)}${state.visitorPreview ? "?asVisitor=1" : ""}`;
       identityCard = `
         <section class="dp-card">
           <div class="dp-section-head">
             <h2 class="dp-section-title">${icon("qrCode")} Developer Identity</h2>
-            ${isOwner ? `<button type="button" class="dp-link-action" data-dp-action="download-id-card">Card SVG</button>` : ""}
+            <a class="dp-link-action" href="${esc(idPage)}">View ID card</a>
           </div>
-          <div class="dp-dev-id-box">
+          <a class="dp-dev-id-box dp-dev-id-link" href="${esc(idPage)}" aria-label="Open developer ID ${esc(developerId.code)}">
             <div>
               <div style="font-size:12px;color:var(--dp-muted);margin-bottom:2px;">Dev Harbour ID</div>
               <strong style="font-size:14px;letter-spacing:.03em;">${esc(developerId.code)}</strong>
               ${vm.stats?.title ? `<div style="font-size:12px;color:var(--dp-lavender-deep);font-weight:600;margin-top:4px;">${esc(vm.stats.title)}</div>` : ""}
             </div>
             ${developerId.showQrCode !== false ? `<div class="dp-dev-id-qr"><img src="${esc(qrSrc)}" alt="QR code to @${esc(user.username)} profile" loading="lazy"></div>` : ""}
-          </div>
+          </a>
         </section>
       `;
     }
@@ -2557,8 +2558,8 @@
       openConnectionsModal(vm.user.username, actBtn.dataset.kind || "follow");
     } else if (act === "download-public-resume" && vm) {
       window.open(`/api/profile/public/${encodeURIComponent(vm.user.username)}/resume${state.visitorPreview ? "?asVisitor=1" : ""}`, "_blank", "noopener,noreferrer");
-    } else if (act === "download-id-card") {
-      downloadOwnerExport("id");
+    } else if (act === "download-id-card" && vm?.developerId?.code) {
+      location.href = "/id/" + encodeURIComponent(vm.developerId.code);
     } else if (act === "load-more-timeline" && vm) {
       const next = await api(`/public/${encodeURIComponent(vm.user.username)}/activity?year=${encodeURIComponent(state.activityYear)}&before=${encodeURIComponent(actBtn.dataset.cursor)}&type=${encodeURIComponent(state.timelineType)}`);
       const feed = root.querySelector(".dp-timeline-feed");

@@ -1861,3 +1861,5 @@ html[data-theme="dark"] .dp-stat-icon.rank {
 
 /* Component display rules must respect route-specific hidden panels. */
 .dp-settings-shell [hidden] { display: none !important; }
+.dp-dev-id-link { color: inherit; text-decoration: none; }
+.dp-dev-id-link:focus-visible { outline: 3px solid var(--dp-lavender-deep); outline-offset: 3px; }
