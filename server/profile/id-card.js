@@ -41,7 +41,7 @@ async function svg(card) {
   if (card.showQrCode) {
     const markup = await QRCode.toString(origin() + card.pageUrl, { type: 'svg', margin: 1 });
     const viewBox = markup.match(/viewBox="([^"]+)"/)[1];
-    const inner = markup.replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '');
+    const inner = markup.replace(/^<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
     qr = `<svg x="735" y="170" width="190" height="190" viewBox="${viewBox}">${inner}</svg>`;
   }
   const nameSize = Math.min(40, 900 / Math.max(24, [...card.fullName].length));

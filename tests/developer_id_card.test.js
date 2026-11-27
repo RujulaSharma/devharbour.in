@@ -69,6 +69,8 @@ test('Developer ID parameter page and downloads use saved data and profile priva
     assert.match(download.headers.get('content-disposition'), /attachment/);
     assert.match(download.headers.get('content-disposition'), new RegExp(alice.code));
     const svg = await preview.text();
+    const image = await require('sharp')(Buffer.from(svg)).metadata();
+    assert.deepEqual({ width: image.width, height: image.height }, { width: 1000, height: 560 });
     assert.equal(await download.text(), svg);
     assert.match(svg, /Alice &lt;Builder&gt; &amp; Co/);
     assert.ok(!svg.includes('<Builder>'));
