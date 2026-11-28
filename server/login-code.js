@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
 const { generateOtp, hashOtp, sendVerificationOtpEmail, isConfigured } = require('./email');
 const { getRateLimitRedis } = require('./rate-limiter');
+const { createPostgresLoginCodes, passwordVersion } = require('./login-code-postgres');
 
 const challengePrefix = 'auth:login-code:';
 const lifetimeSeconds = 600;
@@ -9,11 +10,16 @@ function unavailable() {
   return Object.assign(new Error('Login codes are temporarily unavailable.'), { status: 503 });
 }
 
-function passwordVersion(user) {
-  return crypto.createHash('sha256').update(user.password_hash).digest('hex');
+function postgresStore() {
+  if (!require('./db').isPostgres()) return null;
+  const { pool } = require('./db-postgres');
+  if (!pool) throw unavailable();
+  return createPostgresLoginCodes({ query: (text, params) => pool.query(text, params) });
 }
 
 async function sendLoginCode(user) {
+  const store = postgresStore();
+  if (store) return store.send(user);
   const redis = getRateLimitRedis();
   if (!redis || !isConfigured()) {
     console.error('[LOGIN CODE]', redis ? 'Resend configuration is incomplete' : 'Redis is not ready');
@@ -47,6 +53,8 @@ async function sendLoginCode(user) {
 }
 
 async function consumeLoginCode(id, code, getUser) {
+  const store = postgresStore();
+  if (store) return store.consume(id, code, getUser);
   const redis = getRateLimitRedis();
   if (!redis) throw unavailable();
   const key = challengePrefix + id;
