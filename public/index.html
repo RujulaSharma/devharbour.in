@@ -7624,12 +7624,12 @@ requestAnimationFrame(loop);
           <button type="submit" class="dh-cert-submit-btn">Get my certificate</button>
         </form>
         <form id="mycert-email-verification" hidden onsubmit="verifyCertificateEmail(event)">
-          <button type="button" class="dh-action-btn" onclick="sendCertificateEmailCode()">Send email code</button>
+          <button class="dh-action-btn" type="button" onclick="openCertificateSignup()">Create a Dev Harbour account</button>
+          <button type="button" class="dh-action-btn" onclick="sendCertificateEmailCode()">Send code to my existing account</button>
           <label class="dh-ii-field" for="mycert-email-code">Verification code
             <input id="mycert-email-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" required>
           </label>
           <button class="dh-cert-submit-btn" type="submit">Verify email</button>
-          <button class="dh-action-btn" type="button" onclick="openCertificateSignup()">Create a Dev Harbour account</button>
         </form>
         <div id="mycert-details" hidden>
           <dl>
@@ -13361,7 +13361,7 @@ function requestCertificateOwnership(showGoogle) {
     if (showGoogle) openCertificateLogin();
   } else {
     document.getElementById('mycert-email-verification').hidden = false;
-    document.getElementById('mycert-message').textContent = 'Use an email code to confirm your registration address.';
+    document.getElementById('mycert-message').textContent = 'New to Dev Harbour? Create an account with your registration email first. Already have an account with that email? Request a code below.';
   }
 }
 
