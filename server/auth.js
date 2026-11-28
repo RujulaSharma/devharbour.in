@@ -57,7 +57,7 @@ function setSessionCookie(req, res, token, expiresAt) {
   if (!canUseSessionCookie(req)) return;
   res.setHeader('Cache-Control', 'private, no-store');
   res.cookie(SESSION_COOKIE, token, {
-    httpOnly: true, secure: process.env.NODE_ENV === 'production' || req.secure,
+    httpOnly: true, secure: process.env.NODE_ENV === 'production' || req.secure || publicSiteRequest(req),
     sameSite: 'strict', expires: new Date(expiresAt), path: '/api',
     ...(publicSiteRequest(req) ? { domain: 'devharbour.in' } : {})
   });
@@ -66,7 +66,7 @@ function setSessionCookie(req, res, token, expiresAt) {
 function clearSessionCookie(req, res) {
   if (!canUseSessionCookie(req)) return;
   const options = {
-    httpOnly: true, secure: process.env.NODE_ENV === 'production' || req.secure,
+    httpOnly: true, secure: process.env.NODE_ENV === 'production' || req.secure || publicSiteRequest(req),
     sameSite: 'strict', path: '/api'
   };
   res.setHeader('Cache-Control', 'private, no-store');
