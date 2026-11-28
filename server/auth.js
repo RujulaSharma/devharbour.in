@@ -41,6 +41,7 @@ function sanitizeUser(user, extras = {}) {
 }
 
 const SESSION_COOKIE = 'dh_session';
+const { PUBLIC_ORIGINS, publicSiteRequest } = require('./site-origin');
 
 function canUseSessionCookie(req) {
   const fetchSite = req.headers['sec-fetch-site'];
@@ -48,9 +49,7 @@ function canUseSessionCookie(req) {
   const origin = req.headers.origin;
   if (!origin) return true;
   const appOrigin = process.env.APP_BASE_URL?.replace(/\/$/, '');
-  const productionOrigins = new Set(['https://devharbour.in', 'https://www.devharbour.in']);
-  const host = (req.get?.('host') || '').split(':')[0];
-  if (['devharbour.in', 'www.devharbour.in'].includes(host) && productionOrigins.has(origin)) return true;
+  if (PUBLIC_ORIGINS.has(origin)) return true;
   return origin === appOrigin || origin === req.protocol + '://' + req.get?.('host');
 }
 
@@ -60,16 +59,19 @@ function setSessionCookie(req, res, token, expiresAt) {
   res.cookie(SESSION_COOKIE, token, {
     httpOnly: true, secure: process.env.NODE_ENV === 'production' || req.secure,
     sameSite: 'strict', expires: new Date(expiresAt), path: '/api',
-    ...(['devharbour.in', 'www.devharbour.in'].includes((req.get?.('host') || '').split(':')[0]) ? { domain: 'devharbour.in' } : {})
+    ...(publicSiteRequest(req) ? { domain: 'devharbour.in' } : {})
   });
 }
 
 function clearSessionCookie(req, res) {
-  if (canUseSessionCookie(req)) res.clearCookie(SESSION_COOKIE, {
+  if (!canUseSessionCookie(req)) return;
+  const options = {
     httpOnly: true, secure: process.env.NODE_ENV === 'production' || req.secure,
-    sameSite: 'strict', path: '/api',
-    ...(['devharbour.in', 'www.devharbour.in'].includes((req.get?.('host') || '').split(':')[0]) ? { domain: 'devharbour.in' } : {})
-  });
+    sameSite: 'strict', path: '/api'
+  };
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.clearCookie(SESSION_COOKIE, options);
+  if (publicSiteRequest(req)) res.clearCookie(SESSION_COOKIE, { ...options, domain: 'devharbour.in' });
 }
 
 function getAuthToken(req) {

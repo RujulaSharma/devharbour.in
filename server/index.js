@@ -98,7 +98,7 @@ app.use(express.static(publicDir));
 app.get('/api/config/public', (req, res) => {
   res.json({
     googleClientId: process.env.GOOGLE_CLIENT_ID || null,
-    appBaseUrl: process.env.APP_BASE_URL || null
+    appBaseUrl: require('./site-origin').applicationBaseUrl(req)
   });
 });
 
