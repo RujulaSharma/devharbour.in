@@ -19,6 +19,11 @@ Use white/lavender reference, real data and accessible responsive controls. Owne
 ## Known regression
 Sidebar initialization previously crashed because Settings is an anchor, not a button. Regression test: tests/sidebar_startup.test.js. Avoid assumptions that every sidebar entry is a button.
 
+## Profile layout — 28 November 2026
+Implementation ffac66f ([PR #51](https://github.com/RujulaSharma/devharbour.in/pull/51)) removes the dashboard side panel whenever the owner or public profile view is active. The content uses a single full-width page column; its own About, Skills, Links and Developer Identity cards remain part of the profile. The panel backdrop and greeting are hidden, and mobile profile navigation has four working destinations without the panel-opening Menu button. Other views automatically retain their normal sidebar and its saved expanded/collapsed state.
+
+Validation: existing sidebar startup regression, production build, synchronized generated HTML and diff checks passed. Release proceeds through the PR's Cloudflare Pages deployment checks; rendered browser verification was initially unavailable because the browser window could not be read. No account, certificate or eligibility data is changed.
+
 ## Latest handoff — 27 November 2026
 Account-list follow-up, implementation b177d7b: audited all 396 accounts and prepared the explicitly requested private workbook in ignored private storage. There are 381 verified accounts, 344 eligible event registrations and 322 currently available valid certificates across 316 accounts. No duplicate account emails or conflicting certificate owners were found. Two historical valid records belong to registrations currently marked ineligible; both are excluded from profiles and the private list, and live download requests were denied. No account, registry or historical credential rows were altered by this audit/export.
 
