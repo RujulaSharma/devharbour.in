@@ -86,21 +86,23 @@ async function load() {
     const info = await request('/info');
     byId('deadline').textContent = info.deadline ? `Deadline: ${formatTime(info.deadline)}${info.open ? '' : ' · Closed'}` : 'Submissions are awaiting an announced deadline.';
     if (dashboard && !info.open) status.textContent = 'Submissions are closed.';
-    if (!info.deadline) return;
     const { entry, organizer } = await request('/entry');
     byId('sign-in').hidden = byId('check-session').hidden = true;
     status.textContent = dashboard && !info.open ? 'Submissions are closed.' : '';
     form.hidden = !info.open;
     showEntry(entry);
+    if (reviewLink) reviewLink.hidden = !organizer;
     if (organizer && byId('review')) {
       byId('review').hidden = false;
       try {
         ({ entries } = await request('/review'));
         renderEntries();
+        if (window.location.hash === '#review') byId('review').scrollIntoView();
       } catch (error) { byId('review-summary').textContent = error.message; }
     }
   } catch (error) {
     form.hidden = true;
+    if (reviewLink) reviewLink.hidden = true;
     if (byId('review')) byId('review').hidden = true;
     if (error.status === 401 || error.status === 403) {
       status.textContent = error.status === 401 ? 'Sign in to submit or view your entry.' : error.message;
@@ -128,7 +130,12 @@ if (byId('review-filter')) {
 }
 byId('check-session').addEventListener('click', load);
 const dashboard = byId('tatva-poster-challenge');
+const reviewLink = dashboard ? document.createElement('a') : null;
 if (dashboard) {
+  reviewLink.href = '/tatva/poster-challenge/#review';
+  reviewLink.textContent = 'View submissions';
+  reviewLink.hidden = true;
+  form.before(reviewLink);
   byId('sign-in').addEventListener('click', event => {
     if (typeof window.openAuthModal !== 'function') return;
     event.preventDefault();
