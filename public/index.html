@@ -6275,6 +6275,17 @@ html[data-theme="dark"] .dp-stat-icon.rank {
 <style>#site-navbar .nav-account li[hidden]{display:none!important}</style>
 <style>.sidebar-account-settings{margin:auto 7px 8px;padding:10px 12px;flex-shrink:0;text-decoration:none}.app[data-sidebar-collapsed] .sidebar-account-settings{justify-content:center}.app[data-sidebar-collapsed] .sidebar-account-settings .sidebar-label{display:none}</style>
 <style>#site-navbar{z-index:10001}#site-navbar .nav-dropdown-links{z-index:10002;pointer-events:auto}.dh-modal-wrap.open{z-index:20000}</style>
+<style>
+.dh-tatva-dashboard{grid-column:1/-1;padding:18px 22px}
+.dh-tatva-dashboard h3{margin:0 0 10px}
+.dh-tatva-dashboard [hidden],.dh-tatva-dashboard p:empty{display:none!important}
+.dh-tatva-dashboard form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;max-width:600px}
+.dh-tatva-dashboard label{grid-column:1/-1;font-size:13px;font-weight:700}
+.dh-tatva-dashboard input{min-width:0;padding:9px 11px;border:1px solid var(--line);border-radius:8px;color:var(--ink);background:var(--card)}
+.dh-tatva-dashboard button{padding:8px 13px;border-radius:8px;background:var(--ink);color:var(--card)}
+.dh-tatva-dashboard a{text-decoration:underline;text-underline-offset:3px}
+</style>
+<script defer src="/tatva/poster-challenge/poster.js"></script>
 </head>
 <body>
 <dialog id="site-notification-dialog" aria-labelledby="site-notification-heading" style="margin:auto;width:min(90vw,28rem);padding:1.5rem;border:1px solid var(--line);border-radius:1.25rem;background:var(--card);color:var(--ink)">
@@ -6881,14 +6892,19 @@ requestAnimationFrame(loop);
 
 <!-- DASHBOARD -->
 <section class="view on" id="v-home"><div class="g">
- <a class="c s12 dh-home-cert-banner" href="/tatva/poster-challenge/">
-  <div class="dh-home-cert-left">
-    <span class="tag" style="background:rgba(138,121,236,0.15);color:#6247ce;border:1px solid rgba(138,121,236,0.3);font-weight:800;">TATVA HACKATHON 2026</span>
-    <h3>TATVA Poster Challenge</h3>
-    <p>Design a TATVA poster, share it on LinkedIn, and submit your post. The top three each win a domain worth about ₹1,400.</p>
-  </div>
-  <span class="dh-cert-btn dh-cert-btn-primary">View challenge →</span>
- </a>
+ <section class="c s12 dh-tatva-dashboard" id="tatva-poster-challenge" aria-labelledby="tatva-dashboard-title">
+  <h3 id="tatva-dashboard-title">TATVA Poster Challenge</h3>
+  <p id="deadline" hidden></p>
+  <p id="entry-status" role="status"></p>
+  <a id="sign-in" href="/" hidden>Sign in to submit</a>
+  <button id="check-session" type="button" hidden>Check sign-in again</button>
+  <form id="entry-form" hidden>
+   <label for="post-url">LinkedIn post URL</label>
+   <input id="post-url" type="url" maxlength="2048" placeholder="Paste your LinkedIn post link" required>
+   <button type="submit">Submit</button>
+  </form>
+  <a id="saved-link" target="_blank" rel="noopener noreferrer" hidden>Open your submitted post ↗</a>
+ </section>
  <div class="c k s5"><div class="h"><h3>Overall Information</h3><span class="tag">Platform</span></div>
   <div class="big"><div><b id="n1"></b><span>coding challenges</span></div><div><b id="n2"></b><span>hackathon featured</span></div></div><div class="bar"></div>
   <div class="tl"><div><b id="t1"></b><span>Paths</span></div><div><b id="t2"></b><span>Projects</span></div><div><b id="t3"></b><span>Challenges</span></div></div></div>
