@@ -15,8 +15,13 @@ export async function onRequest({ request, env }) {
   backend.hash = '';
 
   try {
+    const upstream = new Request(backend, request);
+    // Retain the public host on same-origin GETs, which omit the Origin header.
+    // Overwrite caller-supplied forwarding metadata at this trusted proxy.
+    upstream.headers.set('X-Forwarded-Host', incoming.host);
+    upstream.headers.set('X-Forwarded-Proto', incoming.protocol.slice(0, -1));
     // Keep credentials on the configured upstream if it returns a redirect.
-    return await fetch(new Request(backend, request), { redirect: 'manual' });
+    return await fetch(upstream, { redirect: 'manual' });
   } catch {
     return Response.json({ error: 'Backend unavailable' }, { status: 502 });
   }
