@@ -84,6 +84,7 @@ async function load() {
   try {
     const info = await request('/info');
     byId('deadline').textContent = info.deadline ? `Deadline: ${formatTime(info.deadline)}${info.open ? '' : ' · Closed'}` : 'Submissions are awaiting an announced deadline.';
+    if (!info.deadline) return;
     const { entry, organizer } = await request('/entry');
     byId('sign-in').hidden = byId('check-session').hidden = true;
     status.textContent = '';
