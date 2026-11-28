@@ -66,6 +66,29 @@ html[data-theme="mercury"] .dp-settings-shell {
   --dp-border: #E0E0E8;
 }
 
+/* Profile pages use the full page without the dashboard navigation panel. */
+.app:has(#v-profile.on) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.app:has(#v-profile.on) > main {
+  grid-column: 1;
+  max-width: 1440px;
+}
+
+.app:has(#v-profile.on) #dashboard-sidebar,
+.app:has(#v-profile.on) .sidebar-greeting,
+.app:has(#v-profile.on) #mob-sb-backdrop,
+.app:has(#v-profile.on) #mob-dock-more {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .app:has(#v-profile.on) #mob-dock {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 #v-profile {
   background: var(--dp-bg);
   min-height: calc(100vh - 68px);
