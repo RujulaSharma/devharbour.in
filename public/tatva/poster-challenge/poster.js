@@ -1,5 +1,6 @@
 'use strict';
 
+(() => {
 const byId = id => document.getElementById(id);
 const form = byId('entry-form');
 const status = byId('entry-status');
@@ -84,13 +85,14 @@ async function load() {
   try {
     const info = await request('/info');
     byId('deadline').textContent = info.deadline ? `Deadline: ${formatTime(info.deadline)}${info.open ? '' : ' · Closed'}` : 'Submissions are awaiting an announced deadline.';
+    if (dashboard && !info.open) status.textContent = 'Submissions are closed.';
     if (!info.deadline) return;
     const { entry, organizer } = await request('/entry');
     byId('sign-in').hidden = byId('check-session').hidden = true;
-    status.textContent = '';
+    status.textContent = dashboard && !info.open ? 'Submissions are closed.' : '';
     form.hidden = !info.open;
     showEntry(entry);
-    if (organizer) {
+    if (organizer && byId('review')) {
       byId('review').hidden = false;
       try {
         ({ entries } = await request('/review'));
@@ -99,7 +101,7 @@ async function load() {
     }
   } catch (error) {
     form.hidden = true;
-    byId('review').hidden = true;
+    if (byId('review')) byId('review').hidden = true;
     if (error.status === 401 || error.status === 403) {
       status.textContent = error.status === 401 ? 'Sign in to submit or view your entry.' : error.message;
       byId('sign-in').hidden = byId('check-session').hidden = false;
@@ -116,11 +118,22 @@ form.addEventListener('submit', async event => {
   try {
     const { entry } = await request('/entry', 'POST', { url: byId('post-url').value });
     showEntry(entry);
-    if (!byId('review').hidden) load();
+    if (byId('review') && !byId('review').hidden) load();
   } catch (error) { status.textContent = error.message; }
   finally { button.disabled = false; }
 });
-statusOptions(byId('review-filter'));
-byId('review-filter').addEventListener('change', renderEntries);
+if (byId('review-filter')) {
+  statusOptions(byId('review-filter'));
+  byId('review-filter').addEventListener('change', renderEntries);
+}
 byId('check-session').addEventListener('click', load);
+const dashboard = byId('tatva-poster-challenge');
+if (dashboard) {
+  byId('sign-in').addEventListener('click', event => {
+    if (typeof window.openAuthModal !== 'function') return;
+    event.preventDefault();
+    window.openAuthModal('login');
+  });
+}
 load();
+})();
