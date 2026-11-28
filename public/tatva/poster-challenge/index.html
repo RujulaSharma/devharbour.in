@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TATVA Poster Challenge | Dev Harbour</title>
+  <link rel="stylesheet" href="/tatva/poster-challenge/poster.css">
+  <script defer src="/tatva/poster-challenge/poster.js"></script>
+</head>
+<body>
+  <header><a href="/"><img src="/assets/devharbour-logo.png" alt="">Dev Harbour</a></header>
+  <main>
+    <div class="layout">
+      <section aria-labelledby="title">
+        <p class="event">TATVA HACKATHON 2026</p>
+        <h1 id="title">Poster Challenge</h1>
+        <p class="prize">The top three posters each win a domain name worth about ₹1,400 (US$15). The prize extension is outside .cv.</p>
+        <ol>
+          <li>Design an original TATVA poster.</li>
+          <li>Share it publicly on LinkedIn, tag Dev Harbour, and include the official hackathon link.</li>
+          <li>Open your post’s menu, select <strong>Copy link to post</strong>, and paste it here.</li>
+        </ol>
+        <a href="https://unstop.com/o/9sLW7l8">TATVA on Unstop ↗</a>
+      </section>
+      <section class="panel" aria-labelledby="entry-title">
+        <h2 id="entry-title">Submit your poster</h2>
+        <p id="deadline">Checking submission window…</p>
+        <p id="entry-status" role="status"></p>
+        <a id="sign-in" href="/" target="_blank" rel="noopener" hidden>Sign in to Dev Harbour ↗</a>
+        <button id="check-session" type="button" hidden>Check sign-in again</button>
+        <form id="entry-form" hidden>
+          <label for="post-url">LinkedIn post URL</label>
+          <input id="post-url" type="url" maxlength="2048" placeholder="https://www.linkedin.com/posts/…" required>
+          <button type="submit">Submit entry</button>
+        </form>
+        <p><a id="saved-link" target="_blank" rel="noopener noreferrer" hidden>Open your submitted post ↗</a></p>
+      </section>
+    </div>
+    <section id="review" class="panel" aria-labelledby="review-title" hidden>
+      <h2 id="review-title">TATVA Poster Entries</h2>
+      <p id="review-summary" role="status"></p>
+      <label for="review-filter">Filter by status</label>
+      <select id="review-filter"><option value="">All entries</option></select>
+      <div id="entries"></div>
+    </section>
+  </main>
+</body>
+</html>
