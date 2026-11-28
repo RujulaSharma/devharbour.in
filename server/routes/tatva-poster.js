@@ -1,7 +1,18 @@
 const router = require('express').Router();
 const db = require('../db');
-const { requireAuth, requireRole } = require('../auth');
+const { requireAuth } = require('../auth');
 const { csrf } = require('../profile/policy');
+
+const organizerEmail = 'parthvijaygidde@gmail.com';
+
+function isOrganizer(user) {
+  return user?.emailVerified === true && user.email?.toLowerCase() === organizerEmail;
+}
+
+function requireOrganizer(req, res, next) {
+  if (!isOrganizer(req.user)) return res.status(403).json({ error: 'Only the TATVA organizer can review submissions.' });
+  next();
+}
 
 const table = 'tatva_poster_entries';
 const statuses = ['new', 'eligible', 'needs_correction', 'shortlisted'];
@@ -72,7 +83,7 @@ router.get('/entry', requireAuth, async (req, res, next) => {
     const [entry] = await rows(`SELECT post_url, submitted_at, updated_at, status,
       CASE WHEN status = 'needs_correction' THEN note ELSE '' END AS note
       FROM ${table} WHERE user_id = ?`, req.user.id);
-    res.json({ entry: entry || null, organizer: ['admin', 'moderator'].includes(req.user.role) });
+    res.json({ entry: entry || null, organizer: isOrganizer(req.user) });
   } catch (error) { next(error); }
 });
 
@@ -104,7 +115,7 @@ router.post('/entry', requireAuth, csrf, async (req, res, next) => {
   }
 });
 
-router.get('/review', requireAuth, requireRole('admin', 'moderator'), async (_req, res, next) => {
+router.get('/review', requireAuth, requireOrganizer, async (_req, res, next) => {
   try {
     const entries = await rows(`SELECT e.user_id, e.post_url, e.submitted_at, e.updated_at, e.status, e.note,
       u.full_name FROM ${table} e JOIN users u ON u.id = e.user_id ORDER BY e.submitted_at DESC`);
@@ -112,7 +123,7 @@ router.get('/review', requireAuth, requireRole('admin', 'moderator'), async (_re
   } catch (error) { next(error); }
 });
 
-router.patch('/review/:userId', requireAuth, requireRole('admin', 'moderator'), csrf, async (req, res, next) => {
+router.patch('/review/:userId', requireAuth, requireOrganizer, csrf, async (req, res, next) => {
   const { status, note = '', postUrl } = req.body || {};
   if (!statuses.includes(status) || typeof note !== 'string' || note.length > 1000 || typeof postUrl !== 'string'
     || (status === 'needs_correction' && !note.trim())) {
