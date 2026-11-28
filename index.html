@@ -6275,6 +6275,8 @@ html[data-theme="dark"] .dp-stat-icon.rank {
 <style>#site-navbar .nav-account li[hidden]{display:none!important}</style>
 <style>.sidebar-account-settings{margin:auto 7px 8px;padding:10px 12px;flex-shrink:0;text-decoration:none}.app[data-sidebar-collapsed] .sidebar-account-settings{justify-content:center}.app[data-sidebar-collapsed] .sidebar-account-settings .sidebar-label{display:none}</style>
 <style>#site-navbar{z-index:10001}#site-navbar .nav-dropdown-links{z-index:10002;pointer-events:auto}.dh-modal-wrap.open{z-index:20000}</style>
+<script src="/assets/vendor/lenis/lenis.min.js" defer></script>
+<script src="/assets/smooth-scroll.js" defer></script>
 </head>
 <body>
 <dialog id="site-notification-dialog" aria-labelledby="site-notification-heading" style="margin:auto;width:min(90vw,28rem);padding:1.5rem;border:1px solid var(--line);border-radius:1.25rem;background:var(--card);color:var(--ink)">
@@ -6839,15 +6841,7 @@ requestAnimationFrame(loop);
         <span class="dh-pf-badge">Supabase PostgreSQL</span>
         <a href="/guides/">Developer guides</a><button type="button" data-cookie-settings>Cookie settings</button>
         <span class="dh-pf-badge">Made in India 🇮🇳</span>
-        <a href="#intro" onclick="window.scrollTo({top:0,behavior:'smooth'});
-  if (fromUserAction && window.history && window.history.pushState && id) {
-    try {
-      const targetPath = id === 'home' ? '/' : '/' + id;
-      if (window.location.pathname !== targetPath) {
-        window.history.pushState(null, '', targetPath);
-      }
-    } catch(err) {}
-  }return false;" style="color:var(--blk,#1f1c2c);font-weight:700;text-decoration:none;margin-left:8px;">Back to Top ↑</a>
+        <a href="#intro" id="landing-back-to-top" style="color:var(--blk,#1f1c2c);font-weight:700;text-decoration:none;margin-left:8px;">Back to Top ↑</a>
       </div>
     </div>
   </div>
