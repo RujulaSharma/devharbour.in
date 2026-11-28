@@ -56,6 +56,7 @@ app.use('/api/profile', require('./routes/profile'));
 app.use('/api/workspace', workspaceRoutes);
 app.use('/api/study', require('./routes/study'));
 app.use('/api/certificates', certificateRoutes);
+app.use('/api/tatva/poster', require('./routes/tatva-poster'));
 
 // Real-Time Server-Sent Events (SSE) Stream
 app.get('/api/events', (req, res) => {
