@@ -27,16 +27,41 @@ function challenge() {
   return { deadline: Number.isFinite(deadline) ? new Date(deadline).toISOString() : null, open: Date.now() < deadline };
 }
 
-function linkedinPost(value) {
+function parseHttps(value) {
   if (typeof value !== 'string' || value.length > 2048) return null;
-  let url;
-  try { url = new URL(value.trim()); } catch { return null; }
-  if (url.protocol !== 'https:' || !['linkedin.com', 'www.linkedin.com'].includes(url.host) || url.username || url.password) return null;
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === 'https:' && !url.username && !url.password ? url : null;
+  } catch {
+    return null;
+  }
+}
+
+function linkedinPost(url) {
+  if (!url || !['linkedin.com', 'www.linkedin.com'].includes(url.host)) return null;
   const path = url.pathname.replace(/\/$/, '');
-  const activity = /^\/feed\/update\/urn:li:activity:(\d{10,25})$/.exec(path);
-  const post = /^\/posts\/[a-z0-9_%.-]+-activity-(\d{10,25})(?:-[a-z0-9]+)?$/i.exec(path);
-  const id = (activity || post)?.[1];
-  return id ? { id, url: `https://www.linkedin.com/feed/update/urn:li:activity:${id}/` } : null;
+  const feed = /^\/feed\/update\/urn:li:(activity|ugcPost|share):(\d{10,25})$/.exec(path);
+  const post = /^\/posts\/[a-z0-9_%.-]+-(activity|ugcPost|share)-(\d{10,25})(?:-[a-z0-9]+)?$/i.exec(path);
+  const match = feed || post;
+  if (!match) return null;
+  const [, kind, number] = match;
+  const type = kind.toLowerCase() === 'ugcpost' ? 'ugcPost' : kind.toLowerCase();
+  const id = type === 'activity' ? number : type + ':' + number;
+  const canonicalPath = post && type !== 'activity' ? path : '/feed/update/urn:li:' + type + ':' + number;
+  return { id, url: 'https://www.linkedin.com' + canonicalPath + '/' };
+}
+
+async function resolveLinkedinPost(value) {
+  const url = parseHttps(value);
+  if (url?.host !== 'lnkd.in') return linkedinPost(url);
+  if (!/^\/(?:p\/)?[a-z0-9_-]{3,64}\/?$/i.test(url.pathname)) return null;
+  const response = await fetch('https://lnkd.in' + url.pathname, {
+    method: 'HEAD',
+    redirect: 'manual',
+    signal: AbortSignal.timeout(4000)
+  });
+  if (![301, 302, 303, 307, 308].includes(response.status)) return null;
+  return linkedinPost(parseHttps(response.headers.get('location')));
 }
 
 router.use((_req, res, next) => { res.set('Cache-Control', 'private, no-store'); next(); });
@@ -53,8 +78,13 @@ router.get('/entry', requireAuth, async (req, res, next) => {
 
 router.post('/entry', requireAuth, csrf, async (req, res, next) => {
   if (!challenge().open) return res.status(409).json({ error: 'Submissions are closed.' });
-  const post = linkedinPost(req.body?.url);
-  if (!post) return res.status(400).json({ error: 'Paste the full HTTPS link to a LinkedIn post.' });
+  let post;
+  try {
+    post = await resolveLinkedinPost(req.body?.url);
+  } catch {
+    return res.status(503).json({ error: 'Could not open the LinkedIn short link. Try again or paste the full LinkedIn post URL.' });
+  }
+  if (!post) return res.status(400).json({ error: 'Paste a LinkedIn post URL or a LinkedIn short link that opens a post.' });
   try {
     const now = new Date().toISOString();
     const [entry] = await rows(`INSERT INTO ${table} (user_id, post_id, post_url, submitted_at, updated_at)
