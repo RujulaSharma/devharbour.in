@@ -75,3 +75,20 @@ test('same-origin GET refreshes retain public cookie scope without an Origin hea
   setSessionCookie(req, res, 'a'.repeat(64), new Date());
   assert.equal(res.cookies[0].options.domain, undefined);
 });
+test('public HTTPS cookies remain Secure even when the upstream runs with development proxy defaults', () => {
+  const previous = process.env.NODE_ENV;
+  process.env.NODE_ENV = 'development';
+  try {
+    for (const origin of ['https://devharbour.in', undefined]) {
+      const req = request('devharbour-in.onrender.com');
+      req.secure = false; req.protocol = 'http';
+      if (origin) req.headers.origin = origin; else delete req.headers.origin;
+      req.headers['x-forwarded-host'] = 'devharbour.in';
+      const res = response();
+      setSessionCookie(req, res, 'a'.repeat(64), new Date());
+      clearSessionCookie(req, res);
+      assert.equal(res.cookies[0].options.secure, true);
+      assert(res.cleared.every(cookie => cookie.options.secure));
+    }
+  } finally { if (previous === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = previous; }
+});
